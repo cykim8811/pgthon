@@ -33,29 +33,28 @@ DECLARE
 BEGIN
     -------------------------------------------------------
     -- 1. Create Base Objects
-    -------------------------------------------------------
-    INSERT INTO public.py_object (id, ob_type, address) VALUES 
-    (B_NONE_T, ID_TYP_TYPE, 0x200), 
-    (B_BOOL_T, ID_TYP_TYPE, 0x210),
-    (B_NONE,   NULL, 0x300), -- None
-    (B_TRUE,   NULL, 0x310), -- True
-    (B_FALSE,  NULL, 0x320), -- False
-    (B_TUP_INT_ONLY, ID_TUP_TYPE, 0x888),
-    (B_TUP_OBJ_ONLY, ID_TUP_TYPE, 0x889);
+    INSERT INTO public.py_object (id, ob_type) VALUES 
+    (B_NONE_T, ID_TYP_TYPE), 
+    (B_BOOL_T, ID_TYP_TYPE),
+    (B_NONE,   NULL), -- None
+    (B_TRUE,   NULL), -- True
+    (B_FALSE,  NULL), -- False
+    (B_TUP_INT_ONLY, ID_TUP_TYPE),
+    (B_TUP_OBJ_ONLY, ID_TUP_TYPE);
 
     -------------------------------------------------------
     -- 2. Create Types (NoneType, bool)
     -------------------------------------------------------
     -- NoneType inherits from object
-    INSERT INTO public.py_tuple_object (id, ob_base, ob_item, ob_size) 
-    VALUES (ID_TUP_OBJ_ONLY, B_TUP_OBJ_ONLY, ARRAY[(SELECT ob_base FROM public.py_type_object WHERE id = ID_OBJ_TYPE)], 1);
+    INSERT INTO public.py_tuple_object (id, ob_base, ob_item) 
+    VALUES (ID_TUP_OBJ_ONLY, B_TUP_OBJ_ONLY, ARRAY[(SELECT ob_base FROM public.py_type_object WHERE id = ID_OBJ_TYPE)]);
 
     INSERT INTO public.py_type_object (id, ob_base, tp_name, tp_bases) 
     VALUES (ID_NONE_TYPE, B_NONE_T, 'NoneType', ID_TUP_OBJ_ONLY);
 
     -- bool inherits from int
-    INSERT INTO public.py_tuple_object (id, ob_base, ob_item, ob_size) 
-    VALUES (ID_TUP_INT_ONLY, B_TUP_INT_ONLY, ARRAY[(SELECT ob_base FROM public.py_type_object WHERE id = ID_INT_TYPE)], 1);
+    INSERT INTO public.py_tuple_object (id, ob_base, ob_item) 
+    VALUES (ID_TUP_INT_ONLY, B_TUP_INT_ONLY, ARRAY[(SELECT ob_base FROM public.py_type_object WHERE id = ID_INT_TYPE)]);
 
     INSERT INTO public.py_type_object (id, ob_base, tp_name, tp_bases) 
     VALUES (ID_BOOL_TYPE, B_BOOL_T, 'bool', ID_TUP_INT_ONLY);

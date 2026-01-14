@@ -8,9 +8,7 @@
 -- Root object
 CREATE TABLE public.py_object (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  ob_type UUID, -- Refers to py_type_object
-  ob_refcnt INTEGER DEFAULT 1,
-  address BIGINT -- Simulated memory address
+  ob_type UUID -- Refers to py_type_object
 );
 
 -- Type definitions
@@ -19,8 +17,7 @@ CREATE TABLE public.py_type_object (
   ob_base UUID REFERENCES public.py_object(id) ON DELETE CASCADE UNIQUE,
   tp_name TEXT NOT NULL,
   tp_bases UUID, -- Refers to py_tuple_object
-  tp_dict UUID,  -- Refers to py_dict_object
-  tp_doc TEXT
+  tp_dict UUID   -- Refers to py_dict_object
 );
 
 -- Circular reference: link py_object to py_type_object
@@ -31,31 +28,28 @@ ADD CONSTRAINT fk_py_object_type FOREIGN KEY (ob_type) REFERENCES public.py_type
 CREATE TABLE public.py_unicode_object (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ob_base UUID REFERENCES public.py_object(id) ON DELETE CASCADE UNIQUE,
-  str_value TEXT,
-  ob_size INTEGER -- Length of string
+  str_value TEXT
 );
 
 -- Tuple
 CREATE TABLE public.py_tuple_object (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ob_base UUID REFERENCES public.py_object(id) ON DELETE CASCADE UNIQUE,
-  ob_item UUID[], -- Array of py_object IDs
-  ob_size INTEGER
+  ob_item UUID[] -- Array of py_object IDs
 );
 
 -- List
 CREATE TABLE public.py_list_object (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ob_base UUID REFERENCES public.py_object(id) ON DELETE CASCADE UNIQUE,
-  ob_item UUID[], -- Array of py_object IDs
-  ob_size INTEGER,
-  allocated INTEGER
+  ob_item UUID[] -- Array of py_object IDs
 );
 
 -- Dictionary
 CREATE TABLE public.py_dict_object (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ob_base UUID REFERENCES public.py_object(id) ON DELETE CASCADE UNIQUE,
+  ma_table JSONB, -- From original spec
   ma_used INTEGER DEFAULT 0
 );
 
@@ -71,8 +65,7 @@ CREATE TABLE public.py_dict_entry (
 CREATE TABLE public.py_set_object (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ob_base UUID REFERENCES public.py_object(id) ON DELETE CASCADE UNIQUE,
-  ob_item UUID[],
-  ob_size INTEGER
+  ob_item UUID[]
 );
 
 -- Long (Integer)
@@ -146,10 +139,10 @@ DECLARE
     B_TUP_OBJ_ONLY UUID := gen_random_uuid();
 BEGIN
     -- 1. Create Base PyObjects
-    INSERT INTO public.py_object (id, ob_type, address) VALUES 
-    (B_OBJ, NULL, 0x100), (B_TYP, NULL, 0x110), (B_STR, NULL, 0x120),
-    (B_INT, NULL, 0x130), (B_LST, NULL, 0x140), (B_DCT, NULL, 0x150),
-    (B_TUP, NULL, 0x160), (B_FNC, NULL, 0x170), (B_TUP_OBJ_ONLY, NULL, 0x999);
+    INSERT INTO public.py_object (id, ob_type) VALUES 
+    (B_OBJ, NULL), (B_TYP, NULL), (B_STR, NULL),
+    (B_INT, NULL), (B_LST, NULL), (B_DCT, NULL),
+    (B_TUP, NULL), (B_FNC, NULL), (B_TUP_OBJ_ONLY, NULL);
 
     -- 2. Create Core Types
     INSERT INTO public.py_type_object (id, ob_base, tp_name) VALUES
@@ -162,7 +155,7 @@ BEGIN
     UPDATE public.py_object SET ob_type = ID_TYP_TYPE WHERE id IN (B_OBJ, B_TYP, B_STR, B_INT, B_LST, B_DCT, B_TUP, B_FNC, B_TUP_OBJ_ONLY);
 
     -- 4. Set Hierarchy
-    INSERT INTO public.py_tuple_object (id, ob_base, ob_item, ob_size) VALUES (ID_TUP_OBJ_ONLY, B_TUP_OBJ_ONLY, ARRAY[B_OBJ], 1);
+    INSERT INTO public.py_tuple_object (id, ob_base, ob_item) VALUES (ID_TUP_OBJ_ONLY, B_TUP_OBJ_ONLY, ARRAY[B_OBJ]);
     UPDATE public.py_object SET ob_type = ID_TUP_TYPE WHERE id = B_TUP_OBJ_ONLY;
 
     UPDATE public.py_type_object SET tp_bases = ID_TUP_OBJ_ONLY WHERE id != ID_OBJ_TYPE;

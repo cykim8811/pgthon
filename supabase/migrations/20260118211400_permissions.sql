@@ -22,6 +22,8 @@ ALTER TABLE public.py_instance_object ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.py_js_function_object ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.py_bound_method_object ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.py_list_iterator_object ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.py_frame_object ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.vm_execution_context ENABLE ROW LEVEL SECURITY;
 
 -------------------------------------------------------
 -- 2. Public Read Access Policies
@@ -44,6 +46,8 @@ CREATE POLICY "Public Read Access" ON public.py_instance_object FOR SELECT USING
 CREATE POLICY "Public Read Access" ON public.py_js_function_object FOR SELECT USING (true);
 CREATE POLICY "Public Read Access" ON public.py_bound_method_object FOR SELECT USING (true);
 CREATE POLICY "Public Read Access" ON public.py_list_iterator_object FOR SELECT USING (true);
+CREATE POLICY "Public Read Access" ON public.py_frame_object FOR SELECT USING (true);
+CREATE POLICY "Public All Access" ON public.vm_execution_context FOR ALL USING (true);
 
 -------------------------------------------------------
 -- 2.5 Public Write Access Policies  
@@ -83,6 +87,9 @@ CREATE POLICY "Public Update Access" ON public.py_instance_object FOR UPDATE USI
 CREATE POLICY "Public Update Access" ON public.py_js_function_object FOR UPDATE USING (true);
 CREATE POLICY "Public Update Access" ON public.py_bound_method_object FOR UPDATE USING (true);
 CREATE POLICY "Public Update Access" ON public.py_list_iterator_object FOR UPDATE USING (true);
+CREATE POLICY "Public Update Access" ON public.py_frame_object FOR UPDATE USING (true);
+
+CREATE POLICY "Public Insert Access" ON public.py_frame_object FOR INSERT WITH CHECK (true);
 
 -------------------------------------------------------
 -- 3. Grant Execute Permissions on VM Functions
@@ -111,14 +118,24 @@ GRANT EXECUTE ON FUNCTION public.vm_add(uuid, uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.vm_native_dispatch(text, uuid[]) TO anon, authenticated;
 
 -- Grant execute on VM call system
-GRANT EXECUTE ON FUNCTION public.vm_call(uuid, uuid[]) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.vm_run_frame(uuid, uuid, uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.vm_call(uuid, uuid[], uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.vm_run_frame(uuid, uuid, uuid, uuid) TO anon, authenticated;
 
 -- Grant execute on VM tools
 GRANT EXECUTE ON FUNCTION public.vm_assemble(text, text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.vm_assembler_get_or_create_const(text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.vm_inspect_object(uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.vm_execute_source(text) TO anon, authenticated;
+
+-- Frame & Introspection functions
+GRANT EXECUTE ON FUNCTION public.vm_create_frame(uuid, uuid, uuid, uuid, uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.vm_update_frame(uuid, integer, integer) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.vm_get_frame_info(uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.vm_walk_frames(uuid, integer) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.sys_getframe(integer) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.vm_format_traceback(uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.vm_set_current_frame(uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.vm_get_current_frame() TO anon, authenticated;
 
 -------------------------------------------------------
 -- 4. Grant Insert/Update Permissions for VM Operations
@@ -134,3 +151,5 @@ GRANT INSERT, UPDATE ON public.py_dict_entry TO anon, authenticated;
 GRANT INSERT, UPDATE ON public.py_code_object TO anon, authenticated;
 GRANT INSERT, UPDATE ON public.py_bound_method_object TO anon, authenticated;
 GRANT INSERT, UPDATE ON public.py_list_iterator_object TO anon, authenticated;
+GRANT INSERT, UPDATE ON public.py_frame_object TO anon, authenticated;
+GRANT ALL ON public.vm_execution_context TO anon, authenticated;

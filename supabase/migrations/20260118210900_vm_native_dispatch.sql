@@ -83,14 +83,7 @@ BEGIN
         -- INT METHODS (Magic Methods)
         -----------------------------------------------------------------
         WHEN '__add__' THEN
-            v_self_id := args[1];
-            v_arg1 := args[2];
-            
-            v_i1 := public.vm_get_int_value(v_self_id);
-            v_i2 := public.vm_get_int_value(v_arg1);
-            v_res := v_i1 + v_i2;
-            
-            RETURN public.vm_create_int(v_res);
+            RETURN public.vm_add(args[1], args[2]);
             
         WHEN '__sub__' THEN
             v_i1 := public.vm_get_int_value(args[1]);

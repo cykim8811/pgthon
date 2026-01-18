@@ -6,7 +6,11 @@
 -------------------------------------------------------
 -- vm_call: Main call dispatcher
 -------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.vm_call(callable_id uuid, args uuid[])
+CREATE OR REPLACE FUNCTION public.vm_call(
+    callable_id uuid, 
+    args uuid[],
+    p_caller_frame_id uuid DEFAULT NULL
+)
 RETURNS uuid AS $$
 DECLARE
     v_type_id uuid;
@@ -31,6 +35,8 @@ DECLARE
     v_arg_name_str text;
     i integer;
     v_arg_count integer;
+    v_frame_id uuid;  -- Frame object
+    v_result uuid;
 BEGIN
     -- 1. Get Type of Callable
     v_type_id := public.vm_get_type(callable_id);
@@ -95,8 +101,27 @@ BEGIN
             END LOOP;
         END IF;
 
+        -- Create Frame Object
+        v_frame_id := public.vm_create_frame(
+            v_code_id,
+            v_locals_id,
+            NULL,  -- globals
+            NULL,  -- builtins (use default)
+            p_caller_frame_id  -- Link to caller frame
+        );
+        
+        -- Set current frame context
+        PERFORM public.vm_set_current_frame(v_frame_id);
+        
         -- Run frame with code and locals
-        RETURN public.vm_run_frame(v_code_id, v_locals_id, NULL);
+        v_result := public.vm_run_frame(v_code_id, v_locals_id, NULL, v_frame_id);
+        
+        -- Restore previous frame
+        IF p_caller_frame_id IS NOT NULL THEN
+            PERFORM public.vm_set_current_frame(p_caller_frame_id);
+        END IF;
+        
+        RETURN v_result;
     END IF;
     
     RAISE EXCEPTION 'TypeError: Object % is not callable', callable_id;

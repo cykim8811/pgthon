@@ -89,6 +89,9 @@ BEGIN
     (ID_DICT_STR, 'replace'),
     (ID_DICT_STR, 'startswith'),
     (ID_DICT_STR, 'endswith'),
+    (ID_DICT_STR, '__add__'),
+    (ID_DICT_STR, '__str__'),
+    (ID_DICT_STR, '__repr__'),
     
     -- int methods (and magic methods)
     (ID_DICT_INT, '__add__'),
@@ -110,6 +113,7 @@ BEGIN
     (ID_DICT_LST, 'sort'),
     (ID_DICT_LST, 'reverse'),
     (ID_DICT_LST, '__iter__'),
+    (ID_DICT_LST, '__add__'),
     
     -- dict methods
     (ID_DICT_DCT, 'keys'),

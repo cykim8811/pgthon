@@ -9,7 +9,8 @@
 CREATE OR REPLACE FUNCTION public.vm_run_frame(
     p_code_id uuid, 
     p_locals_id uuid, 
-    p_globals_id uuid
+    p_globals_id uuid,
+    p_frame_id uuid DEFAULT NULL
 )
 RETURNS uuid AS $$
 DECLARE
@@ -54,6 +55,11 @@ BEGIN
     -----------------------------------------------------------------
     WHILE v_pc <= v_max_pc LOOP
         v_line := v_lines[v_pc];
+        
+        -- Update frame state (for introspection)
+        IF p_frame_id IS NOT NULL THEN
+            PERFORM public.vm_update_frame(p_frame_id, v_pc, v_pc);
+        END IF;
         
         -- Skip empty lines and comments
         IF length(trim(v_line)) > 0 AND substring(trim(v_line) from 1 for 1) <> '#' THEN
@@ -136,7 +142,7 @@ BEGIN
                         RAISE EXCEPTION 'AttributeError: __add__ not found'; 
                     END IF;
                     
-                    v_res := public.vm_call(v_bound_method, ARRAY[v_tos]);
+                    v_res := public.vm_call(v_bound_method, ARRAY[v_tos], p_frame_id);
                     v_stack := array_append(v_stack, v_res);
 
                 -- COMPARE_OP <op_idx>: Compare TOS and TOS1
@@ -194,7 +200,7 @@ BEGIN
                     v_stack := v_stack[1:array_length(v_stack, 1)-1];
                     
                     -- Call and push result
-                    v_res := public.vm_call(v_func, v_args);
+                    v_res := public.vm_call(v_func, v_args, p_frame_id);
                     v_stack := array_append(v_stack, v_res);
 
                 -- RETURN_VALUE: Return TOS

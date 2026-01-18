@@ -18,7 +18,7 @@ DECLARE
     
     -- __builtins__ Dictionary
     ID_DICT_BUILTINS uuid := '00000000-0000-4000-c000-000000000002';
-    B_DICT_BUILTINS uuid := gen_random_uuid();
+    B_DICT_BUILTINS uuid := '00000000-0000-4000-c000-000000000001';
 
     -- Helper variables
     key_id uuid;

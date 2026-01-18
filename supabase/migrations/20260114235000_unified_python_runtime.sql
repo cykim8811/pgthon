@@ -108,6 +108,13 @@ CREATE TABLE public.py_instance_object (
   in_dict UUID REFERENCES public.py_dict_object(id)
 );
 
+-- JS/Native Function (Built-in)
+CREATE TABLE public.py_js_function_object (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ob_base UUID REFERENCES public.py_object(id) ON DELETE CASCADE UNIQUE,
+  fn_name TEXT NOT NULL
+);
+
 -------------------------------------------------------
 -- 2. Bootstrap Logic (Internal Objects)
 -------------------------------------------------------
@@ -123,6 +130,7 @@ DECLARE
     ID_DCT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
     ID_TUP_TYPE UUID := '00000000-0000-4000-a000-000000000007';
     ID_FNC_TYPE UUID := '00000000-0000-4000-a000-000000000008';
+    ID_JS_FNC_TYPE UUID := '00000000-0000-4000-a000-000000000012';
     
     -- Base PyObject IDs
     B_OBJ UUID := gen_random_uuid();
@@ -133,6 +141,7 @@ DECLARE
     B_DCT UUID := gen_random_uuid();
     B_TUP UUID := gen_random_uuid();
     B_FNC UUID := gen_random_uuid();
+    B_JS_FNC UUID := gen_random_uuid();
 
     -- Helpers
     ID_TUP_OBJ_ONLY UUID := gen_random_uuid();
@@ -142,17 +151,19 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES 
     (B_OBJ, NULL), (B_TYP, NULL), (B_STR, NULL),
     (B_INT, NULL), (B_LST, NULL), (B_DCT, NULL),
-    (B_TUP, NULL), (B_FNC, NULL), (B_TUP_OBJ_ONLY, NULL);
+    (B_TUP, NULL), (B_FNC, NULL), (B_TUP_OBJ_ONLY, NULL),
+    (B_JS_FNC, NULL);
 
     -- 2. Create Core Types
     INSERT INTO public.py_type_object (id, ob_base, tp_name) VALUES
     (ID_OBJ_TYPE, B_OBJ, 'object'), (ID_TYP_TYPE, B_TYP, 'type'),
     (ID_STR_TYPE, B_STR, 'str'),    (ID_INT_TYPE, B_INT, 'int'),
     (ID_LST_TYPE, B_LST, 'list'),   (ID_DCT_TYPE, B_DCT, 'dict'),
-    (ID_TUP_TYPE, B_TUP, 'tuple'),  (ID_FNC_TYPE, B_FNC, 'function');
+    (ID_TUP_TYPE, B_TUP, 'tuple'),  (ID_FNC_TYPE, B_FNC, 'function'),
+    (ID_JS_FNC_TYPE, B_JS_FNC, 'builtin_function_or_method');
 
     -- 3. Circular References
-    UPDATE public.py_object SET ob_type = ID_TYP_TYPE WHERE id IN (B_OBJ, B_TYP, B_STR, B_INT, B_LST, B_DCT, B_TUP, B_FNC, B_TUP_OBJ_ONLY);
+    UPDATE public.py_object SET ob_type = ID_TYP_TYPE WHERE id IN (B_OBJ, B_TYP, B_STR, B_INT, B_LST, B_DCT, B_TUP, B_FNC, B_TUP_OBJ_ONLY, B_JS_FNC);
 
     -- 4. Set Hierarchy
     INSERT INTO public.py_tuple_object (id, ob_base, ob_item) VALUES (ID_TUP_OBJ_ONLY, B_TUP_OBJ_ONLY, ARRAY[B_OBJ]);
@@ -192,3 +203,5 @@ CREATE POLICY "Public Read Access" ON public.py_float_object FOR SELECT USING (t
 CREATE POLICY "Public Read Access" ON public.py_code_object FOR SELECT USING (true);
 CREATE POLICY "Public Read Access" ON public.py_function_object FOR SELECT USING (true);
 CREATE POLICY "Public Read Access" ON public.py_instance_object FOR SELECT USING (true);
+ALTER TABLE public.py_js_function_object ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public Read Access" ON public.py_js_function_object FOR SELECT USING (true);

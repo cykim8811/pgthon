@@ -19,14 +19,12 @@ DECLARE
     -- Variables for loop
     V_DICT_ID   UUID;
     V_METH_NAME TEXT;
-    V_ARG_COUNT INTEGER;
-    V_SIGNATURE TEXT;
     
-    V_FUNC_OBJ  UUID;
-    V_FUNC_BASE UUID;
-    V_CODE_OBJ  UUID;
-    V_CODE_BASE UUID;
+    V_JS_FUNC_OBJ  UUID;
+    V_JS_FUNC_BASE UUID;
     V_KEY_BASE  UUID;
+    
+    ID_JS_FNC_TYPE  UUID := '00000000-0000-4000-a000-000000000012';
 
 BEGIN
     -------------------------------------------------------
@@ -49,49 +47,40 @@ BEGIN
     -------------------------------------------------------
     CREATE TEMP TABLE temp_func_methods (
         target_dict_id UUID,
-        method_name TEXT,
-        arg_count INTEGER,
-        signature TEXT
+        method_name TEXT
     ) ON COMMIT DROP;
 
     INSERT INTO temp_func_methods VALUES 
     -- function
-    (ID_DICT_FNC, '__call__', 1, 'function.__call__(self, *args, **kwargs) -> object'),
-    (ID_DICT_FNC, '__get__', 2, 'function.__get__(self, instance, owner=None) -> method'), -- Descriptor protocol
-    (ID_DICT_FNC, '__repr__', 1, 'function.__repr__(self) -> str'),
+    (ID_DICT_FNC, '__call__'),
+    (ID_DICT_FNC, '__get__'),
+    (ID_DICT_FNC, '__repr__'),
 
     -- code (Minimal)
-    (ID_DICT_CODE, '__repr__', 1, 'code.__repr__(self) -> str');
+    (ID_DICT_CODE, '__repr__');
 
     -------------------------------------------------------
     -- 3. Loop and Create
     -------------------------------------------------------
-    FOR V_DICT_ID, V_METH_NAME, V_ARG_COUNT, V_SIGNATURE IN SELECT target_dict_id, method_name, arg_count, signature FROM temp_func_methods LOOP
+    FOR V_DICT_ID, V_METH_NAME IN SELECT target_dict_id, method_name FROM temp_func_methods LOOP
         
         -- Generate IDs
-        V_FUNC_OBJ := gen_random_uuid();
-        V_FUNC_BASE := gen_random_uuid();
-        V_CODE_OBJ := gen_random_uuid();
-        V_CODE_BASE := gen_random_uuid();
+        V_JS_FUNC_OBJ := gen_random_uuid();
+        V_JS_FUNC_BASE := gen_random_uuid();
         V_KEY_BASE := gen_random_uuid();
 
         -- 1. Create Key String Object
         INSERT INTO public.py_object (id, ob_type) VALUES (V_KEY_BASE, ID_STR_TYPE);
         INSERT INTO public.py_unicode_object (id, ob_base, str_value) VALUES (gen_random_uuid(), V_KEY_BASE, V_METH_NAME);
 
-        -- 2. Create Code Object with Signature
-        INSERT INTO public.py_object (id, ob_type) VALUES (V_CODE_BASE, ID_CODE_TYPE);
-        INSERT INTO public.py_code_object (id, ob_base, co_name, co_filename, co_argcount, co_code) 
-        VALUES (V_CODE_OBJ, V_CODE_BASE, V_METH_NAME, '<slot wrapper ' || V_METH_NAME || '>', V_ARG_COUNT, V_SIGNATURE);
+        -- 2. Create JS Function Object (Native)
+        INSERT INTO public.py_object (id, ob_type) VALUES (V_JS_FUNC_BASE, ID_JS_FNC_TYPE);
+        INSERT INTO public.py_js_function_object (id, ob_base, fn_name)
+        VALUES (V_JS_FUNC_OBJ, V_JS_FUNC_BASE, V_METH_NAME);
 
-        -- 3. Create Function Object
-        INSERT INTO public.py_object (id, ob_type) VALUES (V_FUNC_BASE, ID_FNC_TYPE);
-        INSERT INTO public.py_function_object (id, ob_base, func_name, func_code, func_globals)
-        VALUES (V_FUNC_OBJ, V_FUNC_BASE, V_METH_NAME, V_CODE_OBJ, NULL);
-
-        -- 4. Link to Dict
+        -- 3. Link to Dict
         INSERT INTO public.py_dict_entry (id, dict_id, me_key, me_value) 
-        VALUES (gen_random_uuid(), V_DICT_ID, V_KEY_BASE, V_FUNC_BASE);
+        VALUES (gen_random_uuid(), V_DICT_ID, V_KEY_BASE, V_JS_FUNC_BASE);
         
         -- Update usage count
         UPDATE public.py_dict_object SET ma_used = ma_used + 1 WHERE id = V_DICT_ID;

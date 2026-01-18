@@ -5,4 +5,5 @@ export default [
     route("document", "routes/document.tsx"),
     route("login", "routes/login.tsx"),
     route("signup", "routes/signup.tsx"),
+    route("repl", "routes/repl.tsx"),
 ] satisfies RouteConfig;

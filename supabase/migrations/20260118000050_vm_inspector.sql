@@ -70,7 +70,7 @@ BEGIN
         
         -- Build preview
         v_json_items := ARRAY[]::JSONB[];
-        IF v_list_items IS NOT NULL THEN
+        IF v_list_items IS NOT NULL AND array_length(v_list_items, 1) IS NOT NULL THEN
             FOR i IN 1..LEAST(array_length(v_list_items, 1), v_limit) LOOP
                 -- Recursive call (lite version?) - For safety just ID and Type name
                 -- To avoid recursion depth, let's just get type name of children
@@ -104,7 +104,7 @@ BEGIN
         RETURN jsonb_build_object(
             'id', p_obj_id,
             'type', v_type_name,
-            'length', array_length(v_list_items, 1),
+            'length', coalesce(array_length(v_list_items, 1), 0),
             'children', to_jsonb(v_json_items)
         );
     END IF;
@@ -135,4 +135,4 @@ BEGIN
         'repr', '<' || v_type_name || ' object at ' || p_obj_id || '>'
     );
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

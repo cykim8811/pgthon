@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Play, Terminal, Loader2, Trash2 } from "lucide-react";
+import { Play, Terminal, Loader2, Trash2, Bug } from "lucide-react";
+import { ObjectInspector } from "../components/ObjectInspector";
 
 // Initialize Supabase Client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "http://127.0.0.1:54321";
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vbmUiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYzMzQ0NDgwMCwiZXhwIjoxOTQ5MDIwODAwfQ.sY_ZD_s-6j-a_a-a_a-a_a-a_a-a_a-a_a-a_a-a_a";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const DEFAULT_CODE = `LOAD_CONST 10
@@ -18,69 +19,32 @@ RETURN_VALUE`;
 
 export default function ReplPage() {
     const [code, setCode] = useState(DEFAULT_CODE);
-    const [output, setOutput] = useState<string | null>(null);
+    const [resultId, setResultId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [logs, setLogs] = useState<string[]>([]);
 
     const handleRun = async () => {
         setLoading(true);
         setError(null);
-        setOutput(null);
+        setResultId(null);
+        setLogs([]);
 
         try {
-            // 1. Assemble Code
-            const { data: codeId, error: assembleError } = await supabase.rpc("vm_assemble", {
-                p_source: code,
-                p_name: "web_repl"
-            });
+            setLogs(prev => [...prev, "> Assembling and Running..."]);
 
-            if (assembleError) throw assembleError;
-            if (!codeId) throw new Error("Failed to assemble code (No ID returned)");
-
-            // 2. Create Locals (Empty Dict)
-            // Ideally we should reuse locals to keep state, but for MVP new locals each run.
-            // Helper to assume locals created inside vm_run_frame if null? No, vm_run_frame needs locals.
-
-            // Let's create a temp dict for locals manually here?
-            // Or better: Create a helper RPC `vm_run_script(source)` that does both.
-            // But let's stick to primitives for now to test connections.
-
-            // 2a. Create Dict
-            // We need raw SQL or RPC to create dict.
-            // Let's rely on a new helper `vm_quick_eval(code_id)`?
-            // Or just use the fact that we can't easily create dicts from client without RPC.
-            // Let's add `vm_eval_assembled` RPC next step.
-            // For now, assume a helper RPC exists or use `vm_run_frame` with NULL locals?
-            // Our `vm_run_frame` crashes if locals is null for LOAD_FAST.
-
-            // Workaround: Call a new helper RPC we will make: `vm_execute_source`
-            const { data: resultId, error: runError } = await supabase.rpc("vm_execute_source", {
+            const { data: resId, error: runError } = await supabase.rpc("vm_execute_source", {
                 p_source: code
             });
 
             if (runError) throw runError;
 
-            // 3. Get Result Value
-            // Inspect the result object
-            // We need a way to see the value.
-            // Let's use `vm_get_value_as_text` (We need to make this too).
-
-            // For now, let's display Result ID
-            setOutput(`Result Object ID: ${resultId}`);
-
-            // Try to fetch value if int
-            const { data: intVal } = await supabase
-                .from("py_long_object")
-                .select("long_value")
-                .eq("ob_base", resultId)
-                .single();
-
-            if (intVal) {
-                setOutput((prev) => `${prev}\nValue (Int): ${intVal.long_value}`);
-            }
+            setLogs(prev => [...prev, `> Execution Success. Result ID: ${resId}`]);
+            setResultId(resId);
 
         } catch (err: any) {
             setError(err.message || "An error occurred");
+            setLogs(prev => [...prev, `> Error: ${err.message}`]);
             console.error(err);
         } finally {
             setLoading(false);
@@ -101,23 +65,31 @@ export default function ReplPage() {
                 <div className="flex-1 flex flex-col bg-white rounded-lg border border-zinc-200 shadow-sm overflow-hidden">
                     <div className="px-4 py-2 border-b border-zinc-100 bg-zinc-50/50 flex justify-between items-center">
                         <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Assembly Source</span>
-                        <button
-                            onClick={() => setCode("")}
-                            className="p-1 hover:bg-zinc-200 rounded text-zinc-400 hover:text-red-500 transition-colors"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-zinc-400">Ctrl+Enter to Run</span>
+                            <button
+                                onClick={() => setCode("")}
+                                className="p-1 hover:bg-zinc-200 rounded text-zinc-400 hover:text-red-500 transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                     <textarea
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
+                        onKeyDown={(e) => {
+                            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                                handleRun();
+                            }
+                        }}
                         className="flex-1 p-4 font-mono text-sm resize-none focus:outline-none text-zinc-800 leading-relaxed"
                         spellCheck={false}
                     />
                 </div>
 
-                {/* Output & Controls */}
-                <div className="w-96 flex flex-col gap-4">
+                {/* Output & Inspector */}
+                <div className="w-[450px] flex flex-col gap-4">
                     <div className="bg-white rounded-lg border border-zinc-200 shadow-sm p-4">
                         <button
                             onClick={handleRun}
@@ -133,24 +105,29 @@ export default function ReplPage() {
                         </button>
                     </div>
 
+                    {/* Result Inspector */}
                     <div className="flex-1 bg-zinc-900 rounded-lg shadow-sm border border-zinc-800 overflow-hidden flex flex-col">
                         <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-950 flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50"></div>
-                            <span className="ml-2 text-xs font-mono text-zinc-500">Output Log</span>
+                            <Bug className="w-3.5 h-3.5 text-zinc-400" />
+                            <span className="text-xs font-mono text-zinc-400">Result Inspector</span>
                         </div>
-                        <div className="flex-1 p-4 font-mono text-xs text-zinc-300 overflow-y-auto whitespace-pre-wrap">
-                            {error && (
-                                <div className="text-red-400 mb-2">
-                                    Error: {error}
+
+                        <div className="flex-1 p-4 overflow-y-auto">
+                            {resultId ? (
+                                <ObjectInspector objectId={resultId} label="RETURN_VALUE" />
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-zinc-600 gap-2">
+                                    <Terminal className="w-8 h-8 opacity-20" />
+                                    <span className="text-xs italic">Run code to inspect result...</span>
                                 </div>
                             )}
-                            {output ? (
-                                <div className="text-green-400">{output}</div>
-                            ) : (
-                                <span className="text-zinc-600 italic">Ready to run...</span>
-                            )}
+                        </div>
+
+                        {/* Mini Log */}
+                        <div className="h-32 border-t border-zinc-800 bg-zinc-950 p-3 font-mono text-[10px] text-zinc-500 overflow-y-auto">
+                            {logs.map((log, i) => (
+                                <div key={i}>{log}</div>
+                            ))}
                         </div>
                     </div>
                 </div>

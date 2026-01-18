@@ -42,7 +42,7 @@ BEGIN
     ('reverse'),
     ('sort'),
     ('copy'),
-    ('__iter__'),
+    -- ('__iter__'), -- Moved to step 8-1 with explicit native implementation
     ('__contains__'), -- 'x' in list
     ('__add__'), -- list + list
     ('__iadd__'), -- list += list

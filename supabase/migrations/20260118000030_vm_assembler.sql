@@ -37,7 +37,7 @@ BEGIN
         RETURN v_base;
     END;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -------------------------------------------------------
 -- Assembler Function
@@ -97,15 +97,17 @@ BEGIN
                     -- Varname (String)
                     -- Check if already in varnames
                     v_idx := -1;
-                    FOR i IN 1..array_length(v_varnames, 1) LOOP
-                         -- Inefficient lookup but okay for MVP
-                         -- Actually we store UUIDs in varnames array.
-                         -- We need the string value.
-                         -- Let's just create new string object for each for now (duplicate strings allowed in pool)
-                         -- Or better: reusing strings is hard without map.
-                         -- Just append.
-                         NULL;
-                    END LOOP;
+                    IF array_length(v_varnames, 1) IS NOT NULL THEN
+                        FOR i IN 1..array_length(v_varnames, 1) LOOP
+                             -- Inefficient lookup but okay for MVP
+                             -- Actually we store UUIDs in varnames array.
+                             -- We need the string value.
+                             -- Let's just create new string object for each for now (duplicate strings allowed in pool)
+                             -- Or better: reusing strings is hard without map.
+                             -- Just append.
+                             NULL;
+                        END LOOP;
+                    END IF;
                     
                     v_obj_id := public.vm_assembler_get_or_create_const(v_arg); -- Create string object
                     v_varnames := array_append(v_varnames, v_obj_id);
@@ -152,9 +154,9 @@ BEGIN
         -- Create Code Object
         INSERT INTO public.py_object (id, ob_type) VALUES (v_code_id, NULL);
         INSERT INTO public.py_code_object (id, ob_base, co_name, co_code, co_consts, co_varnames)
-        VALUES (v_code_id, v_code_id, p_name, v_new_bytecode, v_consts_tuple_id, v_varnames_tuple_id);
+        VALUES (v_code_id, v_code_id, p_name, v_new_bytecode, base_c, base_v);
     END;
     
     RETURN v_code_id;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

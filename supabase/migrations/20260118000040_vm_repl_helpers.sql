@@ -27,4 +27,4 @@ BEGIN
     
     RETURN v_res;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

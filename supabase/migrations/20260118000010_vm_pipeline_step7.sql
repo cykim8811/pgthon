@@ -23,6 +23,9 @@ $$ LANGUAGE plpgsql;
 
 -- 2. Enhanced getattr (Descriptor Protocol Support)
 -- This replaces the simple vm_getattr
+-- Drop first to allow parameter name change
+DROP FUNCTION IF EXISTS public.vm_getattr(UUID, TEXT);
+
 CREATE OR REPLACE FUNCTION public.vm_getattr(p_obj_id UUID, p_name TEXT)
 RETURNS UUID AS $$
 DECLARE

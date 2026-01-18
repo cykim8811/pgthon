@@ -122,6 +122,15 @@ BEGIN
                         v_stack := array_append(v_stack, v_res);
                     END IF;
 
+                -- BINARY_ADD
+                WHEN 'BINARY_ADD' THEN
+                    v_tos := v_stack[array_length(v_stack, 1)];
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+                    v_tos1 := v_stack[array_length(v_stack, 1)];
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+                    v_res := public.vm_add(v_tos1, v_tos);
+                    v_stack := array_append(v_stack, v_res);
+
                 -- COMPARE_OP
                 WHEN 'COMPARE_OP' THEN
                     v_tos := v_stack[array_length(v_stack, 1)];

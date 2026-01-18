@@ -105,6 +105,11 @@ echo "=== Phase 8: Frame Objects ==="
 run_test "supabase/tests/08_frames.sql"
 echo ""
 
+# 9. Function Deep Dive
+echo "=== Phase 9: Function Deep Dive ==="
+run_test "supabase/tests/09_function_deep_dive.sql"
+echo ""
+
 # ===================================================
 # Summary
 # ===================================================
@@ -123,6 +128,7 @@ echo "  ✅ 05: Bytecode Execution"
 echo "  ✅ 06: Object Protocol"
 echo "  ✅ 07: Integration Tests"
 echo "  ✅ 08: Frame Objects & Introspection"
+echo "  ✅ 09: Function Deep Dive & Integrity"
 echo ""
-echo "Total: 9 test suites passed ✨"
+echo "Total: 10 test suites passed ✨"
 echo ""

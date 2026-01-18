@@ -74,6 +74,30 @@ END;
 $$ LANGUAGE plpgsql;
 
 -------------------------------------------------------
+-- 4.5. vm_create_dict: Create a new empty dictionary object
+-------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.vm_create_dict()
+RETURNS uuid AS $$
+DECLARE
+    ID_DCT_TYPE uuid := '00000000-0000-4000-a000-000000000006';
+    v_obj_id uuid;
+    v_base_id uuid;
+BEGIN
+    v_base_id := gen_random_uuid();
+    v_obj_id := gen_random_uuid();
+    
+    -- Create py_object
+    INSERT INTO public.py_object (id, ob_type) VALUES (v_base_id, ID_DCT_TYPE);
+    
+    -- Create py_dict_object
+    INSERT INTO public.py_dict_object (id, ob_base, ma_used) 
+    VALUES (v_obj_id, v_base_id, 0);
+    
+    RETURN v_base_id; -- Consistently return base object ID
+END;
+$$ LANGUAGE plpgsql;
+
+-------------------------------------------------------
 -- 5. vm_tuple_getitem: Get item from tuple by index
 -------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.vm_tuple_getitem(p_tuple_id uuid, p_index integer)
@@ -106,12 +130,20 @@ DECLARE
     v_key_obj uuid;
     v_key_base uuid;
     v_existing uuid;
+    v_internal_dict_id uuid;
 BEGIN
+    -- Resolve base object ID to internal dict ID
+    SELECT id INTO v_internal_dict_id FROM public.py_dict_object WHERE ob_base = p_dict_id;
+    IF v_internal_dict_id IS NULL THEN
+        -- If it's already an internal ID, use it directly (fallback)
+        v_internal_dict_id := p_dict_id;
+    END IF;
+
     -- Check if key already exists
     SELECT me_key INTO v_existing
     FROM public.py_dict_entry e
     JOIN public.py_unicode_object u ON u.ob_base = e.me_key
-    WHERE e.dict_id = p_dict_id AND u.str_value = p_key_str
+    WHERE e.dict_id = v_internal_dict_id AND u.str_value = p_key_str
     LIMIT 1;
     
     IF v_existing IS NOT NULL THEN
@@ -130,10 +162,10 @@ BEGIN
         
         -- Insert new entry
         INSERT INTO public.py_dict_entry (id, dict_id, me_key, me_value)
-        VALUES (gen_random_uuid(), p_dict_id, v_key_base, p_value_id);
+        VALUES (gen_random_uuid(), v_internal_dict_id, v_key_base, p_value_id);
         
         -- Update usage count
-        UPDATE public.py_dict_object SET ma_used = ma_used + 1 WHERE id = p_dict_id;
+        UPDATE public.py_dict_object SET ma_used = ma_used + 1 WHERE id = v_internal_dict_id;
     END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -145,11 +177,18 @@ CREATE OR REPLACE FUNCTION public.vm_dict_get_item(p_dict_id uuid, p_key_str tex
 RETURNS uuid AS $$
 DECLARE
     v_val_id uuid;
+    v_internal_dict_id uuid;
 BEGIN
+    -- Resolve base object ID to internal dict ID
+    SELECT id INTO v_internal_dict_id FROM public.py_dict_object WHERE ob_base = p_dict_id;
+    IF v_internal_dict_id IS NULL THEN
+        v_internal_dict_id := p_dict_id;
+    END IF;
+
     SELECT e.me_value INTO v_val_id
     FROM public.py_dict_entry e
     JOIN public.py_unicode_object u ON u.ob_base = e.me_key
-    WHERE e.dict_id = p_dict_id AND u.str_value = p_key_str
+    WHERE e.dict_id = v_internal_dict_id AND u.str_value = p_key_str
     LIMIT 1;
     
     RETURN v_val_id;

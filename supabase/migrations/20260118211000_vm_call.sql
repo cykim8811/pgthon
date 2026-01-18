@@ -52,8 +52,8 @@ BEGIN
         -- Prepend self to arguments
         v_new_args := array_prepend(v_im_self, args);
         
-        -- Recursive call with unwrapped function
-        RETURN public.vm_call(v_im_func, v_new_args);
+        -- Recursive call with unwrapped function, passing current caller frame
+        RETURN public.vm_call(v_im_func, v_new_args, p_caller_frame_id);
     END IF;
     
     -----------------------------------------------------------------

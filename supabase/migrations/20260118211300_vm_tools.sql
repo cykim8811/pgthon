@@ -37,7 +37,7 @@ BEGIN
     
     SELECT tp_name INTO v_type_name 
     FROM public.py_type_object 
-    WHERE ob_base = v_type_id;
+    WHERE id = v_type_id;
     
     IF v_type_name IS NULL THEN 
         v_type_name := 'unknown'; 
@@ -87,7 +87,7 @@ BEGIN
                 
                 SELECT tp_name INTO child_type_name 
                 FROM public.py_type_object 
-                WHERE ob_base = child_type_id;
+                WHERE id = child_type_id;
                 
                 -- Try to get simple value for preview
                 IF child_type_name = 'int' THEN

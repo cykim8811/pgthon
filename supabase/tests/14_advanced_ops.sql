@@ -25,10 +25,7 @@ DECLARE
     v_call_func uuid;
     v_call_func_base uuid;
     
-    v_obj1 uuid; -- Instance 1
-    v_obj1_base uuid;
-    v_obj2 uuid; -- Instance 2
-    v_obj2_base uuid;
+    v_obj1_base uuid;  -- Instance
     
     v_val1 uuid; -- Int(100)
     v_val2 uuid; -- Int(30)
@@ -112,7 +109,7 @@ BEGIN
     -------------------------------------------------------
     -- Assemble code: other - 50.
     -- other will be 100. Result 50.
-    v_rsub_code_base := public.vm_assemble(c_rsub_source_simple, '__rsub__');
+    v_rsub_code_base := public.vm_assemble(c_rsub_source, '__rsub__');
     SELECT id INTO v_rsub_code_id FROM public.py_code_object WHERE ob_base = v_rsub_code_base;
     UPDATE public.py_code_object SET co_argcount = 2 WHERE id = v_rsub_code_id;
     

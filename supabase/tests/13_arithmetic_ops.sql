@@ -7,7 +7,7 @@ DO $$
 DECLARE
     -- IDs
     v_type_id uuid;
-    v_type_base uuid;
+    v_type_base_id uuid;
     v_dict_id uuid;
     v_dict_base uuid;
     
@@ -17,13 +17,12 @@ DECLARE
     v_add_func_base uuid;
     
     v_instance_base uuid;
-    v_instance_obj uuid;
-    v_val_text uuid;
     
     v_res uuid;
     v_res_val bigint;
     
     -- Constants
+    ID_TYPE_TYPE uuid := '00000000-0000-4000-a000-000000000002';
     ID_DCT_TYPE uuid := '00000000-0000-4000-a000-000000000006';
     
     -- Source for __add__
@@ -56,7 +55,7 @@ BEGIN
     -- 1. Create a Custom Type "NumBox"
     -------------------------------------------------------
     v_type_id := gen_random_uuid();
-    v_type_base := gen_random_uuid();
+    v_type_base_id := gen_random_uuid();
     
     -- Create Type Dictionary
     v_dict_base := public.vm_create_dict(); -- returns base ID
@@ -67,9 +66,9 @@ BEGIN
     SELECT id INTO v_dict_id FROM public.py_dict_object WHERE ob_base = v_dict_base;
     
     -- Create Type Object
-    INSERT INTO public.py_object (id, ob_type) VALUES (v_type_base, '00000000-0000-4000-a000-000000000002'); -- type 'type'
+    INSERT INTO public.py_object (id, ob_type) VALUES (v_type_base_id, ID_TYPE_TYPE);
     INSERT INTO public.py_type_object (id, ob_base, tp_name, tp_dict) 
-    VALUES (v_type_id, v_type_base, 'NumBox', v_dict_id);
+    VALUES (v_type_id, v_type_base_id, 'NumBox', v_dict_id);
 
     -------------------------------------------------------
     -- 2. Define __add__ Method
@@ -94,9 +93,7 @@ BEGIN
     -- 3. Create Instance
     -------------------------------------------------------
     v_instance_base := gen_random_uuid();
-    -- v_instance_obj := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (v_instance_base, v_type_id);
-    -- No payload table for generic object needed for now
     
     -------------------------------------------------------
     -- 4. Test vm_add(instance, 50)

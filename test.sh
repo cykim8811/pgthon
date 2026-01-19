@@ -140,6 +140,11 @@ echo "=== Phase 15: Arithmetic Extended ==="
 run_test "supabase/tests/15_arithmetic_extended.sql"
 echo ""
 
+# 16. Error Handling Extended
+echo "=== Phase 16: Error Handling Extended ==="
+run_test "supabase/tests/16_error_handling_extended.sql"
+echo ""
+
 # ===================================================
 # Summary
 # ===================================================
@@ -165,6 +170,7 @@ echo "  ✅ 12: Exception Object Creation"
 echo "  ✅ 13: Arithmetic Ops (Custom)"
 echo "  ✅ 14: Advanced Ops (__sub__, __call__)"
 echo "  ✅ 15: Arithmetic Extended (All Ops)"
+echo "  ✅ 16: Error Handling Extended"
 echo ""
-echo "Total: 16 test suites passed ✨"
+echo "Total: 17 test suites passed ✨"
 echo ""

@@ -111,6 +111,30 @@ END;
 $$ LANGUAGE plpgsql;
 
 -------------------------------------------------------
+-- 4.8. vm_create_tuple: Create a new tuple object from array of IDs
+-------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.vm_create_tuple(p_items uuid[])
+RETURNS uuid AS $$
+DECLARE
+    ID_TUP_TYPE uuid := '00000000-0000-4000-a000-000000000007';
+    v_obj_id uuid;
+    v_base_id uuid;
+BEGIN
+    v_base_id := gen_random_uuid();
+    v_obj_id := gen_random_uuid();
+    
+    -- Create py_object
+    INSERT INTO public.py_object (id, ob_type) VALUES (v_base_id, ID_TUP_TYPE);
+    
+    -- Create py_tuple_object
+    INSERT INTO public.py_tuple_object (id, ob_base, ob_item) 
+    VALUES (v_obj_id, v_base_id, p_items);
+    
+    RETURN v_base_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-------------------------------------------------------
 -- 5. vm_tuple_getitem: Get item from tuple by index
 -------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.vm_tuple_getitem(p_tuple_id uuid, p_index integer)

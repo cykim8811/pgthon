@@ -120,6 +120,11 @@ echo "=== Phase 11: Exception Infrastructure ==="
 run_test "supabase/tests/11_exception_infrastructure.sql"
 echo ""
 
+# 12. Exception Creation
+echo "=== Phase 12: Exception Creation ==="
+run_test "supabase/tests/12_exception_creation.sql"
+echo ""
+
 # ===================================================
 # Summary
 # ===================================================
@@ -141,6 +146,7 @@ echo "  ✅ 08: Frame Objects & Introspection"
 echo "  ✅ 09: Function Deep Dive & Integrity"
 echo "  ✅ 10: Error Handling & Traceback"
 echo "  ✅ 11: Exception Infrastructure & Types"
+echo "  ✅ 12: Exception Object Creation"
 echo ""
-echo "Total: 12 test suites passed ✨"
+echo "Total: 13 test suites passed ✨"
 echo ""

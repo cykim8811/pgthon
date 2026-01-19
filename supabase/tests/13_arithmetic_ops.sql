@@ -25,7 +25,6 @@ DECLARE
     
     -- Constants
     ID_DCT_TYPE uuid := '00000000-0000-4000-a000-000000000006';
-    ID_FNC_TYPE uuid := '00000000-0000-4000-a000-000000000008';
     
     -- Source for __add__
     -- def __add__(self, other):
@@ -86,9 +85,7 @@ BEGIN
     -- Create Function Object
     v_add_func_base := gen_random_uuid();
     v_add_func := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (v_add_func_base, ID_FNC_TYPE);
-    INSERT INTO public.py_function_object (id, ob_base, func_code, func_name)
-    VALUES (v_add_func, v_add_func_base, v_add_code_id, '00000000-0000-4000-b000-000000000002'); -- Dummy name ref?
+    PERFORM public.vm_create_function(v_add_func_base, v_add_func, v_add_code_id, 'NumBox.__add__'); -- Dummy name ref?
     
     -- Register __add__ in Type's dict
     PERFORM public.vm_dict_set_item(v_dict_base, '__add__', v_add_func_base);

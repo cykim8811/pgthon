@@ -216,7 +216,37 @@ BEGIN
     PERFORM public.test_assert_eq_int(public.vm_get_int_value(v_res), 30, 'AdvancedBox() * 6 = 30');
     
     -------------------------------------------------------
-    -- 11. Test __call__
+    -- 11. Test vm_div (Fast Path: Int / Int)
+    -------------------------------------------------------
+    v_val1 := public.vm_create_int(100);
+    v_val2 := public.vm_create_int(4);
+    v_res := public.vm_div(v_val1, v_val2);
+    PERFORM public.test_assert_eq_int(public.vm_get_int_value(v_res), 25, '100 / 4 = 25');
+    
+    -------------------------------------------------------
+    -- 12. Test vm_floordiv (Fast Path: Int // Int)
+    -------------------------------------------------------
+    v_val1 := public.vm_create_int(100);
+    v_val2 := public.vm_create_int(30);
+    v_res := public.vm_floordiv(v_val1, v_val2);
+    PERFORM public.test_assert_eq_int(public.vm_get_int_value(v_res), 3, '100 // 30 = 3');
+    
+    -------------------------------------------------------
+    -- 13. Test vm_mod (Fast Path: Int % Int)
+    -------------------------------------------------------
+    v_res := public.vm_mod(v_val1, v_val2);
+    PERFORM public.test_assert_eq_int(public.vm_get_int_value(v_res), 10, '100 % 30 = 10');
+    
+    -------------------------------------------------------
+    -- 14. Test vm_pow (Fast Path: Int ** Int)
+    -------------------------------------------------------
+    v_val1 := public.vm_create_int(2);
+    v_val2 := public.vm_create_int(10);
+    v_res := public.vm_pow(v_val1, v_val2);
+    PERFORM public.test_assert_eq_int(public.vm_get_int_value(v_res), 1024, '2 ** 10 = 1024');
+    
+    -------------------------------------------------------
+    -- 15. Test __call__
     -------------------------------------------------------
     -- box(20) -> 20 + 10 = 30.
     -- We need to check if vm_call handles non-function/method callables

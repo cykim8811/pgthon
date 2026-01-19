@@ -150,6 +150,210 @@ $$ LANGUAGE plpgsql;
 
 
 -------------------------------------------------------
+-- 1c. vm_div: True Division with method dispatch
+-------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.vm_div(p_left uuid, p_right uuid)
+RETURNS uuid AS $$
+DECLARE
+    ID_INT_TYPE uuid := '00000000-0000-4000-a000-000000000004';
+    v_l_type uuid;
+    v_r_type uuid;
+    v_l_val bigint;
+    v_r_val bigint;
+    v_method uuid;
+BEGIN
+    v_l_type := public.vm_get_type(p_left);
+    v_r_type := public.vm_get_type(p_right);
+    
+    -- Fast Path: Integer Division (returns float in Python, but we'll use int for simplicity)
+    IF v_l_type = ID_INT_TYPE AND v_r_type = ID_INT_TYPE THEN
+        v_l_val := public.vm_get_int_value(p_left);
+        v_r_val := public.vm_get_int_value(p_right);
+        IF v_r_val = 0 THEN
+            RAISE EXCEPTION 'ZeroDivisionError: division by zero';
+        END IF;
+        RETURN public.vm_create_int(v_l_val / v_r_val);
+    END IF;
+    
+    -- Slow Path: __truediv__
+    BEGIN
+        v_method := public.vm_getattr(p_left, '__truediv__');
+        IF v_method IS NOT NULL THEN
+            return public.vm_call(v_method, ARRAY[p_right]);
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+
+    -- Slow Path: __rtruediv__
+    BEGIN
+        v_method := public.vm_getattr(p_right, '__rtruediv__');
+        IF v_method IS NOT NULL THEN
+            return public.vm_call(v_method, ARRAY[p_left]);
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+    
+    RAISE EXCEPTION 'TypeError: unsupported operand type(s) for /';
+END;
+$$ LANGUAGE plpgsql;
+
+
+-------------------------------------------------------
+-- 1d. vm_floordiv: Floor Division with method dispatch
+-------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.vm_floordiv(p_left uuid, p_right uuid)
+RETURNS uuid AS $$
+DECLARE
+    ID_INT_TYPE uuid := '00000000-0000-4000-a000-000000000004';
+    v_l_type uuid;
+    v_r_type uuid;
+    v_l_val bigint;
+    v_r_val bigint;
+    v_method uuid;
+BEGIN
+    v_l_type := public.vm_get_type(p_left);
+    v_r_type := public.vm_get_type(p_right);
+    
+    -- Fast Path: Integer Floor Division
+    IF v_l_type = ID_INT_TYPE AND v_r_type = ID_INT_TYPE THEN
+        v_l_val := public.vm_get_int_value(p_left);
+        v_r_val := public.vm_get_int_value(p_right);
+        IF v_r_val = 0 THEN
+            RAISE EXCEPTION 'ZeroDivisionError: integer division or modulo by zero';
+        END IF;
+        RETURN public.vm_create_int(FLOOR(v_l_val::numeric / v_r_val::numeric)::bigint);
+    END IF;
+    
+    -- Slow Path: __floordiv__
+    BEGIN
+        v_method := public.vm_getattr(p_left, '__floordiv__');
+        IF v_method IS NOT NULL THEN
+            return public.vm_call(v_method, ARRAY[p_right]);
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+
+    -- Slow Path: __rfloordiv__
+    BEGIN
+        v_method := public.vm_getattr(p_right, '__rfloordiv__');
+        IF v_method IS NOT NULL THEN
+            return public.vm_call(v_method, ARRAY[p_left]);
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+    
+    RAISE EXCEPTION 'TypeError: unsupported operand type(s) for //';
+END;
+$$ LANGUAGE plpgsql;
+
+
+-------------------------------------------------------
+-- 1e. vm_mod: Modulo with method dispatch
+-------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.vm_mod(p_left uuid, p_right uuid)
+RETURNS uuid AS $$
+DECLARE
+    ID_INT_TYPE uuid := '00000000-0000-4000-a000-000000000004';
+    v_l_type uuid;
+    v_r_type uuid;
+    v_l_val bigint;
+    v_r_val bigint;
+    v_method uuid;
+BEGIN
+    v_l_type := public.vm_get_type(p_left);
+    v_r_type := public.vm_get_type(p_right);
+    
+    -- Fast Path: Integer Modulo
+    IF v_l_type = ID_INT_TYPE AND v_r_type = ID_INT_TYPE THEN
+        v_l_val := public.vm_get_int_value(p_left);
+        v_r_val := public.vm_get_int_value(p_right);
+        IF v_r_val = 0 THEN
+            RAISE EXCEPTION 'ZeroDivisionError: integer division or modulo by zero';
+        END IF;
+        RETURN public.vm_create_int(v_l_val % v_r_val);
+    END IF;
+    
+    -- Slow Path: __mod__
+    BEGIN
+        v_method := public.vm_getattr(p_left, '__mod__');
+        IF v_method IS NOT NULL THEN
+            return public.vm_call(v_method, ARRAY[p_right]);
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+
+    -- Slow Path: __rmod__
+    BEGIN
+        v_method := public.vm_getattr(p_right, '__rmod__');
+        IF v_method IS NOT NULL THEN
+            return public.vm_call(v_method, ARRAY[p_left]);
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+    
+    RAISE EXCEPTION 'TypeError: unsupported operand type(s) for %%';
+END;
+$$ LANGUAGE plpgsql;
+
+
+-------------------------------------------------------
+-- 1f. vm_pow: Power with method dispatch
+-------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.vm_pow(p_left uuid, p_right uuid)
+RETURNS uuid AS $$
+DECLARE
+    ID_INT_TYPE uuid := '00000000-0000-4000-a000-000000000004';
+    v_l_type uuid;
+    v_r_type uuid;
+    v_l_val bigint;
+    v_r_val bigint;
+    v_method uuid;
+BEGIN
+    v_l_type := public.vm_get_type(p_left);
+    v_r_type := public.vm_get_type(p_right);
+    
+    -- Fast Path: Integer Power
+    IF v_l_type = ID_INT_TYPE AND v_r_type = ID_INT_TYPE THEN
+        v_l_val := public.vm_get_int_value(p_left);
+        v_r_val := public.vm_get_int_value(p_right);
+        IF v_r_val < 0 THEN
+            RAISE EXCEPTION 'ValueError: Integers to negative integer powers not supported in this VM';
+        END IF;
+        RETURN public.vm_create_int(POWER(v_l_val, v_r_val)::bigint);
+    END IF;
+    
+    -- Slow Path: __pow__
+    BEGIN
+        v_method := public.vm_getattr(p_left, '__pow__');
+        IF v_method IS NOT NULL THEN
+            return public.vm_call(v_method, ARRAY[p_right]);
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+
+    -- Slow Path: __rpow__
+    BEGIN
+        v_method := public.vm_getattr(p_right, '__rpow__');
+        IF v_method IS NOT NULL THEN
+            return public.vm_call(v_method, ARRAY[p_left]);
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+    
+    RAISE EXCEPTION 'TypeError: unsupported operand type(s) for **';
+END;
+$$ LANGUAGE plpgsql;
+
+
+-------------------------------------------------------
 -- 2. vm_call: Updated to support __call__ on instances
 -------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.vm_call(
@@ -422,6 +626,46 @@ BEGIN
                     v_stack := v_stack[1:array_length(v_stack, 1)-1];
                     
                     v_res := public.vm_mul(v_tos1, v_tos);
+                    v_stack := array_append(v_stack, v_res);
+                    
+                -- BINARY_TRUE_DIVIDE
+                WHEN 'BINARY_TRUE_DIVIDE' THEN
+                    v_tos := v_stack[array_length(v_stack, 1)]; -- right
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+                    v_tos1 := v_stack[array_length(v_stack, 1)]; -- left
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+                    
+                    v_res := public.vm_div(v_tos1, v_tos);
+                    v_stack := array_append(v_stack, v_res);
+                    
+                -- BINARY_FLOOR_DIVIDE
+                WHEN 'BINARY_FLOOR_DIVIDE' THEN
+                    v_tos := v_stack[array_length(v_stack, 1)]; -- right
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+                    v_tos1 := v_stack[array_length(v_stack, 1)]; -- left
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+                    
+                    v_res := public.vm_floordiv(v_tos1, v_tos);
+                    v_stack := array_append(v_stack, v_res);
+                    
+                -- BINARY_MODULO
+                WHEN 'BINARY_MODULO' THEN
+                    v_tos := v_stack[array_length(v_stack, 1)]; -- right
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+                    v_tos1 := v_stack[array_length(v_stack, 1)]; -- left
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+                    
+                    v_res := public.vm_mod(v_tos1, v_tos);
+                    v_stack := array_append(v_stack, v_res);
+                    
+                -- BINARY_POWER
+                WHEN 'BINARY_POWER' THEN
+                    v_tos := v_stack[array_length(v_stack, 1)]; -- right
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+                    v_tos1 := v_stack[array_length(v_stack, 1)]; -- left
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+                    
+                    v_res := public.vm_pow(v_tos1, v_tos);
                     v_stack := array_append(v_stack, v_res);
 
                 -- RETURN_VALUE

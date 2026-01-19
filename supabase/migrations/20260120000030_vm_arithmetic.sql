@@ -1,8 +1,31 @@
 -- =====================================================
 -- Migration: Advanced Arithmetic Operations
--- Description: Override vm_add to support custom object methods (__add__, __radd__)
+-- Description: vm_create_function helper and vm_add with custom object methods
 -- =====================================================
 
+-------------------------------------------------------
+-- Helper: vm_create_function
+-------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.vm_create_function(
+    p_id uuid,        -- Base ID
+    p_func_id uuid,   -- Table ID  
+    p_code_id uuid,   -- Code object Table ID
+    p_name text
+)
+RETURNS void AS $$
+DECLARE
+    ID_FNC_TYPE uuid := '00000000-0000-4000-a000-000000000008';
+BEGIN
+    INSERT INTO public.py_object (id, ob_type) VALUES (p_id, ID_FNC_TYPE);
+    INSERT INTO public.py_function_object (id, ob_base, func_name, func_code, func_globals)
+    VALUES (p_func_id, p_id, p_name, p_code_id, NULL);
+END;
+$$ LANGUAGE plpgsql;
+
+
+-------------------------------------------------------
+-- vm_add: Addition with method dispatch
+-------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.vm_add(p_left uuid, p_right uuid)
 RETURNS uuid AS $$
 DECLARE
@@ -20,7 +43,6 @@ DECLARE
     
     -- For Method Dispatch
     v_method uuid;
-    v_call_res uuid;
 BEGIN
     v_l_type := public.vm_get_type(p_left);
     v_r_type := public.vm_get_type(p_right);
@@ -49,16 +71,10 @@ BEGIN
     -- Try p_left.__add__(p_right)
     BEGIN
         v_method := public.vm_getattr(p_left, '__add__');
-        RAISE NOTICE 'Debug: __add__ lookup result: %', v_method;
-        
         IF v_method IS NOT NULL THEN
-            -- vm_call handles bound method 'self' insertion
             return public.vm_call(v_method, ARRAY[p_right]);
         END IF;
     EXCEPTION WHEN OTHERS THEN
-        RAISE NOTICE 'Debug: __add__ execution failed: %', SQLERRM;
-        -- If lookup or call fails, ignore and try next strategy
-        -- In a real VM, we should check for NotImplemented return value
         NULL;
     END;
 
@@ -66,11 +82,9 @@ BEGIN
     -- 3. SLOW PATH: Reflected Method Dispatch (__radd__)
     -----------------------------------------------------------------
     -- Try p_right.__radd__(p_left)
-    -- Only if types are different or explicit override logic (simplified here)
     BEGIN
         v_method := public.vm_getattr(p_right, '__radd__');
         IF v_method IS NOT NULL THEN
-            -- p_right is self, p_left is argument
             return public.vm_call(v_method, ARRAY[p_left]);
         END IF;
     EXCEPTION WHEN OTHERS THEN
@@ -80,7 +94,6 @@ BEGIN
     -----------------------------------------------------------------
     -- 4. FAILURE
     -----------------------------------------------------------------
-    -- TODO: Raise proper TypeError object when Exception system is fully integrated
     RAISE EXCEPTION 'TypeError: unsupported operand type(s) for +';
 END;
 $$ LANGUAGE plpgsql;

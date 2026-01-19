@@ -17,6 +17,8 @@ DECLARE
     v_rsub_code_base uuid;
     v_call_code_id uuid;
     v_call_code_base uuid;
+    v_mul_code_id uuid;
+    v_mul_code_base uuid;
     
     v_sub_func uuid;
     v_sub_func_base uuid;
@@ -24,6 +26,8 @@ DECLARE
     v_rsub_func_base uuid;
     v_call_func uuid;
     v_call_func_base uuid;
+    v_mul_func uuid;
+    v_mul_func_base uuid;
     
     v_obj1_base uuid;  -- Instance
     
@@ -66,6 +70,13 @@ LOAD_FAST arg
 LOAD_CONST 10
 BINARY_ADD
 RETURN_VALUE'; -- arg + 10
+    
+    c_mul_source text := 'LOAD_FAST self
+POP_TOP
+LOAD_CONST 5
+LOAD_FAST other
+BINARY_MULTIPLY
+RETURN_VALUE'; -- 5 * other
     
     ID_TYPE_TYPE uuid := '00000000-0000-4000-a000-000000000002';
     ID_INT_TYPE uuid := '00000000-0000-4000-a000-000000000004';
@@ -138,6 +149,22 @@ BEGIN
     PERFORM public.vm_dict_set_item(v_dict_base, '__call__', v_call_func_base);
 
     -------------------------------------------------------
+    -- 5. Define __mul__
+    -------------------------------------------------------
+    -- Assemble code: 5 * other
+    v_mul_code_base := public.vm_assemble(c_mul_source, '__mul__');
+    SELECT id INTO v_mul_code_id FROM public.py_code_object WHERE ob_base = v_mul_code_base;
+    UPDATE public.py_code_object SET co_argcount = 2 WHERE id = v_mul_code_id; -- self, other
+    
+    -- Function Wrapper
+    v_mul_func_base := gen_random_uuid();
+    v_mul_func := gen_random_uuid();
+    PERFORM public.vm_create_function(v_mul_func_base, v_mul_func, v_mul_code_id, 'AdvancedBox.__mul__');
+    
+    -- Bind to Type
+    PERFORM public.vm_dict_set_item(v_dict_base, '__mul__', v_mul_func_base);
+
+    -------------------------------------------------------
     -- 5. Instantiate Object
     -------------------------------------------------------
     v_obj1_base := gen_random_uuid();
@@ -175,7 +202,21 @@ BEGIN
     */
     
     -------------------------------------------------------
-    -- 9. Test __call__
+    -- 9. Test vm_mul (Fast Path: Int * Int)
+    -------------------------------------------------------
+    v_res := public.vm_mul(v_val1, v_val2);
+    PERFORM public.test_assert_eq_int(public.vm_get_int_value(v_res), 3000, '100 * 30 = 3000');
+    
+    -------------------------------------------------------
+    -- 10. Test vm_mul (Slow Path: __mul__)
+    -------------------------------------------------------
+    -- box * 6 -> 5 * 6 = 30
+    v_val2 := public.vm_create_int(6);
+    v_res := public.vm_mul(v_obj1_base, v_val2);
+    PERFORM public.test_assert_eq_int(public.vm_get_int_value(v_res), 30, 'AdvancedBox() * 6 = 30');
+    
+    -------------------------------------------------------
+    -- 11. Test __call__
     -------------------------------------------------------
     -- box(20) -> 20 + 10 = 30.
     -- We need to check if vm_call handles non-function/method callables

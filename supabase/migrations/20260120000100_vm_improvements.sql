@@ -87,6 +87,69 @@ $$ LANGUAGE plpgsql;
 
 
 -------------------------------------------------------
+-- 1b. vm_mul: Multiplication with method dispatch
+-------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.vm_mul(p_left uuid, p_right uuid)
+RETURNS uuid AS $$
+DECLARE
+    -- Type IDs for Fast Path
+    ID_INT_TYPE uuid := '00000000-0000-4000-a000-000000000004';
+    
+    v_l_type uuid;
+    v_r_type uuid;
+    v_l_val bigint;
+    v_r_val bigint;
+    
+    -- For Method Dispatch
+    v_method uuid;
+BEGIN
+    v_l_type := public.vm_get_type(p_left);
+    v_r_type := public.vm_get_type(p_right);
+    
+    -----------------------------------------------------------------
+    -- 1. FAST PATH: Integer Multiplication
+    -----------------------------------------------------------------
+    IF v_l_type = ID_INT_TYPE AND v_r_type = ID_INT_TYPE THEN
+        v_l_val := public.vm_get_int_value(p_left);
+        v_r_val := public.vm_get_int_value(p_right);
+        RETURN public.vm_create_int(v_l_val * v_r_val);
+    END IF;
+    
+    -----------------------------------------------------------------
+    -- 2. SLOW PATH: Method Dispatch (__mul__)
+    -----------------------------------------------------------------
+    -- Try p_left.__mul__(p_right)
+    BEGIN
+        v_method := public.vm_getattr(p_left, '__mul__');
+        IF v_method IS NOT NULL THEN
+            return public.vm_call(v_method, ARRAY[p_right]);
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+
+    -----------------------------------------------------------------
+    -- 3. SLOW PATH: Reflected Method Dispatch (__rmul__)
+    -----------------------------------------------------------------
+    -- Try p_right.__rmul__(p_left)
+    BEGIN
+        v_method := public.vm_getattr(p_right, '__rmul__');
+        IF v_method IS NOT NULL THEN
+            return public.vm_call(v_method, ARRAY[p_left]);
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+    
+    -----------------------------------------------------------------
+    -- 4. FAILURE
+    -----------------------------------------------------------------
+    RAISE EXCEPTION 'TypeError: unsupported operand type(s) for *';
+END;
+$$ LANGUAGE plpgsql;
+
+
+-------------------------------------------------------
 -- 2. vm_call: Updated to support __call__ on instances
 -------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.vm_call(
@@ -349,6 +412,16 @@ BEGIN
                     v_stack := v_stack[1:array_length(v_stack, 1)-1];
                     
                     v_res := public.vm_sub(v_tos1, v_tos);
+                    v_stack := array_append(v_stack, v_res);
+                    
+                -- BINARY_MULTIPLY
+                WHEN 'BINARY_MULTIPLY' THEN
+                    v_tos := v_stack[array_length(v_stack, 1)]; -- right
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+                    v_tos1 := v_stack[array_length(v_stack, 1)]; -- left
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+                    
+                    v_res := public.vm_mul(v_tos1, v_tos);
                     v_stack := array_append(v_stack, v_res);
 
                 -- RETURN_VALUE

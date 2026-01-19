@@ -28,6 +28,7 @@ DECLARE
     
     -- Bytecode function variables
     v_code_id uuid;
+    v_code_base_id uuid; -- Base ID for frame object
     v_locals_id uuid;
     v_base_locals uuid;
     v_varnames_id uuid;
@@ -76,6 +77,11 @@ BEGIN
         FROM public.py_function_object 
         WHERE ob_base = callable_id;
         
+        -- Get Code Base ID for Frame Creation
+        SELECT ob_base INTO v_code_base_id
+        FROM public.py_code_object
+        WHERE id = v_code_id;
+        
         -- Create locals dictionary
         v_base_locals := gen_random_uuid();
         v_locals_id := gen_random_uuid();
@@ -103,8 +109,8 @@ BEGIN
 
         -- Create Frame Object
         v_frame_id := public.vm_create_frame(
-            v_code_id,
-            v_locals_id,
+            v_code_base_id,
+            v_base_locals,
             NULL,  -- globals
             NULL,  -- builtins (use default)
             p_caller_frame_id  -- Link to caller frame
@@ -113,8 +119,8 @@ BEGIN
         -- Set current frame context
         PERFORM public.vm_set_current_frame(v_frame_id);
         
-        -- Run frame with code and locals
-        v_result := public.vm_run_frame(v_code_id, v_locals_id, NULL, v_frame_id);
+        -- Run frame with code and locals (using Base IDs)
+        v_result := public.vm_run_frame(v_code_base_id, v_base_locals, NULL, v_frame_id);
         
         -- Restore previous frame
         IF p_caller_frame_id IS NOT NULL THEN

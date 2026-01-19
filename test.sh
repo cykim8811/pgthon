@@ -125,6 +125,11 @@ echo "=== Phase 12: Exception Creation ==="
 run_test "supabase/tests/12_exception_creation.sql"
 echo ""
 
+# 13. Arithmetic Operations (Custom Objects)
+echo "=== Phase 13: Arithmetic Operations ==="
+run_test "supabase/tests/13_arithmetic_ops.sql"
+echo ""
+
 # ===================================================
 # Summary
 # ===================================================
@@ -147,6 +152,7 @@ echo "  ✅ 09: Function Deep Dive & Integrity"
 echo "  ✅ 10: Error Handling & Traceback"
 echo "  ✅ 11: Exception Infrastructure & Types"
 echo "  ✅ 12: Exception Object Creation"
+echo "  ✅ 13: Arithmetic Ops (Custom)"
 echo ""
-echo "Total: 13 test suites passed ✨"
+echo "Total: 14 test suites passed ✨"
 echo ""

@@ -72,6 +72,10 @@ BEGIN
             
             -- Dispatch
             CASE v_opcode
+                -- POP_TOP
+                WHEN 'POP_TOP' THEN
+                    v_stack := v_stack[1:array_length(v_stack, 1)-1];
+
                 -- LOAD_CONST <const_idx>
                 WHEN 'LOAD_CONST' THEN
                     v_res := public.vm_tuple_getitem(v_code_obj.co_consts, v_oparg_int);

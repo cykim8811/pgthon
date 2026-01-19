@@ -74,6 +74,19 @@ END;
 $$ LANGUAGE plpgsql;
 
 -------------------------------------------------------
+-- 4.2. vm_get_str_value: Get string value from object
+-------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.vm_get_str_value(p_obj_id uuid)
+RETURNS text AS $$
+DECLARE
+    v_val text;
+BEGIN
+    SELECT str_value INTO v_val FROM public.py_unicode_object WHERE ob_base = p_obj_id;
+    RETURN COALESCE(v_val, '');
+END;
+$$ LANGUAGE plpgsql;
+
+-------------------------------------------------------
 -- 4.5. vm_create_dict: Create a new empty dictionary object
 -------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.vm_create_dict()

@@ -110,6 +110,16 @@ echo "=== Phase 9: Function Deep Dive ==="
 run_test "supabase/tests/09_function_deep_dive.sql"
 echo ""
 
+# 10. Error Handling
+echo "=== Phase 10: Error Handling ==="
+run_test "supabase/tests/10_error_handling.sql"
+echo ""
+
+# 11. Exception Infrastructure
+echo "=== Phase 11: Exception Infrastructure ==="
+run_test "supabase/tests/11_exception_infrastructure.sql"
+echo ""
+
 # ===================================================
 # Summary
 # ===================================================
@@ -129,6 +139,8 @@ echo "  ✅ 06: Object Protocol"
 echo "  ✅ 07: Integration Tests"
 echo "  ✅ 08: Frame Objects & Introspection"
 echo "  ✅ 09: Function Deep Dive & Integrity"
+echo "  ✅ 10: Error Handling & Traceback"
+echo "  ✅ 11: Exception Infrastructure & Types"
 echo ""
-echo "Total: 10 test suites passed ✨"
+echo "Total: 12 test suites passed ✨"
 echo ""

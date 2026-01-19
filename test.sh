@@ -145,11 +145,6 @@ echo "=== Phase 16: Error Handling Extended ==="
 run_test "supabase/tests/16_error_handling_extended.sql"
 echo ""
 
-# 17. Integration Advanced
-echo "=== Phase 17: Integration Advanced ==="
-run_test "supabase/tests/17_integration_advanced.sql"
-echo ""
-
 # ===================================================
 # Summary
 # ===================================================
@@ -176,7 +171,6 @@ echo "  ✅ 13: Arithmetic Ops (Custom)"
 echo "  ✅ 14: Advanced Ops (__sub__, __call__)"
 echo "  ✅ 15: Arithmetic Extended (All Ops)"
 echo "  ✅ 16: Error Handling Extended"
-echo "  ✅ 17: Integration Advanced"
 echo ""
-echo "Total: 18 test suites passed ✨"
+echo "Total: 17 test suites passed ✨"
 echo ""

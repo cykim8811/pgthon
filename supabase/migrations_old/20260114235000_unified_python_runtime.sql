@@ -109,7 +109,7 @@ CREATE TABLE public.py_instance_object (
 );
 
 -- JS/Native Function (Built-in)
-CREATE TABLE public.py_js_function_object (
+CREATE TABLE public.py_builtin_function_object (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ob_base UUID REFERENCES public.py_object(id) ON DELETE CASCADE UNIQUE,
   fn_name TEXT NOT NULL
@@ -203,5 +203,5 @@ CREATE POLICY "Public Read Access" ON public.py_float_object FOR SELECT USING (t
 CREATE POLICY "Public Read Access" ON public.py_code_object FOR SELECT USING (true);
 CREATE POLICY "Public Read Access" ON public.py_function_object FOR SELECT USING (true);
 CREATE POLICY "Public Read Access" ON public.py_instance_object FOR SELECT USING (true);
-ALTER TABLE public.py_js_function_object ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public Read Access" ON public.py_js_function_object FOR SELECT USING (true);
+ALTER TABLE public.py_builtin_function_object ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public Read Access" ON public.py_builtin_function_object FOR SELECT USING (true);

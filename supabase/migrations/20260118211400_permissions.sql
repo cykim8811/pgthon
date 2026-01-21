@@ -19,7 +19,7 @@ ALTER TABLE public.py_set_object ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.py_code_object ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.py_function_object ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.py_instance_object ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.py_js_function_object ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.py_builtin_function_object ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.py_bound_method_object ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.py_list_iterator_object ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.py_frame_object ENABLE ROW LEVEL SECURITY;
@@ -43,7 +43,7 @@ CREATE POLICY "Public Read Access" ON public.py_set_object FOR SELECT USING (tru
 CREATE POLICY "Public Read Access" ON public.py_code_object FOR SELECT USING (true);
 CREATE POLICY "Public Read Access" ON public.py_function_object FOR SELECT USING (true);
 CREATE POLICY "Public Read Access" ON public.py_instance_object FOR SELECT USING (true);
-CREATE POLICY "Public Read Access" ON public.py_js_function_object FOR SELECT USING (true);
+CREATE POLICY "Public Read Access" ON public.py_builtin_function_object FOR SELECT USING (true);
 CREATE POLICY "Public Read Access" ON public.py_bound_method_object FOR SELECT USING (true);
 CREATE POLICY "Public Read Access" ON public.py_list_iterator_object FOR SELECT USING (true);
 CREATE POLICY "Public Read Access" ON public.py_frame_object FOR SELECT USING (true);
@@ -67,7 +67,7 @@ CREATE POLICY "Public Insert Access" ON public.py_set_object FOR INSERT WITH CHE
 CREATE POLICY "Public Insert Access" ON public.py_code_object FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Access" ON public.py_function_object FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Access" ON public.py_instance_object FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Insert Access" ON public.py_js_function_object FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Insert Access" ON public.py_builtin_function_object FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Access" ON public.py_bound_method_object FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Access" ON public.py_list_iterator_object FOR INSERT WITH CHECK (true);
 
@@ -84,7 +84,7 @@ CREATE POLICY "Public Update Access" ON public.py_set_object FOR UPDATE USING (t
 CREATE POLICY "Public Update Access" ON public.py_code_object FOR UPDATE USING (true);
 CREATE POLICY "Public Update Access" ON public.py_function_object FOR UPDATE USING (true);
 CREATE POLICY "Public Update Access" ON public.py_instance_object FOR UPDATE USING (true);
-CREATE POLICY "Public Update Access" ON public.py_js_function_object FOR UPDATE USING (true);
+CREATE POLICY "Public Update Access" ON public.py_builtin_function_object FOR UPDATE USING (true);
 CREATE POLICY "Public Update Access" ON public.py_bound_method_object FOR UPDATE USING (true);
 CREATE POLICY "Public Update Access" ON public.py_list_iterator_object FOR UPDATE USING (true);
 CREATE POLICY "Public Update Access" ON public.py_frame_object FOR UPDATE USING (true);

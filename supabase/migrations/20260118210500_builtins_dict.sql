@@ -44,7 +44,7 @@ BEGIN
     LOOP
         -- Find function object by name
         SELECT ob_base INTO val_id 
-        FROM public.py_js_function_object 
+        FROM public.py_builtin_function_object 
         WHERE fn_name = func_name 
         LIMIT 1;
         

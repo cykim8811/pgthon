@@ -2,7 +2,7 @@
 -- Migration: Implement Native Functions (Dynamic Dispatch)
 -- Description: 
 --   1. Create independent SQL functions for built-ins.
---   2. Register them to py_js_function_object.
+--   2. Register them to py_builtin_function_object.
 -- =====================================================
 
 -------------------------------------------------------
@@ -126,7 +126,7 @@ BEGIN
         -- But wait, typically each type has its OWN builtin function object for methods?
         -- In our current bootstrap, we might have reused names or created distinct objects.
         -- Let's check: In 'type_methods.sql' (06), we created function objects.
-        -- They are py_js_function_object.
+        -- They are py_builtin_function_object.
         
         -- If update affected 0 rows, it means we haven't created them or names don't match.
         -- We'll just assume they exist for now as tests pass.

@@ -30,7 +30,7 @@ BEGIN
     END IF;
 
     -- Simple Dynamic Dispatch
-    -- We assume the fn_name stored in py_js_function_object IS the PL/pgSQL function name.
+    -- We assume the fn_name stored in py_builtin_function_object IS the PL/pgSQL function name.
     v_sql := format('SELECT public.%I($1)', fn_name);
     
     BEGIN

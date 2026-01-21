@@ -104,7 +104,7 @@ BEGIN
 
         -- 2. Create JS Function Object
         INSERT INTO public.py_object (id, ob_type) VALUES (V_JS_FUNC_BASE, ID_JS_FNC_TYPE);
-        INSERT INTO public.py_js_function_object (id, ob_base, fn_name)
+        INSERT INTO public.py_builtin_function_object (id, ob_base, fn_name)
         VALUES (V_JS_FUNC_OBJ, V_JS_FUNC_BASE, V_METH_NAME);
 
         -- 3. Link to Dict

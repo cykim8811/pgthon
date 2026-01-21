@@ -31,7 +31,7 @@ BEGIN
     v_fn_base := gen_random_uuid();
     v_fn_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (v_fn_base, ID_JS_FNC_TYPE);
-    INSERT INTO public.py_js_function_object (id, ob_base, fn_name) VALUES (v_fn_id, v_fn_base, p_native_fn_name);
+    INSERT INTO public.py_builtin_function_object (id, ob_base, fn_name) VALUES (v_fn_id, v_fn_base, p_native_fn_name);
 
     -- 4. Insert into Dict
     INSERT INTO public.py_dict_entry (id, dict_id, me_key, me_value)

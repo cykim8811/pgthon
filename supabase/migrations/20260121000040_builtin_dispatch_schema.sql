@@ -1,7 +1,7 @@
 -- =====================================================
 -- Migration: Builtin Function Dynamic Dispatch Support
 -- Description: 
---   1. Add 'fn_impl_name' to py_js_function_object for SQL implementation mapping.
+--   1. Add 'fn_impl_name' to py_builtin_function_object for SQL implementation mapping.
 --   2. Helper function to register built-ins cleanly.
 -- =====================================================
 

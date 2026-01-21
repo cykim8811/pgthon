@@ -26,7 +26,7 @@ BEGIN
         INSERT INTO public.py_object (id, ob_type) VALUES (base_id, ID_JS_FNC_TYPE);
         
         -- Create JS Function Object
-        INSERT INTO public.py_js_function_object (id, ob_base, fn_name)
+        INSERT INTO public.py_builtin_function_object (id, ob_base, fn_name)
         VALUES (obj_id, base_id, func_name);
     END LOOP;
 

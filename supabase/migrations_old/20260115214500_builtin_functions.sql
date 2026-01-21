@@ -38,7 +38,7 @@ BEGIN
     -------------------------------------------------------
     -- 2. Create JS Function Objects (Native Implementation)
     -------------------------------------------------------
-    INSERT INTO public.py_js_function_object (id, ob_base, fn_name) VALUES
+    INSERT INTO public.py_builtin_function_object (id, ob_base, fn_name) VALUES
     (ID_LEN_FNC, B_LEN_OBJ, 'len'),
     (ID_PRT_FNC, B_PRT_OBJ, 'print'),
     (ID_ID_FNC,  B_ID_OBJ,  'id'),

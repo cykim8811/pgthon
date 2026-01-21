@@ -288,7 +288,7 @@ BEGIN
     IF v_type_id = ID_JS_FNC_TYPE THEN
         SELECT fn_name
         INTO v_native_name
-        FROM public.py_js_function_object
+        FROM public.py_builtin_function_object
         WHERE ob_base = callable_id;
 
         RETURN public.vm_native_dispatch(v_native_name, args);

@@ -150,6 +150,11 @@ echo "=== Phase 17: Base ID Unification Check ==="
 run_test "supabase/tests/17_base_id_check.sql"
 echo ""
 
+# 18. Globals Scope Check
+echo "=== Phase 18: Globals Scope Check ==="
+run_test "supabase/tests/18_globals_scope.sql"
+echo ""
+
 # ===================================================
 # Summary
 # ===================================================

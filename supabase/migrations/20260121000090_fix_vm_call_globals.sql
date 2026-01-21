@@ -1,11 +1,9 @@
 -- =====================================================
--- Migration: VM Call Mechanism
--- Description: Function call dispatch for bound methods, native functions, and bytecode functions
+-- Migration: Fix vm_call Globals Handling
+-- Description: 
+--   Pass func_globals from py_function_object to vm_create_frame/vm_run_frame.
 -- =====================================================
 
--------------------------------------------------------
--- vm_call: Main call dispatcher
--------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.vm_call(
     callable_id uuid, 
     args uuid[],
@@ -29,6 +27,7 @@ DECLARE
     -- Bytecode function variables
     v_code_id uuid;
     v_code_base_id uuid; -- Base ID for frame object
+    v_func_globals uuid; -- Globals from function object
     v_locals_id uuid;
     v_base_locals uuid;
     v_varnames_id uuid;
@@ -72,15 +71,15 @@ BEGIN
     -- 4. PYTHON BYTECODE FUNCTION: Create locals and run frame
     -----------------------------------------------------------------
     IF v_type_id = ID_FNC_TYPE THEN
-        -- Get code object
-        SELECT func_code INTO v_code_id 
+        -- Get code object (Base ID) and globals
+        SELECT func_code, func_globals INTO v_code_base_id, v_func_globals 
         FROM public.py_function_object 
         WHERE ob_base = callable_id;
         
-        -- Get Code Base ID for Frame Creation
-        SELECT ob_base INTO v_code_base_id
-        FROM public.py_code_object
-        WHERE id = v_code_id;
+        -- Fallback for globals (e.g. Unit Tests)
+        IF v_func_globals IS NULL THEN
+            v_func_globals := public.vm_create_dict();
+        END IF;
         
         -- Create locals dictionary
         v_base_locals := gen_random_uuid();
@@ -91,7 +90,7 @@ BEGIN
         -- Get varnames for argument binding
         SELECT c.co_varnames, c.co_argcount INTO v_varnames_id, v_arg_count
         FROM public.py_code_object c
-        WHERE c.id = v_code_id;
+        WHERE c.ob_base = v_code_base_id;
         
         -- Bind arguments to locals
         IF array_length(args, 1) > 0 THEN
@@ -103,24 +102,26 @@ BEGIN
                 WHERE ob_base = v_arg_name_uuid;
                 
                 -- Set in locals
-                PERFORM public.vm_dict_set_item(v_locals_id, v_arg_name_str, args[i]);
+                PERFORM public.vm_dict_set_item(v_base_locals, v_arg_name_str, args[i]);
             END LOOP;
         END IF;
 
         -- Create Frame Object
+        -- CRITICAL FIX: Pass v_func_globals instead of NULL
         v_frame_id := public.vm_create_frame(
             v_code_base_id,
             v_base_locals,
-            NULL,  -- globals
-            NULL,  -- builtins (use default)
-            p_caller_frame_id  -- Link to caller frame
+            v_func_globals,  -- globals (Now passed correctly)
+            NULL,            -- builtins (use default)
+            p_caller_frame_id
         );
         
         -- Set current frame context
         PERFORM public.vm_set_current_frame(v_frame_id);
         
         -- Run frame with code and locals (using Base IDs)
-        v_result := public.vm_run_frame(v_code_base_id, v_base_locals, NULL, v_frame_id);
+        -- Also pass globals to vm_run_frame for consistency (though frame object has it)
+        v_result := public.vm_run_frame(v_code_base_id, v_base_locals, v_func_globals, v_frame_id);
         
         -- Restore previous frame
         IF p_caller_frame_id IS NOT NULL THEN
@@ -130,6 +131,18 @@ BEGIN
         RETURN v_result;
     END IF;
     
+    -----------------------------------------------------------------
+    -- 5. CUSTOM CALLABLE (__call__)
+    -----------------------------------------------------------------
+    BEGIN
+        v_im_func := public.vm_getattr(callable_id, '__call__');
+        IF v_im_func IS NOT NULL THEN
+            RETURN public.vm_call(v_im_func, args, p_caller_frame_id);
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL; -- Ignore validation errors
+    END;
+
     RAISE EXCEPTION 'TypeError: Object % is not callable', callable_id;
 END;
 $$ LANGUAGE plpgsql;

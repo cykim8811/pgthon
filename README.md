@@ -1,87 +1,86 @@
-# Welcome to React Router!
+## Elytra
 
-A modern, production-ready template for building full-stack React applications using React Router.
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
-
-## Features
-
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
-
-## Getting Started
-
-### Installation
-
-Install the dependencies:
-
-```bash
-npm install
-```
-
-### Development
-
-Start the development server with HMR:
-
-```bash
-npm run dev
-```
-
-Your application will be available at `http://localhost:5173`.
-
-## Building for Production
-
-Create a production build:
-
-```bash
-npm run build
-```
-
-## Deployment
-
-### Docker Deployment
-
-To build and run using Docker:
-
-```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
-```
-
-The containerized application can be deployed to any platform that supports Docker, including:
-
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
-
-### DIY Deployment
-
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
-
-Make sure to deploy the output of `npm run build`
-
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
-```
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
+Elytra는 **CPython의 객체 모델을 PostgreSQL 위에 충실하게 구현**하는 프로젝트입니다.  
+목표는 “파이썬을 DB 위에서 굴린다”가 아니라, **CPython이 파이썬을 성립시키는 핵심 아이디어들을** 구조적으로 올바른 방식으로 **최소(minimal) 단위부터 단계적으로** 구현하는 것입니다.
 
 ---
 
-Built with ❤️ using React Router.
+## 목적 (Goal)
+
+- **CPython의 고증(fidelity)을 최대한 유지**한 채로, CPython의 내부 표현(구조체/포인터/상속/싱글턴)을 **관계형 데이터 모델로 옮깁니다.**
+- 전체 CPython을 “완성품처럼” 재현하는 대신, 각 개념의 **핵심 아이디어를 드러내는 데 필요한 최소 구성**을 구현합니다.
+- “동작만 맞추는 임시방편(hack)”은 허용하지 않습니다. 설계/스키마/테스트가 **깨끗하고 확장 가능한 정합성**을 가져야 합니다.
+
+---
+
+## 핵심 철학 (Principles)
+
+- **Faithful**: CPython의 개념(객체/타입/상속/내장 싱글턴 등)을 왜곡하지 않습니다.
+- **Minimal**: “필요한 만큼만” 구현합니다. 단, 생략은 **개념을 훼손하지 않는 범위**에서만 합니다.
+- **Composable**: 이후 개념(예: descriptor, MRO, attribute lookup, opcode/frames 등)이 자연스럽게 쌓이도록, 기반을 단단히 합니다.
+- **Test-first**: 각 단계는 테스트로 기대 동작을 고정하고, 구현으로 통과시키는 방식으로 진행합니다.
+
+---
+
+## 구현 방향 (CPython → PostgreSQL 매핑)
+
+Elytra는 CPython의 “구조체 상속(헤더 + 확장)” 감각을 PostgreSQL에서 다음 방식으로 표현합니다.
+
+- **모든 객체는 `PyObject`**: 한 row가 하나의 객체를 의미합니다.
+- **타입도 객체**: `PyTypeObject` 역시 `PyObject`를 베이스로 갖습니다.
+- **상속은 `tp_bases`(tuple)로 표현**: `tp_bases`는 튜플 오브젝트를 가리키며, 그 튜플은 베이스 타입들의 `PyObject`들을 담습니다.
+- **내장 싱글턴/코어 타입 부트스트랩**: `type`, `object`, `None` 등은 초기 부트스트랩으로 “세계의 바닥”을 형성합니다.
+
+---
+
+## 데이터베이스 (Supabase / PostgreSQL)
+
+`supabase/migrations/`는 “앱 스키마”와 “CPython 객체 모델 스키마/부트스트랩”을 정의합니다.
+
+- `20260112141514_init_schema.sql`
+  - 앱 레벨의 `profiles`, `workspaces`, `workspace_permissions` 및 RLS/트리거 구성
+- `20260114220000_python_objects.sql`
+  - CPython 스타일 내부 오브젝트 테이블(`PyObject`, `PyTypeObject`, `PyDictObject` 등) 정의
+- `20260114223000_bootstrap_builtin_objects.sql`
+  - `object`, `type`, `str`, `int`, `list`, `dict`, `tuple`, `NoneType` 및 `None` 싱글턴의 최소 부트스트랩
+
+---
+
+## 규칙 (Rules)
+
+- **임시방편 금지**: 테스트를 통과시키기 위한 “특례/하드코딩/우회”는 금지합니다.
+- **CPython 고증 우선**: 설계 결정 시 “CPython은 왜/어떻게 하는가”가 최우선 기준입니다. CPython보다 기능이 적은 것은 허용하지만, CPython과 다른 방향의 구현은 허용하지 않습니다.
+  - 만약 이것이 PostgreSQL의 한계이거나 다른 방향의 구현이 더 낫다는 판단이 들면, 사용자에게 확인을 받습니다.
+- **단계적 구축**: 큰 기능을 한 번에 넣지 않습니다. 핵심 개념을 작은 단위로 쪼개고, 각 단위를 완성(테스트 포함)한 뒤 다음으로 진행합니다.
+- **핵심 아이디어를 기록**: 구현 디테일은 코드에, “기억해야 할 아이디어”는 README에 짧게 남깁니다.
+- **Migration은 최대한 작게 유지**: 기존 스키마 수정이 필요할 때, 변경하는 migration을 추가하는 것이 아닌, 기존의 스키마 생성 코드를 수정하는 방향으로 진행합니다.
+
+---
+
+## AI Agent 변경 절차 (필수)
+
+AI Agent는 변경사항을 추가할 때 아래 절차를 **반드시** 따릅니다.
+
+1. **전체 프로젝트의 방향성과, 그에 따라 추구하는 방향을 상기하기**
+2. **해당 단계의 요구사안을 바탕으로 구현 방향 고안하기**
+   - CPython 고증을 지키는 방향인지 확인
+   - 임시방편이 포함되지 않는지 점검
+3. **해당 단계에서 기대되는 결과를 바탕으로, 테스트 코드 추가하고 해당 테스트가 실패하는 것을 확인하기**
+4. **해당 단계에서 요구되는 코드 실제로 작성하기**
+5. **해당 단계에서 추가된 모든 부분에 대해 세부적인 테스트 작성하기**
+6. **테스트 코드를 실행하기**
+7. **테스트 코드가 실패한 경우, 이유 파악하기**
+   - “테스트 성공”을 목표로 임시구현이 들어가기 쉬우므로 경계
+   - 세부 테스트로 문제의 핵심을 파악하는 단계
+8. **문제 있는 부분 고치기**
+   - 7번에서 이해한 “문제의 핵심”을 수정하는 업데이트를 진행
+   - 테스트를 통과시키기 위한 임시구현은 허용되지 않음
+   - 더 큰 문제의 일부라면 사용자에게 알림
+9. **해당 단계에서 구현한 내용 중 ‘핵심 아이디어’를 README에 업데이트하기**
+   - 자세한 구현사항보다 “핵심적이고 기억해야 할 아이디어”만 짧게 기록
+
+---
+
+## 핵심 아이디어 로그 (짧게 유지)
+
+- **(현재)** CPython의 객체/타입/상속/싱글턴 부트스트랩을 PostgreSQL 스키마로 최소 구현한다.

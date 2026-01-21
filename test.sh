@@ -145,6 +145,11 @@ echo "=== Phase 16: Error Handling Extended ==="
 run_test "supabase/tests/16_error_handling_extended.sql"
 echo ""
 
+# 17. Base ID Unification Check
+echo "=== Phase 17: Base ID Unification Check ==="
+run_test "supabase/tests/17_base_id_check.sql"
+echo ""
+
 # ===================================================
 # Summary
 # ===================================================

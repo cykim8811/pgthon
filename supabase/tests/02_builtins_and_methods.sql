@@ -32,26 +32,34 @@ BEGIN
     PERFORM public.test_assert(v_count > 0, format('__builtins__ has %s entries', v_count));
     
     -- Verify specific built-ins exist
-    SELECT e.me_value INTO v_value_id
-    FROM public.py_dict_entry e
-    JOIN public.py_unicode_object u ON u.ob_base = e.me_key
-    WHERE e.dict_id = ID_DICT_BUILTINS AND u.str_value = 'int'
-    LIMIT 1;
-    PERFORM public.test_assert_not_null(v_value_id, 'int is in __builtins__');
     
-    SELECT e.me_value INTO v_value_id
-    FROM public.py_dict_entry e
-    JOIN public.py_unicode_object u ON u.ob_base = e.me_key
-    WHERE e.dict_id = ID_DICT_BUILTINS AND u.str_value = 'str'
-    LIMIT 1;
-    PERFORM public.test_assert_not_null(v_value_id, 'str is in __builtins__');
+    -- Get Builtins Base ID
+    DECLARE
+        v_builtins_base uuid;
+    BEGIN
+        SELECT ob_base INTO v_builtins_base FROM public.py_dict_object WHERE id = ID_DICT_BUILTINS;
     
-    SELECT e.me_value INTO v_value_id
-    FROM public.py_dict_entry e
-    JOIN public.py_unicode_object u ON u.ob_base = e.me_key
-    WHERE e.dict_id = ID_DICT_BUILTINS AND u.str_value = 'list'
-    LIMIT 1;
-    PERFORM public.test_assert_not_null(v_value_id, 'list is in __builtins__');
+        SELECT e.me_value INTO v_value_id
+        FROM public.py_dict_entry e
+        JOIN public.py_unicode_object u ON u.ob_base = e.me_key
+        WHERE e.dict_id = v_builtins_base AND u.str_value = 'int'
+        LIMIT 1;
+        PERFORM public.test_assert_not_null(v_value_id, 'int is in __builtins__');
+        
+        SELECT e.me_value INTO v_value_id
+        FROM public.py_dict_entry e
+        JOIN public.py_unicode_object u ON u.ob_base = e.me_key
+        WHERE e.dict_id = v_builtins_base AND u.str_value = 'str'
+        LIMIT 1;
+        PERFORM public.test_assert_not_null(v_value_id, 'str is in __builtins__');
+        
+        SELECT e.me_value INTO v_value_id
+        FROM public.py_dict_entry e
+        JOIN public.py_unicode_object u ON u.ob_base = e.me_key
+        WHERE e.dict_id = v_builtins_base AND u.str_value = 'list'
+        LIMIT 1;
+        PERFORM public.test_assert_not_null(v_value_id, 'list is in __builtins__');
+    END;
     
     -------------------------------------------------------
     -- 2. Test Type Methods Registration

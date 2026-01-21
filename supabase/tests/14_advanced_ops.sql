@@ -92,11 +92,11 @@ BEGIN
     
     -- Create Type Dictionary first
     v_dict_base := public.vm_create_dict();
-    SELECT id INTO v_dict_id FROM public.py_dict_object WHERE ob_base = v_dict_base;
+    -- v_dict_id (Table ID) no longer needed for tp_dict (uses Base ID)
     
     INSERT INTO public.py_object (id, ob_type) VALUES (v_type_base_id, ID_TYPE_TYPE);
     INSERT INTO public.py_type_object (id, ob_base, tp_name, tp_bases, tp_dict) 
-    VALUES (v_type_id, v_type_base_id, 'AdvancedBox', NULL, v_dict_id);
+    VALUES (v_type_id, v_type_base_id, 'AdvancedBox', NULL, v_dict_base);
     
     -------------------------------------------------------
     -- 2. Define __sub__
@@ -110,7 +110,7 @@ BEGIN
     -- Function Wrapper
     v_sub_func_base := gen_random_uuid();
     v_sub_func := gen_random_uuid();
-    PERFORM public.vm_create_function(v_sub_func_base, v_sub_func, v_sub_code_id, 'AdvancedBox.__sub__');
+    PERFORM public.vm_create_function(v_sub_func_base, v_sub_func, v_sub_code_base, 'AdvancedBox.__sub__');
     
     -- Bind to Type
     PERFORM public.vm_dict_set_item(v_dict_base, '__sub__', v_sub_func_base);
@@ -127,7 +127,7 @@ BEGIN
     -- Function Wrapper
     v_rsub_func_base := gen_random_uuid();
     v_rsub_func := gen_random_uuid();
-    PERFORM public.vm_create_function(v_rsub_func_base, v_rsub_func, v_rsub_code_id, 'AdvancedBox.__rsub__');
+    PERFORM public.vm_create_function(v_rsub_func_base, v_rsub_func, v_rsub_code_base, 'AdvancedBox.__rsub__');
     
     -- Bind to Type
     PERFORM public.vm_dict_set_item(v_dict_base, '__rsub__', v_rsub_func_base);
@@ -143,7 +143,7 @@ BEGIN
     -- Function Wrapper
     v_call_func_base := gen_random_uuid();
     v_call_func := gen_random_uuid();
-    PERFORM public.vm_create_function(v_call_func_base, v_call_func, v_call_code_id, 'AdvancedBox.__call__');
+    PERFORM public.vm_create_function(v_call_func_base, v_call_func, v_call_code_base, 'AdvancedBox.__call__');
     
     -- Bind to Type
     PERFORM public.vm_dict_set_item(v_dict_base, '__call__', v_call_func_base);
@@ -159,7 +159,7 @@ BEGIN
     -- Function Wrapper
     v_mul_func_base := gen_random_uuid();
     v_mul_func := gen_random_uuid();
-    PERFORM public.vm_create_function(v_mul_func_base, v_mul_func, v_mul_code_id, 'AdvancedBox.__mul__');
+    PERFORM public.vm_create_function(v_mul_func_base, v_mul_func, v_mul_code_base, 'AdvancedBox.__mul__');
     
     -- Bind to Type
     PERFORM public.vm_dict_set_item(v_dict_base, '__mul__', v_mul_func_base);
@@ -168,7 +168,7 @@ BEGIN
     -- 5. Instantiate Object
     -------------------------------------------------------
     v_obj1_base := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (v_obj1_base, v_type_id);
+    INSERT INTO public.py_object (id, ob_type) VALUES (v_obj1_base, v_type_base_id);
     
     -------------------------------------------------------
     -- 6. Test vm_sub (Fast Path: Int - Int)

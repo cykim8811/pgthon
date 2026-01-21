@@ -15,8 +15,15 @@ BEGIN
     -------------------------------------------------------
     -- 1. Check if TypeError is in __builtins__
     -------------------------------------------------------
-    v_type_error_id := public.vm_dict_get_item(ID_DT_BUILTINS, 'TypeError');
-    PERFORM public.test_assert(v_type_error_id IS NOT NULL, 'TypeError should be in __builtins__');
+    -- Get Builtins Base ID
+    DECLARE
+        v_builtins_base uuid;
+    BEGIN
+        SELECT ob_base INTO v_builtins_base FROM public.py_dict_object WHERE id = ID_DT_BUILTINS;
+        
+        v_type_error_id := public.vm_dict_get_item(v_builtins_base, 'TypeError');
+        PERFORM public.test_assert(v_type_error_id IS NOT NULL, 'TypeError should be in __builtins__');
+    END;
     
     -------------------------------------------------------
     -- 2. Check Type of TypeError (Metaclass check)

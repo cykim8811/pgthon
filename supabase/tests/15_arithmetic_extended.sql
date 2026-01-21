@@ -50,11 +50,11 @@ BEGIN
     v_type_id := gen_random_uuid();
     
     v_dict_base := public.vm_create_dict();
-    SELECT id INTO v_dict_id FROM public.py_dict_object WHERE ob_base = v_dict_base;
+    -- SELECT id INTO v_dict_id FROM public.py_dict_object WHERE ob_base = v_dict_base; -- Not needed
     
     INSERT INTO public.py_object (id, ob_type) VALUES (v_type_base_id, ID_TYPE_TYPE);
     INSERT INTO public.py_type_object (id, ob_base, tp_name, tp_bases, tp_dict) 
-    VALUES (v_type_id, v_type_base_id, 'MathBox', NULL, v_dict_id);
+    VALUES (v_type_id, v_type_base_id, 'MathBox', NULL, v_dict_base);
 
     -------------------------------------------------------
     -- 2. Define __truediv__ (returns 100 / other)
@@ -71,7 +71,7 @@ RETURN_VALUE', '__truediv__');
     
     v_div_func_base := gen_random_uuid();
     v_div_func := gen_random_uuid();
-    PERFORM public.vm_create_function(v_div_func_base, v_div_func, v_div_code_id, 'MathBox.__truediv__');
+    PERFORM public.vm_create_function(v_div_func_base, v_div_func, v_div_code_base, 'MathBox.__truediv__');
     PERFORM public.vm_dict_set_item(v_dict_base, '__truediv__', v_div_func_base);
 
     -------------------------------------------------------
@@ -89,7 +89,7 @@ RETURN_VALUE', '__floordiv__');
     
     v_floordiv_func_base := gen_random_uuid();
     v_floordiv_func := gen_random_uuid();
-    PERFORM public.vm_create_function(v_floordiv_func_base, v_floordiv_func, v_floordiv_code_id, 'MathBox.__floordiv__');
+    PERFORM public.vm_create_function(v_floordiv_func_base, v_floordiv_func, v_floordiv_code_base, 'MathBox.__floordiv__');
     PERFORM public.vm_dict_set_item(v_dict_base, '__floordiv__', v_floordiv_func_base);
 
     -------------------------------------------------------
@@ -107,7 +107,7 @@ RETURN_VALUE', '__mod__');
     
     v_mod_func_base := gen_random_uuid();
     v_mod_func := gen_random_uuid();
-    PERFORM public.vm_create_function(v_mod_func_base, v_mod_func, v_mod_code_id, 'MathBox.__mod__');
+    PERFORM public.vm_create_function(v_mod_func_base, v_mod_func, v_mod_code_base, 'MathBox.__mod__');
     PERFORM public.vm_dict_set_item(v_dict_base, '__mod__', v_mod_func_base);
 
     -------------------------------------------------------
@@ -125,14 +125,14 @@ RETURN_VALUE', '__pow__');
     
     v_pow_func_base := gen_random_uuid();
     v_pow_func := gen_random_uuid();
-    PERFORM public.vm_create_function(v_pow_func_base, v_pow_func, v_pow_code_id, 'MathBox.__pow__');
+    PERFORM public.vm_create_function(v_pow_func_base, v_pow_func, v_pow_code_base, 'MathBox.__pow__');
     PERFORM public.vm_dict_set_item(v_dict_base, '__pow__', v_pow_func_base);
 
     -------------------------------------------------------
     -- 6. Instantiate MathBox
     -------------------------------------------------------
     v_obj_base := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (v_obj_base, v_type_id);
+    INSERT INTO public.py_object (id, ob_type) VALUES (v_obj_base, v_type_base_id);
 
     -------------------------------------------------------
     -- 7. Test __truediv__

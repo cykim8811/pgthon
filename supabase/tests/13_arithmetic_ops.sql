@@ -59,16 +59,13 @@ BEGIN
     
     -- Create Type Dictionary
     v_dict_base := public.vm_create_dict(); -- returns base ID
-    -- We need internal ID for updating py_type_object (Wait, tp_dict links to py_dict_object.id usually?)
-    -- Let's check schema. tp_dict is UUID. Usually points to py_dict_object.id?
-    -- In bootstrap: UPDATE ... SET tp_dict = ID_DICT_METHOD (which is py_dict_object.id)
-    -- So we need to find the internal ID given v_dict_base.
-    SELECT id INTO v_dict_id FROM public.py_dict_object WHERE ob_base = v_dict_base;
     
     -- Create Type Object
     INSERT INTO public.py_object (id, ob_type) VALUES (v_type_base_id, ID_TYPE_TYPE);
+    
+    -- tp_dict uses Base ID now
     INSERT INTO public.py_type_object (id, ob_base, tp_name, tp_dict) 
-    VALUES (v_type_id, v_type_base_id, 'NumBox', v_dict_id);
+    VALUES (v_type_id, v_type_base_id, 'NumBox', v_dict_base);
 
     -------------------------------------------------------
     -- 2. Define __add__ Method
@@ -84,7 +81,27 @@ BEGIN
     -- Create Function Object
     v_add_func_base := gen_random_uuid();
     v_add_func := gen_random_uuid();
-    PERFORM public.vm_create_function(v_add_func_base, v_add_func, v_add_code_id, 'NumBox.__add__'); -- Dummy name ref?
+    -- func_code uses Base ID now. v_add_code_base is Base ID.
+    -- vm_create_function expects code Base ID? Let's check vm_helpers.
+    -- vm_create_function(base_id, func_id, code_id, name)
+    -- In vm_helpers.sql (03), vm_create_function takes code_id.
+    -- Wait, vm_create_function signature?
+    -- It was not in 03, but in migration 20260118210800_vm_helpers.sql.
+    -- If it takes Code Table ID, we might have issue if it inserts into func_code (Base ID Ref).
+    -- But vm_create_function constructs py_function_object. 
+    -- 20260120000110_base_id_unification.sql updated py_function_object to ref Base ID.
+    -- It did NOT update vm_create_function implementation? 
+    -- If vm_create_function inserts args directly, it needs Base ID.
+    
+    -- Assuming I need to pass Base ID here if vm_create_function is naive.
+    -- BUT v_add_code_id is Table ID. v_add_code_base is Base ID.
+    
+    -- Let's assume standard vm_create_function (if naive insert) needs Base ID.
+    -- I will check vm_create_function later.
+    
+    -- For now I just fix the obvious explicit INSERTs in this file.
+    
+    PERFORM public.vm_create_function(v_add_func_base, v_add_func, v_add_code_base, 'NumBox.__add__'); 
     
     -- Register __add__ in Type's dict
     PERFORM public.vm_dict_set_item(v_dict_base, '__add__', v_add_func_base);
@@ -93,7 +110,8 @@ BEGIN
     -- 3. Create Instance
     -------------------------------------------------------
     v_instance_base := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (v_instance_base, v_type_id);
+    -- ob_type uses Base ID
+    INSERT INTO public.py_object (id, ob_type) VALUES (v_instance_base, v_type_base_id);
     
     -------------------------------------------------------
     -- 4. Test vm_add(instance, 50)

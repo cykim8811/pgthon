@@ -83,15 +83,15 @@ BEGIN
         v_type_base_id := gen_random_uuid();
         v_type_id := gen_random_uuid();
         v_dict_base := public.vm_create_dict();
-        SELECT id INTO v_dict_id FROM public.py_dict_object WHERE ob_base = v_dict_base;
+        -- SELECT id INTO v_dict_id FROM public.py_dict_object WHERE ob_base = v_dict_base; -- Use Base ID
         
         INSERT INTO public.py_object (id, ob_type) VALUES (v_type_base_id, ID_TYPE_TYPE);
         INSERT INTO public.py_type_object (id, ob_base, tp_name, tp_bases, tp_dict) 
-        VALUES (v_type_id, v_type_base_id, 'EmptyBox', NULL, v_dict_id);
+        VALUES (v_type_id, v_type_base_id, 'EmptyBox', NULL, v_dict_base);
         
         -- Create instance
         v_obj_base := gen_random_uuid();
-        INSERT INTO public.py_object (id, ob_type) VALUES (v_obj_base, v_type_id);
+        INSERT INTO public.py_object (id, ob_type) VALUES (v_obj_base, v_type_base_id);
         
         -- Test addition with no __add__ method
         v_val1 := public.vm_create_int(5);

@@ -23,7 +23,8 @@ BEGIN
     -- 1. Create base PyObjects first (without ob_type)
     --    NOTE: In Elytra, every object's identity is PyObject.id.
     -------------------------------------------------------
-    INSERT INTO public."PyObject" (id, ob_type) VALUES 
+    -- py_object implements CPython's PyObject
+    INSERT INTO public.py_object (id, ob_type) VALUES 
     (ID_OBJECT_TYPE, NULL), 
     (ID_TYPE_TYPE,   NULL),
     (ID_STR_TYPE,    NULL),
@@ -39,7 +40,8 @@ BEGIN
     -- 2. Create Core PyTypeObjects
     --    NOTE: Shared-PK inheritance: PyTypeObject.ob_base == PyObject.id
     -------------------------------------------------------
-    INSERT INTO public."PyTypeObject" (ob_base, tp_name) VALUES
+    -- py_type_object implements CPython's PyTypeObject
+    INSERT INTO public.py_type_object (ob_base, tp_name) VALUES
     (ID_OBJECT_TYPE, 'object'),
     (ID_TYPE_TYPE,   'type'),
     (ID_STR_TYPE,    'str'),
@@ -53,18 +55,19 @@ BEGIN
     -- 3. Update PyObjects to point to their types (Circular Reference Fix)
     -------------------------------------------------------
     -- All types have 'type' as their ob_type
-    UPDATE public."PyObject" SET ob_type = ID_TYPE_TYPE 
+    UPDATE public.py_object SET ob_type = ID_TYPE_TYPE 
     WHERE id IN (ID_OBJECT_TYPE, ID_TYPE_TYPE, ID_STR_TYPE, ID_INT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE);
     
     -- None instance is a NoneType
-    UPDATE public."PyObject" SET ob_type = ID_NONE_TYPE WHERE id = ID_NONE_OBJ;
+    UPDATE public.py_object SET ob_type = ID_NONE_TYPE WHERE id = ID_NONE_OBJ;
 
     -------------------------------------------------------
     -- 4. Create Helper Objects (Empty bases or object bases)
     -------------------------------------------------------
     -- Tuple containing only 'object' type for tp_bases
     -- NOTE: PyTupleObject.ob_base == PyObject.id
-    INSERT INTO public."PyTupleObject" (ob_base, ob_item)
+    -- py_tuple_object implements CPython's PyTupleObject
+    INSERT INTO public.py_tuple_object (ob_base, ob_item)
     VALUES (ID_TUPLE_OBJECT_ONLY, ARRAY[ID_OBJECT_TYPE]);
 
     -------------------------------------------------------
@@ -72,12 +75,13 @@ BEGIN
     -------------------------------------------------------
     -- object has no base class
     -- type inherit from object
-    UPDATE public."PyTypeObject" SET tp_bases = ID_TUPLE_OBJECT_ONLY WHERE ob_base = ID_TYPE_TYPE;
-    UPDATE public."PyTypeObject" SET tp_bases = ID_TUPLE_OBJECT_ONLY WHERE ob_base IN (ID_STR_TYPE, ID_INT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE);
+    UPDATE public.py_type_object SET tp_bases = ID_TUPLE_OBJECT_ONLY WHERE ob_base = ID_TYPE_TYPE;
+    UPDATE public.py_type_object SET tp_bases = ID_TUPLE_OBJECT_ONLY WHERE ob_base IN (ID_STR_TYPE, ID_INT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE);
 
     -- Create None Instance in its own table if needed
     -- For now, PyObject entry is enough to represent existence, but let's add a PyInstanceObject placeholder
-    INSERT INTO public."PyInstanceObject" (ob_base, in_dict)
+    -- py_instance_object implements CPython's PyInstanceObject
+    INSERT INTO public.py_instance_object (ob_base, in_dict)
     VALUES (ID_NONE_OBJ, NULL);
 
 END $$;

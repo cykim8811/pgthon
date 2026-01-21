@@ -136,9 +136,9 @@ BEGIN
         INSERT INTO public.py_unicode_object (id, ob_base, str_value) 
         VALUES (gen_random_uuid(), key_base_id, method_rec.method_name);
 
-        -- Create JS Function Object (Method)
+        -- Create Builtin Function Object (Method)
         INSERT INTO public.py_object (id, ob_type) VALUES (func_base_id, ID_JS_FNC_TYPE);
-        INSERT INTO public.py_js_function_object (id, ob_base, fn_name)
+        INSERT INTO public.py_builtin_function_object (id, ob_base, fn_name)
         VALUES (func_obj_id, func_base_id, method_rec.method_name);
 
         -- Link to Type Dict

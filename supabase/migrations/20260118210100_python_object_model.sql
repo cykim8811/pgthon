@@ -136,7 +136,7 @@ CREATE TABLE public.py_instance_object (
 -------------------------------------------------------
 -- 13. Native/Built-in Function Objects
 -------------------------------------------------------
-CREATE TABLE public.py_js_function_object (
+CREATE TABLE public.py_builtin_function_object (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   ob_base uuid REFERENCES public.py_object(id) ON DELETE CASCADE UNIQUE,
   fn_name text NOT NULL

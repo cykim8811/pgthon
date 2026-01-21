@@ -117,7 +117,7 @@ BEGIN
         UNION ALL SELECT '__mod__', 'vm_impl_int_mod'
     LOOP
         -- Update existing built-in objects with the implementation name
-        UPDATE public.py_js_function_object
+        UPDATE public.py_builtin_function_object
         SET fn_impl_name = v_rec.impl
         WHERE fn_name = v_rec.fname;
         

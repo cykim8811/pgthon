@@ -8,10 +8,10 @@
 -------------------------------------------------------
 -- 1. Schema Extension
 -------------------------------------------------------
-ALTER TABLE public.py_js_function_object 
+ALTER TABLE public.py_builtin_function_object 
 ADD COLUMN IF NOT EXISTS fn_impl_name text;
 
-COMMENT ON COLUMN public.py_js_function_object.fn_impl_name IS 'Name of the PL/pgSQL function implementing this built-in';
+COMMENT ON COLUMN public.py_builtin_function_object.fn_impl_name IS 'Name of the PL/pgSQL function implementing this built-in';
 
 -------------------------------------------------------
 -- 2. Helper: Register Builtin
@@ -34,7 +34,7 @@ BEGIN
     ON CONFLICT (id) DO NOTHING;
     
     -- 2. Create Builtin Function Object
-    INSERT INTO public.py_js_function_object (id, ob_base, fn_name, fn_impl_name)
+    INSERT INTO public.py_builtin_function_object (id, ob_base, fn_name, fn_impl_name)
     VALUES (p_builtin_id, p_base_id, p_name, p_impl_name)
     ON CONFLICT (id) 
     DO UPDATE SET fn_impl_name = EXCLUDED.fn_impl_name;

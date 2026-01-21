@@ -120,7 +120,7 @@ BEGIN
     -------------------------------------------------------
     -- Assemble code: other - 50.
     -- other will be 100. Result 50.
-    v_rsub_code_base := public.vm_assemble(c_rsub_source, '__rsub__');
+    v_rsub_code_base := public.vm_assemble(c_rsub_source_simple, '__rsub__');
     SELECT id INTO v_rsub_code_id FROM public.py_code_object WHERE ob_base = v_rsub_code_base;
     UPDATE public.py_code_object SET co_argcount = 2 WHERE id = v_rsub_code_id;
     
@@ -194,12 +194,10 @@ BEGIN
     -- TODO: This test requires proper NotImplemented handling in native int.__sub__
     -- Currently int.__sub__ succeeds even with unknown types
     -- SKIP FOR NOW
-    /*
     -- 100 - box.
     -- box.__rsub__(100) -> 100 - 50 = 50.
     v_res := public.vm_sub(v_val1, v_obj1_base);
     PERFORM public.test_assert_eq_int(public.vm_get_int_value(v_res), 50, '100 - AdvancedBox() = 50');
-    */
     
     -------------------------------------------------------
     -- 9. Test vm_mul (Fast Path: Int * Int)

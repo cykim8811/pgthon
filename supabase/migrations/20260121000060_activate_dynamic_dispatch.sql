@@ -16,7 +16,7 @@ DECLARE
 BEGIN
     -- 1. Look up implementation name from table using explicit parameter
     SELECT fn_impl_name INTO v_impl_name 
-    FROM public.py_js_function_object 
+    FROM public.py_builtin_function_object 
     WHERE fn_name = p_fn_name 
     AND fn_impl_name IS NOT NULL
     LIMIT 1;

@@ -101,12 +101,15 @@ create table public.py_dict_entry (
   me_value uuid references public.py_object(id) -- Value object
 );
 
--- 8. py_instance_object (Implements CPython's PyInstanceObject: instances)
---    Instances of user-defined classes. in_dict stores instance attributes.
+-- 8. py_instance_object (Stores instance __dict__ for user-defined class instances)
+--    In Python 3, all objects are PyObject (there is no PyInstanceObject struct).
+--    However, instances of user-defined classes need to store their __dict__ (instance attributes).
+--    This table provides a place to store the instance attribute dictionary.
+--    Note: Not all PyObjects have entries here - only instances that have instance attributes.
 create table public.py_instance_object (
   -- Shared-PK: the object's identity is its PyObject id.
   ob_base uuid primary key references public.py_object(id) on delete cascade,
-  in_dict uuid references public.py_dict_object(ob_base) -- Instance attribute dictionary
+  in_dict uuid references public.py_dict_object(ob_base) -- Instance attribute dictionary (__dict__)
 );
 
 -- 9. py_none_object (Implements CPython's Py_None: the None singleton)

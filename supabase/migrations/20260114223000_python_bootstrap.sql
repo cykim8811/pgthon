@@ -19,7 +19,7 @@
 -- Builtin Types Created:
 --   - object: The base class of all classes
 --   - type: The type of all types (metaclass)
---   - str, int, list, dict, tuple: Core builtin types
+--   - str, int, float, list, dict, tuple: Core builtin types
 --   - NoneType: The type of None
 --   - None: The singleton None object
 --
@@ -34,6 +34,7 @@ DECLARE
     ID_TYPE_TYPE   UUID := '00000000-0000-4000-a000-000000000002';
     ID_STR_TYPE    UUID := '00000000-0000-4000-a000-000000000003';
     ID_INT_TYPE    UUID := '00000000-0000-4000-a000-000000000004';
+    ID_FLOAT_TYPE  UUID := '00000000-0000-4000-a000-000000000009';
     ID_LIST_TYPE   UUID := '00000000-0000-4000-a000-000000000005';
     ID_DICT_TYPE   UUID := '00000000-0000-4000-a000-000000000006';
     ID_TUPLE_TYPE  UUID := '00000000-0000-4000-a000-000000000007';
@@ -47,6 +48,19 @@ DECLARE
     -- most builtin types that inherit from 'object' only (single inheritance).
     -- Multiple types share this same tuple object for their tp_bases field.
     ID_TUPLE_BASES_OBJECT UUID := gen_random_uuid();
+
+    -- tp_dict Dict Objects: Each type object has its own dict for type attributes
+    -- In CPython, each type object maintains a separate __dict__ for its attributes.
+    -- These dict objects are created during bootstrap and linked to their respective types.
+    ID_DICT_OBJECT_TYPE UUID := gen_random_uuid();
+    ID_DICT_TYPE_TYPE   UUID := gen_random_uuid();
+    ID_DICT_STR_TYPE    UUID := gen_random_uuid();
+    ID_DICT_INT_TYPE    UUID := gen_random_uuid();
+    ID_DICT_FLOAT_TYPE  UUID := gen_random_uuid();
+    ID_DICT_LIST_TYPE   UUID := gen_random_uuid();
+    ID_DICT_DICT_TYPE   UUID := gen_random_uuid();
+    ID_DICT_TUPLE_TYPE  UUID := gen_random_uuid();
+    ID_DICT_NONE_TYPE   UUID := gen_random_uuid();
 BEGIN
     -------------------------------------------------------
     -- Phase 1: Create base PyObjects (without ob_type)
@@ -60,12 +74,23 @@ BEGIN
     (ID_TYPE_TYPE,   NULL),      -- type type
     (ID_STR_TYPE,    NULL),      -- str type
     (ID_INT_TYPE,    NULL),      -- int type
+    (ID_FLOAT_TYPE,  NULL),      -- float type
     (ID_LIST_TYPE,   NULL),      -- list type
     (ID_DICT_TYPE,   NULL),      -- dict type
     (ID_TUPLE_TYPE,  NULL),      -- tuple type
     (ID_NONE_TYPE,   NULL),      -- NoneType
     (ID_NONE_OBJ,    NULL),      -- None singleton
-    (ID_TUPLE_BASES_OBJECT, NULL); -- tp_bases tuple: (object,)
+    (ID_TUPLE_BASES_OBJECT, NULL), -- tp_bases tuple: (object,)
+    -- Each type object has its own dict for type attributes (tp_dict)
+    (ID_DICT_OBJECT_TYPE, NULL), -- dict for object type
+    (ID_DICT_TYPE_TYPE,   NULL), -- dict for type type
+    (ID_DICT_STR_TYPE,    NULL), -- dict for str type
+    (ID_DICT_INT_TYPE,    NULL), -- dict for int type
+    (ID_DICT_FLOAT_TYPE,  NULL), -- dict for float type
+    (ID_DICT_LIST_TYPE,   NULL), -- dict for list type
+    (ID_DICT_DICT_TYPE,   NULL), -- dict for dict type
+    (ID_DICT_TUPLE_TYPE,  NULL), -- dict for tuple type
+    (ID_DICT_NONE_TYPE,   NULL); -- dict for NoneType
 
     -------------------------------------------------------
     -- Phase 2: Create Core PyTypeObjects
@@ -78,6 +103,7 @@ BEGIN
     (ID_TYPE_TYPE,   'type'),
     (ID_STR_TYPE,    'str'),
     (ID_INT_TYPE,    'int'),
+    (ID_FLOAT_TYPE,  'float'),
     (ID_LIST_TYPE,   'list'),
     (ID_DICT_TYPE,   'dict'),
     (ID_TUPLE_TYPE,  'tuple'),
@@ -90,19 +116,25 @@ BEGIN
     -------------------------------------------------------
     -- All types have 'type' as their ob_type
     UPDATE public.py_object SET ob_type = ID_TYPE_TYPE 
-    WHERE id IN (ID_OBJECT_TYPE, ID_TYPE_TYPE, ID_STR_TYPE, ID_INT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE);
+    WHERE id IN (ID_OBJECT_TYPE, ID_TYPE_TYPE, ID_STR_TYPE, ID_INT_TYPE, ID_FLOAT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE);
     
     -- None instance is a NoneType
     UPDATE public.py_object SET ob_type = ID_NONE_TYPE WHERE id = ID_NONE_OBJ;
     
     -- tp_bases tuple is a tuple object
     UPDATE public.py_object SET ob_type = ID_TUPLE_TYPE WHERE id = ID_TUPLE_BASES_OBJECT;
+    
+    -- All dict objects have 'dict' as their ob_type
+    UPDATE public.py_object SET ob_type = ID_DICT_TYPE 
+    WHERE id IN (ID_DICT_OBJECT_TYPE, ID_DICT_TYPE_TYPE, ID_DICT_STR_TYPE, ID_DICT_INT_TYPE, 
+                 ID_DICT_FLOAT_TYPE, ID_DICT_LIST_TYPE, ID_DICT_DICT_TYPE, ID_DICT_TUPLE_TYPE, ID_DICT_NONE_TYPE);
 
     -------------------------------------------------------
-    -- Phase 4: Create tp_bases Tuple
+    -- Phase 4: Create tp_bases Tuple and tp_dict Dict Objects
     --    Create the tuple (object,) that will be used as tp_bases for most
     --    builtin types. Since most types inherit from 'object' only (single
-    --    inheritance), they can all share this same tuple object.
+    --    inheritance), they all share this same tuple object.
+    --    Also create dict objects for each type's tp_dict field.
     -------------------------------------------------------
     -- Create tuple containing only 'object' type: (object,)
     -- NOTE: PyTupleObject.ob_base == PyObject.id
@@ -110,18 +142,45 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item)
     VALUES (ID_TUPLE_BASES_OBJECT, ARRAY[ID_OBJECT_TYPE]);
 
+    -- Create dict objects for each type's tp_dict
+    -- In CPython, each type object has its own __dict__ for storing type attributes.
+    -- py_dict_object implements CPython's PyDictObject
+    INSERT INTO public.py_dict_object (ob_base) VALUES
+    (ID_DICT_OBJECT_TYPE), -- dict for object type
+    (ID_DICT_TYPE_TYPE),   -- dict for type type
+    (ID_DICT_STR_TYPE),    -- dict for str type
+    (ID_DICT_INT_TYPE),    -- dict for int type
+    (ID_DICT_FLOAT_TYPE),  -- dict for float type
+    (ID_DICT_LIST_TYPE),   -- dict for list type
+    (ID_DICT_DICT_TYPE),   -- dict for dict type
+    (ID_DICT_TUPLE_TYPE),  -- dict for tuple type
+    (ID_DICT_NONE_TYPE);   -- dict for NoneType
+
     -------------------------------------------------------
-    -- Phase 5: Set Inheritance Structure and Singletons
-    --    Configure tp_bases (inheritance) for all builtin types.
+    -- Phase 5: Set Inheritance Structure, tp_dict, and Singletons
+    --    Configure tp_bases (inheritance) and tp_dict for all builtin types.
     --    Most types inherit from 'object' only, so they all reference the
     --    same tp_bases tuple (ID_TUPLE_BASES_OBJECT) created in Phase 4.
+    --    Each type gets its own dict object for type attributes.
     -------------------------------------------------------
     -- object has no base class (tp_bases remains NULL)
     -- type inherits from object
     UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_OBJECT WHERE ob_base = ID_TYPE_TYPE;
     -- All other builtin types inherit from object (they share the same tp_bases tuple)
     UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_OBJECT 
-    WHERE ob_base IN (ID_STR_TYPE, ID_INT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE);
+    WHERE ob_base IN (ID_STR_TYPE, ID_INT_TYPE, ID_FLOAT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE);
+
+    -- Set tp_dict for each type object
+    -- Each type object has its own dict for storing type attributes (methods, class variables, etc.)
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_OBJECT_TYPE WHERE ob_base = ID_OBJECT_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_TYPE_TYPE WHERE ob_base = ID_TYPE_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_STR_TYPE WHERE ob_base = ID_STR_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_INT_TYPE WHERE ob_base = ID_INT_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_FLOAT_TYPE WHERE ob_base = ID_FLOAT_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_LIST_TYPE WHERE ob_base = ID_LIST_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_DICT_TYPE WHERE ob_base = ID_DICT_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_TUPLE_TYPE WHERE ob_base = ID_TUPLE_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_NONE_TYPE WHERE ob_base = ID_NONE_TYPE;
 
     -- Create None Instance
     -- None is a special singleton object in CPython, represented as a PyObject

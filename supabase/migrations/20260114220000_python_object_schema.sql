@@ -36,6 +36,7 @@ create table public.py_type_object (
   tp_name text not null,
   tp_bases uuid, -- Points to a tuple object (py_tuple_object) containing base types
   tp_dict uuid   -- Points to a dict object (py_dict_object) containing type attributes
+                  -- In CPython, each type object has its own __dict__ for storing type attributes.
 );
 
 -- Link PyObject to its type (ob_type is a PyTypeObject, whose identity is its PyObject id)
@@ -48,6 +49,23 @@ create table public.py_unicode_object (
   -- Shared-PK: the object's identity is its PyObject id.
   ob_base uuid primary key references public.py_object(id) on delete cascade,
   str_value text
+);
+
+-- 3a. py_long_object (Implements CPython's PyLongObject)
+--     Integer objects in Python. PostgreSQL's numeric type provides arbitrary
+--     precision, which matches CPython's PyLongObject behavior for large integers.
+create table public.py_long_object (
+  -- Shared-PK: the object's identity is its PyObject id.
+  ob_base uuid primary key references public.py_object(id) on delete cascade,
+  long_value numeric not null -- Stores the integer value (arbitrary precision)
+);
+
+-- 3b. py_float_object (Implements CPython's PyFloatObject)
+--     Floating-point objects in Python. ob_fval stores the double-precision value.
+create table public.py_float_object (
+  -- Shared-PK: the object's identity is its PyObject id.
+  ob_base uuid primary key references public.py_object(id) on delete cascade,
+  ob_fval double precision not null -- Stores the floating-point value
 );
 
 -- 4. py_tuple_object (Implements CPython's PyTupleObject)
@@ -112,6 +130,8 @@ add constraint fk_py_type_objects_tp_dict foreign key (tp_dict) references publi
 alter table public.py_object enable row level security;
 alter table public.py_type_object enable row level security;
 alter table public.py_unicode_object enable row level security;
+alter table public.py_long_object enable row level security;
+alter table public.py_float_object enable row level security;
 alter table public.py_tuple_object enable row level security;
 alter table public.py_list_object enable row level security;
 alter table public.py_dict_object enable row level security;
@@ -124,6 +144,8 @@ alter table public.py_none_object enable row level security;
 create policy "Authenticated users can view py_object" on public.py_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_type_object" on public.py_type_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_unicode_object" on public.py_unicode_object for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_long_object" on public.py_long_object for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_float_object" on public.py_float_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_tuple_object" on public.py_tuple_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_list_object" on public.py_list_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_dict_object" on public.py_dict_object for select using (auth.role() = 'authenticated');

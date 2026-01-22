@@ -80,6 +80,16 @@ else
     exit 1
 fi
 
+# 1. Function, Code, and Frame Schema Validation
+echo "=== Phase 1: Function, Code, and Frame Schema ==="
+if run_test "supabase/tests/01_function_code_frame_schema.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Schema validation failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -90,8 +100,9 @@ echo "==========================================="
 echo ""
 echo "Summary:"
 echo "  ✅ 00: Bootstrap Validation (Object Model & Type System)"
+echo "  ✅ 01: Function, Code, and Frame Schema Validation"
 echo ""
-echo "Total: 1 test suite passed ✨"
+echo "Total: 2 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

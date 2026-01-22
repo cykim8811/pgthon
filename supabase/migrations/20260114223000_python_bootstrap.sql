@@ -42,9 +42,11 @@ DECLARE
     -- Singleton IDs
     ID_NONE_OBJ   UUID := '00000000-0000-4000-b000-000000000001';
 
-    -- Helper Objects (Tuples for tp_bases)
-    -- This tuple contains only 'object', used as tp_bases for most builtin types
-    ID_TUPLE_OBJECT_ONLY UUID := gen_random_uuid();
+    -- tp_bases Tuple: (object,)
+    -- This tuple contains only the 'object' type. It is used as tp_bases for
+    -- most builtin types that inherit from 'object' only (single inheritance).
+    -- Multiple types share this same tuple object for their tp_bases field.
+    ID_TUPLE_BASES_OBJECT UUID := gen_random_uuid();
 BEGIN
     -------------------------------------------------------
     -- Phase 1: Create base PyObjects (without ob_type)
@@ -63,7 +65,7 @@ BEGIN
     (ID_TUPLE_TYPE,  NULL),      -- tuple type
     (ID_NONE_TYPE,   NULL),      -- NoneType
     (ID_NONE_OBJ,    NULL),      -- None singleton
-    (ID_TUPLE_OBJECT_ONLY, NULL); -- Helper tuple for tp_bases
+    (ID_TUPLE_BASES_OBJECT, NULL); -- tp_bases tuple: (object,)
 
     -------------------------------------------------------
     -- Phase 2: Create Core PyTypeObjects
@@ -92,35 +94,41 @@ BEGIN
     
     -- None instance is a NoneType
     UPDATE public.py_object SET ob_type = ID_NONE_TYPE WHERE id = ID_NONE_OBJ;
+    
+    -- tp_bases tuple is a tuple object
+    UPDATE public.py_object SET ob_type = ID_TUPLE_TYPE WHERE id = ID_TUPLE_BASES_OBJECT;
 
     -------------------------------------------------------
-    -- Phase 4: Create Helper Objects
-    --    Create the tuple that will be used as tp_bases for most types.
-    --    This tuple contains only 'object', representing single inheritance.
+    -- Phase 4: Create tp_bases Tuple
+    --    Create the tuple (object,) that will be used as tp_bases for most
+    --    builtin types. Since most types inherit from 'object' only (single
+    --    inheritance), they can all share this same tuple object.
     -------------------------------------------------------
-    -- Tuple containing only 'object' type for tp_bases
+    -- Create tuple containing only 'object' type: (object,)
     -- NOTE: PyTupleObject.ob_base == PyObject.id
     -- py_tuple_object implements CPython's PyTupleObject
     INSERT INTO public.py_tuple_object (ob_base, ob_item)
-    VALUES (ID_TUPLE_OBJECT_ONLY, ARRAY[ID_OBJECT_TYPE]);
+    VALUES (ID_TUPLE_BASES_OBJECT, ARRAY[ID_OBJECT_TYPE]);
 
     -------------------------------------------------------
     -- Phase 5: Set Inheritance Structure and Singletons
     --    Configure tp_bases (inheritance) for all builtin types.
-    --    Most types inherit from 'object' only (single inheritance).
+    --    Most types inherit from 'object' only, so they all reference the
+    --    same tp_bases tuple (ID_TUPLE_BASES_OBJECT) created in Phase 4.
     -------------------------------------------------------
     -- object has no base class (tp_bases remains NULL)
     -- type inherits from object
-    UPDATE public.py_type_object SET tp_bases = ID_TUPLE_OBJECT_ONLY WHERE ob_base = ID_TYPE_TYPE;
-    -- All other builtin types inherit from object
-    UPDATE public.py_type_object SET tp_bases = ID_TUPLE_OBJECT_ONLY 
+    UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_OBJECT WHERE ob_base = ID_TYPE_TYPE;
+    -- All other builtin types inherit from object (they share the same tp_bases tuple)
+    UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_OBJECT 
     WHERE ob_base IN (ID_STR_TYPE, ID_INT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE);
 
     -- Create None Instance
-    -- None is represented as a PyInstanceObject (though it's technically a singleton,
-    -- not a user-defined class instance, this representation is sufficient for now).
-    -- py_instance_object implements CPython's PyInstanceObject
-    INSERT INTO public.py_instance_object (ob_base, in_dict)
-    VALUES (ID_NONE_OBJ, NULL);
+    -- None is a special singleton object in CPython, represented as a PyObject
+    -- with type NoneType. Following the same pattern as other builtin objects,
+    -- we use a dedicated table (py_none_object) for consistency.
+    -- py_none_object implements CPython's Py_None singleton
+    INSERT INTO public.py_none_object (ob_base)
+    VALUES (ID_NONE_OBJ);
 
 END $$;

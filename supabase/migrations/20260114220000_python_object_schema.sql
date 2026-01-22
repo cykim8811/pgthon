@@ -91,6 +91,16 @@ create table public.py_instance_object (
   in_dict uuid references public.py_dict_object(ob_base) -- Instance attribute dictionary
 );
 
+-- 9. py_none_object (Implements CPython's Py_None: the None singleton)
+--    None is a special singleton object in Python. In CPython, it's represented
+--    as a special PyObject instance, not a PyInstanceObject. This table provides
+--    a consistent structure for representing None, following the same pattern
+--    as other builtin object types.
+create table public.py_none_object (
+  -- Shared-PK: the object's identity is its PyObject id.
+  ob_base uuid primary key references public.py_object(id) on delete cascade
+);
+
 -- Finalize PyTypeObject relationships
 -- These constraints ensure tp_bases and tp_dict point to valid tuple/dict objects.
 alter table public.py_type_object
@@ -107,6 +117,7 @@ alter table public.py_list_object enable row level security;
 alter table public.py_dict_object enable row level security;
 alter table public.py_dict_entry enable row level security;
 alter table public.py_instance_object enable row level security;
+alter table public.py_none_object enable row level security;
 
 -- Default Policies (Allow authenticated users to read everything for now)
 -- TODO: These policies should be refined as the security model evolves.
@@ -118,3 +129,4 @@ create policy "Authenticated users can view py_list_object" on public.py_list_ob
 create policy "Authenticated users can view py_dict_object" on public.py_dict_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_dict_entry" on public.py_dict_entry for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_instance_object" on public.py_instance_object for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_none_object" on public.py_none_object for select using (auth.role() = 'authenticated');

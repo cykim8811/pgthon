@@ -34,14 +34,16 @@ create table public.py_type_object (
   -- Shared-PK: the type object's identity is its PyObject id.
   ob_base uuid primary key references public.py_object(id) on delete cascade,
   tp_name text not null,
-  tp_bases uuid, -- Points to a tuple object (py_tuple_object) containing base types
-  tp_dict uuid   -- Points to a dict object (py_dict_object) containing type attributes
+  tp_bases uuid, -- Points to a tuple object containing base types (type checked at runtime)
+  tp_dict uuid   -- Points to a dict object containing type attributes (type checked at runtime)
                   -- In CPython, each type object has its own __dict__ for storing type attributes.
 );
 
 -- Link PyObject to its type (ob_type is a PyTypeObject, whose identity is its PyObject id)
+-- Note: All references point to py_object.id, maintaining CPython's "PyObject*" pointer abstraction.
+-- Type checking (ensuring ob_type points to a type object) is done at runtime.
 alter table public.py_object
-add constraint fk_py_object_type foreign key (ob_type) references public.py_type_object(ob_base);
+add constraint fk_py_object_type foreign key (ob_type) references public.py_object(id);
 
 -- 3. py_unicode_object (Implements CPython's PyUnicodeObject)
 --    String objects in Python. The str_value field stores the actual string data.
@@ -96,7 +98,7 @@ create table public.py_dict_object (
 --    Note: This is not a shared-PK table because entries are not standalone objects.
 create table public.py_dict_entry (
   id uuid primary key default gen_random_uuid(),
-  dict_id uuid references public.py_dict_object(ob_base) on delete cascade,
+  dict_id uuid references public.py_object(id) on delete cascade, -- Dict object (type checked at runtime)
   me_key uuid references public.py_object(id),   -- Key object (must be hashable)
   me_value uuid references public.py_object(id) -- Value object
 );
@@ -109,7 +111,7 @@ create table public.py_dict_entry (
 create table public.py_instance_object (
   -- Shared-PK: the object's identity is its PyObject id.
   ob_base uuid primary key references public.py_object(id) on delete cascade,
-  in_dict uuid references public.py_dict_object(ob_base) -- Instance attribute dictionary (__dict__)
+  in_dict uuid references public.py_object(id) -- Instance attribute dictionary (__dict__), type checked at runtime
 );
 
 -- 9. py_none_object (Implements CPython's Py_None: the None singleton)
@@ -123,10 +125,11 @@ create table public.py_none_object (
 );
 
 -- Finalize PyTypeObject relationships
--- These constraints ensure tp_bases and tp_dict point to valid tuple/dict objects.
+-- Note: All references point to py_object.id, maintaining CPython's "PyObject*" pointer abstraction.
+-- Type checking (ensuring tp_bases is a tuple and tp_dict is a dict) is done at runtime.
 alter table public.py_type_object
-add constraint fk_py_type_objects_tp_bases foreign key (tp_bases) references public.py_tuple_object(ob_base),
-add constraint fk_py_type_objects_tp_dict foreign key (tp_dict) references public.py_dict_object(ob_base);
+add constraint fk_py_type_objects_tp_bases foreign key (tp_bases) references public.py_object(id),
+add constraint fk_py_type_objects_tp_dict foreign key (tp_dict) references public.py_object(id);
 
 -- Enable Row Level Security
 -- All CPython object model tables are protected by RLS.

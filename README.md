@@ -35,14 +35,19 @@ Elytra는 CPython의 “구조체 상속(헤더 + 확장)” 감각을 PostgreSQ
 
 ## 데이터베이스 (Supabase / PostgreSQL)
 
-`supabase/migrations/`는 “앱 스키마”와 “CPython 객체 모델 스키마/부트스트랩”을 정의합니다.
+`supabase/migrations/`는 세 가지 계층으로 구성됩니다:
 
-- `20260112141514_init_schema.sql`
-  - 앱 레벨의 `profiles`, `workspaces`, `workspace_permissions` 및 RLS/트리거 구성
-- `20260114220000_python_objects.sql`
-  - CPython 스타일 내부 오브젝트 테이블(`PyObject`, `PyTypeObject`, `PyDictObject` 등) 정의
-- `20260114223000_bootstrap_builtin_objects.sql`
-  - `object`, `type`, `str`, `int`, `list`, `dict`, `tuple`, `NoneType` 및 `None` 싱글턴의 최소 부트스트랩
+- `20260112141514_app_schema.sql`
+  - **앱 스키마**: 사용자 프로필, 워크스페이스, 권한 관리 등 애플리케이션 레벨 인프라
+  - RLS 정책 및 자동화 트리거 포함
+
+- `20260114220000_python_object_schema.sql`
+  - **CPython 구조체 정의**: `py_object`, `py_type_object`, `py_unicode_object` 등 테이블 스키마
+  - CPython의 내부 구조체를 PostgreSQL 테이블로 매핑 (C 헤더 파일과 유사한 역할)
+
+- `20260114223000_python_bootstrap.sql`
+  - **객체 인스턴스 생성**: `object`, `type`, `str`, `int`, `list`, `dict`, `tuple`, `NoneType` 및 `None` 싱글턴
+  - CPython 런타임 초기화와 유사하게 "세계의 바닥"을 구축
 
 ---
 
@@ -50,7 +55,7 @@ Elytra는 CPython의 “구조체 상속(헤더 + 확장)” 감각을 PostgreSQ
 
 - **임시방편 금지**: 테스트를 통과시키기 위한 “특례/하드코딩/우회”는 금지합니다.
 - **CPython 고증 우선**: 설계 결정 시 “CPython은 왜/어떻게 하는가”가 최우선 기준입니다. CPython보다 기능이 적은 것은 허용하지만, CPython과 다른 방향의 구현은 허용하지 않습니다.
-  - 만약 이것이 PostgreSQL의 한계이거나 다른 방향의 구현이 더 낫다는 판단이 들면, 사용자에게 확인을 받습니다.
+  - 만약 이것이 PostgreSQL의 한계이거나 다른 방향의 구현이 더 낫다는 판단이 들면, 사용자에게 확인을 받습니다. Docs의 "sufficient for now" 등의 지침은 믿지 않습니다.
 - **단계적 구축**: 큰 기능을 한 번에 넣지 않습니다. 핵심 개념을 작은 단위로 쪼개고, 각 단위를 완성(테스트 포함)한 뒤 다음으로 진행합니다.
 - **핵심 아이디어를 기록**: 구현 디테일은 코드에, “기억해야 할 아이디어”는 README에 짧게 남깁니다.
 - **Migration은 최대한 작게 유지**: 기존 스키마 수정이 필요할 때, 변경하는 migration을 추가하는 것이 아닌, 기존의 스키마 생성 코드를 수정하는 방향으로 진행합니다.

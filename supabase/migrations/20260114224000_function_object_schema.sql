@@ -4,27 +4,36 @@
 --
 -- Purpose:
 --   Defines the database schema for CPython's PyFunctionObject, PyCodeObject,
---   and PyFrameObject structures. This implements the minimal fields required
---   for function execution:
+--   PyFrameObject, and PyCellObject structures. This implements the minimal
+--   fields required for function execution:
 --
 --   PyFunctionObject:
 --   - func_code: Code object (the function's body)
 --   - func_globals: Global variables dictionary (execution environment)
 --   - func_defaults: Default arguments tuple (optional, NULL if none)
+--   - func_kwdefaults: Keyword-only default arguments dict (optional, NULL if none)
 --   - func_closure: Closure tuple (optional, NULL if no closure)
 --
 --   PyCodeObject:
---   - co_code: Bytecode instructions (bytes object)
+--   - co_code: Bytecode instructions (unicode object storing bytecode)
 --   - co_consts: Constants tuple
 --   - co_names: Names tuple
 --   - co_filename: Source filename (string object)
 --   - co_name: Function/code name (string object)
+--   - co_argcount: Number of positional arguments
+--   - co_varnames: Local variable names tuple
+--   - co_cellvars: Cell variable names tuple (variables referenced by closures)
+--   - co_freevars: Free variable names tuple (variables from outer scopes)
 --
 --   PyFrameObject:
 --   - f_code: Code object being executed
 --   - f_globals: Global variables dictionary
 --   - f_locals: Local variables dictionary
+--   - f_builtins: Builtin symbol table dictionary
 --   - f_back: Previous frame (NULL if this is the top frame)
+--
+--   PyCellObject:
+--   - ob_ref: Reference to the cell contents (PyObject*)
 --
 -- Key Design Principles:
 --   - Shared-PK inheritance: all ob_base = py_object.id
@@ -32,6 +41,19 @@
 --     pointer abstraction
 --   - Type checking is done at runtime via ob_type
 -- ============================================================================
+
+-- py_cell_object (Implements CPython's PyCellObject)
+-- Cell objects store references to variables that are shared between nested
+-- function scopes (closures). Each cell object holds a single PyObject reference.
+create table public.py_cell_object (
+  -- Shared-PK: the cell object's identity is its PyObject id.
+  ob_base uuid primary key references public.py_object(id) on delete cascade,
+  
+  -- ob_ref: Reference to the cell contents (PyObject*)
+  -- The actual value stored in the cell. Can be NULL if the cell is empty.
+  -- Type checking is done at runtime via ob_type of the referenced object.
+  ob_ref uuid references public.py_object(id)
+);
 
 -- py_function_object (Implements CPython's PyFunctionObject)
 -- Function objects in Python. Stores the code, globals, and optional
@@ -55,11 +77,16 @@ create table public.py_function_object (
   -- Must be a tuple object when not NULL. Type checking is done at runtime via ob_type.
   func_defaults uuid references public.py_object(id),
   
+  -- func_kwdefaults: NULL or a dict
+  -- Keyword-only default argument values. NULL if the function has no keyword-only
+  -- default arguments. Must be a dict object when not NULL.
+  -- Type checking is done at runtime via ob_type.
+  func_kwdefaults uuid references public.py_object(id),
+  
   -- func_closure: NULL or a tuple of cell objects
   -- Closure variables for nested functions. NULL if the function has no closure.
-  -- Must be a tuple object when not NULL. Type checking is done at runtime via ob_type.
-  -- Note: Cell objects (PyCellObject) are not yet implemented, so this
-  -- currently references a tuple of PyObjects. This can be refined later.
+  -- Must be a tuple object when not NULL, containing PyCellObject instances.
+  -- Type checking is done at runtime via ob_type.
   func_closure uuid references public.py_object(id)
 );
 
@@ -74,8 +101,9 @@ create table public.py_code_object (
   -- Shared-PK: the code object's identity is its PyObject id.
   ob_base uuid primary key references public.py_object(id) on delete cascade,
   
-  -- co_code: Bytecode instructions (bytes object)
-  -- The actual bytecode instructions to execute.
+  -- co_code: Bytecode instructions (unicode object)
+  -- The actual bytecode instructions to execute, stored as a unicode object.
+  -- In CPython this is bytes, but in Elytra we use unicode for storage.
   co_code uuid references public.py_object(id) not null,
   
   -- co_consts: Constants tuple
@@ -92,7 +120,28 @@ create table public.py_code_object (
   
   -- co_name: Function/code name (string object)
   -- The name of the function, class, or module this code represents.
-  co_name uuid references public.py_object(id) not null
+  co_name uuid references public.py_object(id) not null,
+  
+  -- co_argcount: Number of positional arguments
+  -- The total number of positional arguments (including positional-only arguments
+  -- and arguments with default values). Required for function call argument matching.
+  co_argcount integer not null,
+  
+  -- co_varnames: Local variable names tuple
+  -- Tuple of strings containing the names of local variables (including arguments).
+  -- Required for accessing local variables during function execution.
+  co_varnames uuid references public.py_object(id) not null,
+  
+  -- co_cellvars: Cell variable names tuple
+  -- Tuple of strings containing the names of variables that are referenced by
+  -- nested functions (closures). These variables are stored in cell objects.
+  co_cellvars uuid references public.py_object(id) not null,
+  
+  -- co_freevars: Free variable names tuple
+  -- Tuple of strings containing the names of variables from outer scopes that
+  -- are referenced by this function. These correspond to the cell objects in
+  -- func_closure.
+  co_freevars uuid references public.py_object(id) not null
 );
 
 -- py_frame_object (Implements CPython's PyFrameObject)
@@ -114,18 +163,29 @@ create table public.py_frame_object (
   -- The local namespace for this frame's execution (local variables, arguments).
   f_locals uuid references public.py_object(id) not null,
   
+  -- f_builtins: Builtin symbol table dictionary
+  -- The builtin namespace containing builtin functions and types (len, print, range, etc.).
+  -- Required for accessing builtin functions during execution.
+  f_builtins uuid references public.py_object(id) not null,
+  
   -- f_back: Previous frame (NULL if this is the top frame)
   -- The frame that called this one. NULL for the top-level frame.
   f_back uuid references public.py_object(id)
 );
 
 -- Enable Row Level Security
+alter table public.py_cell_object enable row level security;
 alter table public.py_function_object enable row level security;
 alter table public.py_code_object enable row level security;
 alter table public.py_frame_object enable row level security;
 
 -- Default Policies (Allow authenticated users to read everything for now)
 -- TODO: These policies should be refined as the security model evolves.
+create policy "Authenticated users can view py_cell_object" 
+  on public.py_cell_object 
+  for select 
+  using (auth.role() = 'authenticated');
+
 create policy "Authenticated users can view py_function_object" 
   on public.py_function_object 
   for select 

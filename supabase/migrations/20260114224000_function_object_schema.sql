@@ -146,7 +146,8 @@ create table public.py_code_object (
 
 -- py_frame_object (Implements CPython's PyFrameObject)
 -- Frame objects represent execution frames. Each function call creates a new frame
--- that tracks the execution state (locals, globals, code being executed).
+-- that tracks the execution state (locals, globals, code being executed, value stack).
+-- This is a stack-based VM, so each frame maintains its own evaluation stack.
 create table public.py_frame_object (
   -- Shared-PK: the frame object's identity is its PyObject id.
   ob_base uuid primary key references public.py_object(id) on delete cascade,
@@ -170,7 +171,23 @@ create table public.py_frame_object (
   
   -- f_back: Previous frame (NULL if this is the top frame)
   -- The frame that called this one. NULL for the top-level frame.
-  f_back uuid references public.py_object(id)
+  f_back uuid references public.py_object(id),
+  
+  -- f_valuestack: Evaluation stack (array of PyObject IDs)
+  -- The stack where intermediate values are pushed/popped during bytecode execution.
+  -- This is the core of the stack-based VM. Operations push operands onto this stack
+  -- and pop results from it.
+  f_valuestack uuid[] default array[]::uuid[],
+  
+  -- f_lasti: Last instruction executed
+  -- Index of the last bytecode instruction that was executed. Used to track
+  -- execution progress and for exception handling. -1 means no instruction executed yet.
+  f_lasti integer default -1,
+  
+  -- f_lineno: Current line number
+  -- The current line number in the source code being executed.
+  -- Used for debugging, tracebacks, and error reporting.
+  f_lineno integer
 );
 
 -- Enable Row Level Security

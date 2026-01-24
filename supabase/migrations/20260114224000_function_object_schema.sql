@@ -4,8 +4,8 @@
 --
 -- Purpose:
 --   Defines the database schema for CPython's PyFunctionObject, PyCodeObject,
---   PyFrameObject, and PyCellObject structures. This implements the minimal
---   fields required for function execution:
+--   PyFrameObject, PyCellObject, and PyMethodObject structures. This implements
+--   the minimal fields required for function execution and method binding:
 --
 --   PyFunctionObject:
 --   - func_code: Code object (the function's body)
@@ -34,6 +34,11 @@
 --
 --   PyCellObject:
 --   - ob_ref: Reference to the cell contents (PyObject*)
+--
+--   PyMethodObject:
+--   - im_func: The callable object implementing the method
+--   - im_self: The instance it is bound to, or NULL (for unbound methods)
+--   - im_class: The class that asked for the method
 --
 -- Key Design Principles:
 --   - Shared-PK inheritance: all ob_base = py_object.id
@@ -144,6 +149,30 @@ create table public.py_code_object (
   co_freevars uuid references public.py_object(id) not null
 );
 
+-- py_method_object (Implements CPython's PyMethodObject)
+-- Method objects represent bound or unbound methods. When a function is accessed
+-- from an instance, a bound method is created that stores the function and the
+-- instance it's bound to. This enables the obj.method() syntax.
+create table public.py_method_object (
+  -- Shared-PK: the method object's identity is its PyObject id.
+  ob_base uuid primary key references public.py_object(id) on delete cascade,
+  
+  -- im_func: The callable object implementing the method
+  -- The function object (PyFunctionObject) that implements the method.
+  -- Type checking is done at runtime via ob_type.
+  im_func uuid references public.py_object(id) not null,
+  
+  -- im_self: The instance it is bound to, or NULL
+  -- The instance the method is bound to. NULL for unbound methods.
+  -- When not NULL, this is a bound method; when NULL, it's an unbound method.
+  im_self uuid references public.py_object(id),
+  
+  -- im_class: The class that asked for the method
+  -- The class/type object where the method was defined.
+  -- Used to determine the method's context and for unbound method calls.
+  im_class uuid references public.py_object(id) not null
+);
+
 -- py_frame_object (Implements CPython's PyFrameObject)
 -- Frame objects represent execution frames. Each function call creates a new frame
 -- that tracks the execution state (locals, globals, code being executed, value stack).
@@ -190,6 +219,7 @@ alter table public.py_cell_object enable row level security;
 alter table public.py_function_object enable row level security;
 alter table public.py_code_object enable row level security;
 alter table public.py_frame_object enable row level security;
+alter table public.py_method_object enable row level security;
 
 -- Default Policies (Allow authenticated users to read everything for now)
 -- TODO: These policies should be refined as the security model evolves.
@@ -210,5 +240,10 @@ create policy "Authenticated users can view py_code_object"
 
 create policy "Authenticated users can view py_frame_object" 
   on public.py_frame_object 
+  for select 
+  using (auth.role() = 'authenticated');
+
+create policy "Authenticated users can view py_method_object" 
+  on public.py_method_object 
   for select 
   using (auth.role() = 'authenticated');

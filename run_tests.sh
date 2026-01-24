@@ -90,6 +90,16 @@ else
     exit 1
 fi
 
+# 2. Method Object Schema Validation
+echo "=== Phase 2: Method Object Schema ==="
+if run_test "supabase/tests/02_method_object_schema.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Method object schema validation failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -101,8 +111,9 @@ echo ""
 echo "Summary:"
 echo "  ✅ 00: Bootstrap Validation (Object Model & Type System)"
 echo "  ✅ 01: Function, Code, and Frame Schema Validation"
+echo "  ✅ 02: Method Object Schema Validation"
 echo ""
-echo "Total: 2 test suites passed ✨"
+echo "Total: 3 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

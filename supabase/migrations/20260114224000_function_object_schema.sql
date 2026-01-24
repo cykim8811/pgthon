@@ -40,6 +40,15 @@
 --   - im_self: The instance it is bound to, or NULL (for unbound methods)
 --   - im_class: The class that asked for the method
 --
+--   PyCFunction:
+--   - m_ml: PyMethodDef structure pointer (contains function metadata)
+--     - ml_name: Function name (string)
+--     - ml_meth: C function pointer (not storable in DB, handled at runtime)
+--     - ml_flags: Function flags (METH_* flags)
+--     - ml_doc: Documentation string (optional)
+--   - m_self: Self object (PyObject*), NULL for unbound functions
+--   - m_module: Module object (PyObject*), NULL if not module-level
+--
 -- Key Design Principles:
 --   - Shared-PK inheritance: all ob_base = py_object.id
 --   - All references point to py_object.id, maintaining CPython's "PyObject*"
@@ -149,6 +158,46 @@ create table public.py_code_object (
   co_freevars uuid references public.py_object(id) not null
 );
 
+-- py_cfunction_object (Implements CPython's PyCFunction)
+-- C function objects represent builtin functions implemented in C.
+-- These are the functions exposed as builtin_function_or_method in Python.
+-- Examples: len, print, abs, max, min, sum, sorted, etc.
+create table public.py_cfunction_object (
+  -- Shared-PK: the C function object's identity is its PyObject id.
+  ob_base uuid primary key references public.py_object(id) on delete cascade,
+  
+  -- m_ml_name: Function name (from PyMethodDef.ml_name)
+  -- The name of the C function as it appears in Python.
+  -- Type checking is done at runtime via ob_type.
+  m_ml_name uuid references public.py_object(id) not null,
+  
+  -- m_ml_flags: Function flags (from PyMethodDef.ml_flags)
+  -- Flags indicating the calling convention (METH_NOARGS, METH_O, METH_VARARGS, etc.)
+  -- Stored as integer to match CPython's ml_flags field.
+  m_ml_flags integer not null,
+  
+  -- m_ml_doc: Documentation string (from PyMethodDef.ml_doc)
+  -- The docstring for the function. NULL if no documentation is provided.
+  -- Type checking is done at runtime via ob_type (must be string or None).
+  m_ml_doc uuid references public.py_object(id),
+  
+  -- m_self: Self object (PyObject*)
+  -- The instance the C function is bound to. NULL for unbound functions.
+  -- When not NULL, this is a bound C method; when NULL, it's an unbound C function.
+  -- Type checking is done at runtime via ob_type.
+  m_self uuid references public.py_object(id),
+  
+  -- m_module: Module object (PyObject*)
+  -- The module object associated with this C function. NULL if not module-level.
+  -- Type checking is done at runtime via ob_type (must be module or None).
+  m_module uuid references public.py_object(id)
+);
+
+-- Note: m_ml->ml_meth (the C function pointer) cannot be stored in the database.
+-- The actual C function implementation is handled at runtime by the execution engine.
+-- The m_ml_name and m_ml_flags are sufficient to identify and invoke the correct
+-- C function implementation.
+
 -- py_method_object (Implements CPython's PyMethodObject)
 -- Method objects represent bound or unbound methods. When a function is accessed
 -- from an instance, a bound method is created that stores the function and the
@@ -220,6 +269,7 @@ alter table public.py_function_object enable row level security;
 alter table public.py_code_object enable row level security;
 alter table public.py_frame_object enable row level security;
 alter table public.py_method_object enable row level security;
+alter table public.py_cfunction_object enable row level security;
 
 -- Default Policies (Allow authenticated users to read everything for now)
 -- TODO: These policies should be refined as the security model evolves.
@@ -245,5 +295,10 @@ create policy "Authenticated users can view py_frame_object"
 
 create policy "Authenticated users can view py_method_object" 
   on public.py_method_object 
+  for select 
+  using (auth.role() = 'authenticated');
+
+create policy "Authenticated users can view py_cfunction_object" 
+  on public.py_cfunction_object 
   for select 
   using (auth.role() = 'authenticated');

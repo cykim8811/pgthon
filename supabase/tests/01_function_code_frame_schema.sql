@@ -1,11 +1,12 @@
 -- ============================================================================
--- Test: Function, Code, and Frame Object Schema Validation
+-- Test: Function, Code, Frame, and CFunction Object Schema Validation
 -- 
 -- Purpose:
---   Validates that the function, code, and frame object schemas are correctly
---   created with proper structure, constraints, and relationships. This test
---   verifies:
---   - Tables exist with correct structure
+--   Validates that the function, code, frame, and C function object schemas
+--   are correctly created with proper structure, constraints, and relationships.
+--   This test verifies:
+--   - Tables exist with correct structure (py_function_object, py_code_object,
+--     py_frame_object, py_cfunction_object)
 --   - Shared-PK inheritance is correct
 --   - All references point to py_object.id (CPython's PyObject* principle)
 --   - Foreign key constraints are properly set up
@@ -435,6 +436,237 @@ BEGIN
         pass_count := pass_count + 1;
     ELSE
         RAISE EXCEPTION 'FAIL: RLS policy does not exist for py_frame_object';
+    END IF;
+
+    -- ========================================================================
+    -- Test 10: Verify py_cfunction_object table exists
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 10: Verifying py_cfunction_object table...';
+    test_count := test_count + 1;
+    
+    SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'py_cfunction_object'
+    ) INTO table_exists;
+    
+    IF table_exists THEN
+        RAISE NOTICE '  ✓ py_cfunction_object table exists';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: py_cfunction_object table does not exist';
+    END IF;
+
+    -- ========================================================================
+    -- Test 11: Verify py_cfunction_object structure (columns)
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 11: Verifying py_cfunction_object structure...';
+    
+    -- ob_base column
+    test_count := test_count + 1;
+    SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'py_cfunction_object'
+        AND column_name = 'ob_base'
+    ) INTO column_exists;
+    
+    IF column_exists THEN
+        RAISE NOTICE '  ✓ py_cfunction_object.ob_base column exists';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: py_cfunction_object.ob_base column does not exist';
+    END IF;
+    
+    -- m_ml_name column
+    test_count := test_count + 1;
+    SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'py_cfunction_object'
+        AND column_name = 'm_ml_name'
+    ) INTO column_exists;
+    
+    IF column_exists THEN
+        RAISE NOTICE '  ✓ py_cfunction_object.m_ml_name column exists';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: py_cfunction_object.m_ml_name column does not exist';
+    END IF;
+    
+    -- m_ml_flags column
+    test_count := test_count + 1;
+    SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'py_cfunction_object'
+        AND column_name = 'm_ml_flags'
+    ) INTO column_exists;
+    
+    IF column_exists THEN
+        RAISE NOTICE '  ✓ py_cfunction_object.m_ml_flags column exists';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: py_cfunction_object.m_ml_flags column does not exist';
+    END IF;
+    
+    -- m_ml_doc column (optional)
+    test_count := test_count + 1;
+    SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'py_cfunction_object'
+        AND column_name = 'm_ml_doc'
+    ) INTO column_exists;
+    
+    IF column_exists THEN
+        RAISE NOTICE '  ✓ py_cfunction_object.m_ml_doc column exists';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: py_cfunction_object.m_ml_doc column does not exist';
+    END IF;
+    
+    -- m_self column (optional)
+    test_count := test_count + 1;
+    SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'py_cfunction_object'
+        AND column_name = 'm_self'
+    ) INTO column_exists;
+    
+    IF column_exists THEN
+        RAISE NOTICE '  ✓ py_cfunction_object.m_self column exists';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: py_cfunction_object.m_self column does not exist';
+    END IF;
+    
+    -- m_module column (optional)
+    test_count := test_count + 1;
+    SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'py_cfunction_object'
+        AND column_name = 'm_module'
+    ) INTO column_exists;
+    
+    IF column_exists THEN
+        RAISE NOTICE '  ✓ py_cfunction_object.m_module column exists';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: py_cfunction_object.m_module column does not exist';
+    END IF;
+
+    -- ========================================================================
+    -- Test 12: Verify py_cfunction_object foreign key constraints
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 12: Verifying py_cfunction_object foreign keys...';
+    
+    -- ob_base references py_object(id)
+    test_count := test_count + 1;
+    SELECT EXISTS (
+        SELECT FROM information_schema.table_constraints tc
+        JOIN information_schema.constraint_column_usage ccu 
+            ON tc.constraint_name = ccu.constraint_name
+        WHERE tc.table_schema = 'public'
+        AND tc.table_name = 'py_cfunction_object'
+        AND tc.constraint_type = 'FOREIGN KEY'
+        AND ccu.table_name = 'py_object'
+        AND ccu.column_name = 'id'
+    ) INTO constraint_exists;
+    
+    IF constraint_exists THEN
+        RAISE NOTICE '  ✓ py_cfunction_object.ob_base references py_object(id)';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: py_cfunction_object.ob_base does not reference py_object(id)';
+    END IF;
+    
+    -- m_ml_name references py_object(id)
+    test_count := test_count + 1;
+    SELECT EXISTS (
+        SELECT FROM information_schema.table_constraints tc
+        JOIN information_schema.constraint_column_usage ccu 
+            ON tc.constraint_name = ccu.constraint_name
+        WHERE tc.table_schema = 'public'
+        AND tc.table_name = 'py_cfunction_object'
+        AND tc.constraint_type = 'FOREIGN KEY'
+        AND ccu.table_name = 'py_object'
+        AND ccu.column_name = 'id'
+        AND EXISTS (
+            SELECT FROM information_schema.key_column_usage kcu
+            WHERE kcu.constraint_name = tc.constraint_name
+            AND kcu.column_name = 'm_ml_name'
+        )
+    ) INTO constraint_exists;
+    
+    IF constraint_exists THEN
+        RAISE NOTICE '  ✓ py_cfunction_object.m_ml_name references py_object(id)';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: py_cfunction_object.m_ml_name does not reference py_object(id)';
+    END IF;
+    
+    -- Count all foreign keys that reference py_object(id)
+    test_count := test_count + 1;
+    SELECT COUNT(DISTINCT tc.constraint_name) INTO fk_count
+    FROM information_schema.table_constraints tc
+    JOIN information_schema.constraint_column_usage ccu 
+        ON tc.constraint_name = ccu.constraint_name
+    WHERE tc.table_schema = 'public'
+    AND tc.table_name = 'py_cfunction_object'
+    AND tc.constraint_type = 'FOREIGN KEY'
+    AND ccu.table_name = 'py_object'
+    AND ccu.column_name = 'id';
+    
+    -- Should have at least 4 foreign keys (ob_base + m_ml_name + m_ml_doc + m_self + m_module)
+    IF fk_count >= 4 THEN
+        RAISE NOTICE '  ✓ py_cfunction_object foreign keys reference py_object(id)';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: py_cfunction_object foreign keys do not all reference py_object(id) (found % constraints)', fk_count;
+    END IF;
+
+    -- ========================================================================
+    -- Test 13: Verify RLS is enabled on py_cfunction_object
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 13: Verifying RLS is enabled on py_cfunction_object...';
+    test_count := test_count + 1;
+    
+    SELECT relrowsecurity INTO rls_enabled
+    FROM pg_class
+    WHERE relname = 'py_cfunction_object' AND relnamespace = 'public'::regnamespace;
+    
+    IF rls_enabled THEN
+        RAISE NOTICE '  ✓ RLS enabled on py_cfunction_object';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: RLS not enabled on py_cfunction_object';
+    END IF;
+
+    -- ========================================================================
+    -- Test 14: Verify RLS policy exists for py_cfunction_object
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 14: Verifying RLS policy for py_cfunction_object...';
+    test_count := test_count + 1;
+    
+    SELECT EXISTS (
+        SELECT FROM pg_policies
+        WHERE schemaname = 'public'
+        AND tablename = 'py_cfunction_object'
+    ) INTO policy_exists;
+    
+    IF policy_exists THEN
+        RAISE NOTICE '  ✓ RLS policy exists for py_cfunction_object';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: RLS policy does not exist for py_cfunction_object';
     END IF;
 
     -- ========================================================================

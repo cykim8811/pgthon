@@ -182,12 +182,7 @@ create table public.py_frame_object (
   -- f_lasti: Last instruction executed
   -- Index of the last bytecode instruction that was executed. Used to track
   -- execution progress and for exception handling. -1 means no instruction executed yet.
-  f_lasti integer default -1,
-  
-  -- f_lineno: Current line number
-  -- The current line number in the source code being executed.
-  -- Used for debugging, tracebacks, and error reporting.
-  f_lineno integer
+  f_lasti integer default -1
 );
 
 -- Enable Row Level Security

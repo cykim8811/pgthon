@@ -124,6 +124,28 @@ create table public.py_none_object (
   ob_base uuid primary key references public.py_object(id) on delete cascade
 );
 
+-- 10. py_module_object (Implements CPython's PyModuleObject)
+--     Module objects represent Python modules. Each module has a namespace
+--     dictionary (md_dict) that stores the module's attributes and a name (md_name).
+--     In CPython, PyModuleObject contains md_dict, md_name, md_def, md_state, and md_weaklist.
+--     For minimal implementation, we only include md_dict and md_name.
+create table public.py_module_object (
+  -- Shared-PK: the module object's identity is its PyObject id.
+  ob_base uuid primary key references public.py_object(id) on delete cascade,
+  
+  -- md_dict: Module namespace dictionary (PyObject*)
+  -- The dictionary object that implements the module's namespace (__dict__).
+  -- This is equivalent to the module's __dict__ attribute in Python.
+  -- Must be a dict object. Type checking is done at runtime via ob_type.
+  md_dict uuid references public.py_object(id) not null,
+  
+  -- md_name: Module name (PyObject*)
+  -- The name of the module as a string object.
+  -- Used for logging and identification purposes.
+  -- Must be a string object. Type checking is done at runtime via ob_type.
+  md_name uuid references public.py_object(id) not null
+);
+
 -- Finalize PyTypeObject relationships
 -- Note: All references point to py_object.id, maintaining CPython's "PyObject*" pointer abstraction.
 -- Type checking (ensuring tp_bases is a tuple and tp_dict is a dict) is done at runtime.
@@ -144,6 +166,7 @@ alter table public.py_dict_object enable row level security;
 alter table public.py_dict_entry enable row level security;
 alter table public.py_instance_object enable row level security;
 alter table public.py_none_object enable row level security;
+alter table public.py_module_object enable row level security;
 
 -- Default Policies (Allow authenticated users to read everything for now)
 -- TODO: These policies should be refined as the security model evolves.
@@ -158,3 +181,4 @@ create policy "Authenticated users can view py_dict_object" on public.py_dict_ob
 create policy "Authenticated users can view py_dict_entry" on public.py_dict_entry for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_instance_object" on public.py_instance_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_none_object" on public.py_none_object for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_module_object" on public.py_module_object for select using (auth.role() = 'authenticated');

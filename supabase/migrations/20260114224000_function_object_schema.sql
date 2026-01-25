@@ -190,13 +190,23 @@ create table public.py_cfunction_object (
   -- m_module: Module object (PyObject*)
   -- The module object associated with this C function. NULL if not module-level.
   -- Type checking is done at runtime via ob_type (must be module or None).
-  m_module uuid references public.py_object(id)
+  m_module uuid references public.py_object(id),
+  
+  -- m_ml_meth: PostgreSQL function identifier (regproc)
+  -- The name of the PostgreSQL function that implements this C function.
+  -- In CPython, m_ml->ml_meth is a C function pointer. In Elytra, we store
+  -- the PostgreSQL function name instead, which serves the same purpose:
+  -- identifying which function to call when this builtin function is invoked.
+  -- Type: regproc (PostgreSQL function identifier) or text (function name).
+  -- NULL if the function implementation is not yet available.
+  m_ml_meth text
 );
 
--- Note: m_ml->ml_meth (the C function pointer) cannot be stored in the database.
--- The actual C function implementation is handled at runtime by the execution engine.
--- The m_ml_name and m_ml_flags are sufficient to identify and invoke the correct
--- C function implementation.
+-- Note: In CPython, m_ml->ml_meth is a C function pointer that cannot be stored
+-- in the database. In Elytra, we store the PostgreSQL function name (m_ml_meth)
+-- which serves the same purpose: identifying which function to call when this
+-- builtin function is invoked. The actual function implementation is a PostgreSQL
+-- function that operates on PyObject IDs (UUIDs) instead of C pointers.
 
 -- py_method_object (Implements CPython's PyMethodObject)
 -- Method objects represent bound or unbound methods. When a function is accessed

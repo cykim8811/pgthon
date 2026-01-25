@@ -13,6 +13,7 @@
 --   - m_ml_doc: Documentation string (string object)
 --   - m_self: Self object (NULL for unbound functions)
 --   - m_module: Module object (__builtins__ module)
+--   - m_ml_meth: PostgreSQL function name that implements this function
 --
 -- Builtin Functions Created:
 --   - len: Returns the number of items in a container (METH_O)
@@ -20,6 +21,107 @@
 -- Note: Function IDs use fixed UUIDs to ensure they can be referenced reliably
 -- across the system. They represent the "global symbols" of CPython.
 -- ============================================================================
+
+-- ============================================================================
+-- Builtin Function Implementations
+-- ============================================================================
+
+-- py_builtin_len: Implements CPython's builtin_len function
+-- Returns the number of items in a container (str, list, tuple, dict, etc.)
+-- This is equivalent to CPython's builtin_len() in Python/bltinmodule.c
+CREATE OR REPLACE FUNCTION public.py_builtin_len(obj_id UUID)
+RETURNS UUID AS $$
+DECLARE
+    obj_type_id UUID;
+    type_name TEXT;
+    length_value NUMERIC;
+    result_id UUID;
+    -- Builtin type IDs (from bootstrap)
+    ID_STR_TYPE UUID := '00000000-0000-4000-a000-000000000003';
+    ID_INT_TYPE UUID := '00000000-0000-4000-a000-000000000004';
+    ID_LIST_TYPE UUID := '00000000-0000-4000-a000-000000000005';
+    ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
+    ID_TUPLE_TYPE UUID := '00000000-0000-4000-a000-000000000007';
+BEGIN
+    -- Get object type
+    SELECT ob_type INTO obj_type_id
+    FROM public.py_object
+    WHERE id = obj_id;
+    
+    IF obj_type_id IS NULL THEN
+        RAISE EXCEPTION 'TypeError: object of type ''NoneType'' has no len()';
+    END IF;
+    
+    -- Get type name
+    SELECT tp_name INTO type_name
+    FROM public.py_type_object
+    WHERE ob_base = obj_type_id;
+    
+    -- Calculate length based on type
+    -- This mirrors CPython's PyObject_Size() behavior
+    IF type_name = 'str' THEN
+        -- String length: use char_length on str_value
+        SELECT char_length(str_value) INTO length_value
+        FROM public.py_unicode_object
+        WHERE ob_base = obj_id;
+        
+        IF length_value IS NULL THEN
+            RAISE EXCEPTION 'TypeError: object of type ''str'' has no len()';
+        END IF;
+        
+    ELSIF type_name = 'list' THEN
+        -- List length: use array_length on ob_item
+        SELECT array_length(ob_item, 1) INTO length_value
+        FROM public.py_list_object
+        WHERE ob_base = obj_id;
+        
+        IF length_value IS NULL THEN
+            -- Empty list: array_length returns NULL, but length is 0
+            length_value := 0;
+        END IF;
+        
+    ELSIF type_name = 'tuple' THEN
+        -- Tuple length: use array_length on ob_item
+        SELECT array_length(ob_item, 1) INTO length_value
+        FROM public.py_tuple_object
+        WHERE ob_base = obj_id;
+        
+        IF length_value IS NULL THEN
+            -- Empty tuple: array_length returns NULL, but length is 0
+            length_value := 0;
+        END IF;
+        
+    ELSIF type_name = 'dict' THEN
+        -- Dict length: count entries in py_dict_entry
+        SELECT COUNT(*) INTO length_value
+        FROM public.py_dict_entry
+        WHERE dict_id = obj_id;
+        
+    ELSE
+        -- Type does not support len()
+        RAISE EXCEPTION 'TypeError: object of type ''%'' has no len()', type_name;
+    END IF;
+    
+    -- Create result int object
+    -- Generate new UUID for result
+    result_id := gen_random_uuid();
+    
+    -- Create PyObject entry
+    INSERT INTO public.py_object (id, ob_type)
+    VALUES (result_id, ID_INT_TYPE);
+    
+    -- Create PyLongObject entry
+    INSERT INTO public.py_long_object (ob_base, long_value)
+    VALUES (result_id, length_value);
+    
+    RETURN result_id;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Re-raise with context
+        RAISE;
+END;
+$$ LANGUAGE plpgsql;
 
 DO $$
 DECLARE
@@ -70,14 +172,15 @@ BEGIN
     -- Create len builtin function
     -- py_cfunction_object implements CPython's PyCFunction
     -- METH_O = 0x0008 (8) - takes exactly one argument (other than self)
-    INSERT INTO public.py_cfunction_object (ob_base, m_ml_name, m_ml_flags, m_ml_doc, m_self, m_module)
+    INSERT INTO public.py_cfunction_object (ob_base, m_ml_name, m_ml_flags, m_ml_doc, m_self, m_module, m_ml_meth)
     VALUES (
         ID_LEN_FUNCTION,
         ID_STR_LEN_NAME,           -- m_ml_name: "len"
         8,                          -- m_ml_flags: METH_O (takes one argument)
         ID_STR_LEN_DOC,             -- m_ml_doc: "Return the number of items in a container."
         NULL,                       -- m_self: NULL (unbound function)
-        ID_BUILTINS_MODULE          -- m_module: __builtins__ module
+        ID_BUILTINS_MODULE,         -- m_module: __builtins__ module
+        'py_builtin_len'            -- m_ml_meth: PostgreSQL function name
     );
     
     -------------------------------------------------------

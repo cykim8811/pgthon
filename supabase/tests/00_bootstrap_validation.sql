@@ -56,6 +56,7 @@ DECLARE
     len_doc_str TEXT;
     builtins_dict_id UUID;
     len_key_id UUID;
+    len_ml_meth TEXT;
 BEGIN
     RAISE NOTICE '========================================';
     RAISE NOTICE 'Bootstrap Validation Test';
@@ -571,6 +572,23 @@ BEGIN
     END IF;
     
     RAISE NOTICE '  ✓ len function is registered in __builtins__ module dict';
+    pass_count := pass_count + 1;
+    
+    -- Verify len function m_ml_meth is set
+    test_count := test_count + 1;
+    SELECT m_ml_meth INTO len_ml_meth
+    FROM public.py_cfunction_object
+    WHERE ob_base = ID_LEN_FUNCTION;
+    
+    IF len_ml_meth IS NULL THEN
+        RAISE EXCEPTION 'FAIL: len function m_ml_meth is NULL';
+    END IF;
+    
+    IF len_ml_meth != 'py_builtin_len' THEN
+        RAISE EXCEPTION 'FAIL: len function m_ml_meth is "%", expected "py_builtin_len"', len_ml_meth;
+    END IF;
+    
+    RAISE NOTICE '  ✓ len function has correct m_ml_meth';
     pass_count := pass_count + 1;
 
     -- ========================================================================

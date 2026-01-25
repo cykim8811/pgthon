@@ -559,6 +559,22 @@ BEGIN
     ELSE
         RAISE EXCEPTION 'FAIL: py_cfunction_object.m_module column does not exist';
     END IF;
+    
+    -- m_ml_meth column (optional)
+    test_count := test_count + 1;
+    SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'py_cfunction_object'
+        AND column_name = 'm_ml_meth'
+    ) INTO column_exists;
+    
+    IF column_exists THEN
+        RAISE NOTICE '  ✓ py_cfunction_object.m_ml_meth column exists';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: py_cfunction_object.m_ml_meth column does not exist';
+    END IF;
 
     -- ========================================================================
     -- Test 12: Verify py_cfunction_object foreign key constraints

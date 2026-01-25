@@ -140,6 +140,16 @@ else
     exit 1
 fi
 
+# 7. VM Frame Evaluation Test
+echo "=== Phase 7: VM Frame Evaluation ==="
+if run_test "supabase/tests/07_vm_eval_frame.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM frame evaluation test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -156,8 +166,9 @@ echo "  ✅ 03: Builtin Functions Integration Test"
 echo "  ✅ 04: VM Stack Operations Test"
 echo "  ✅ 05: VM Opcode Utilities Test"
 echo "  ✅ 06: VM Integration Test"
+echo "  ✅ 07: VM Frame Evaluation Test"
 echo ""
-echo "Total: 7 test suites passed ✨"
+echo "Total: 8 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

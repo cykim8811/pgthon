@@ -117,13 +117,11 @@ BEGIN
         arg := get_byte(bytecode, i + 1);
         
         -- Opcode dispatch
+        -- Note: Only implemented opcodes are dispatched here.
+        -- Unimplemented opcodes will raise "Unknown opcode" exception.
         CASE opcode
             WHEN 100 THEN  -- LOAD_CONST
                 PERFORM public.py_opcode_LOAD_CONST(frame_id, arg);
-            WHEN 101 THEN  -- LOAD_NAME
-                PERFORM public.py_opcode_LOAD_NAME(frame_id, arg);
-            WHEN 23 THEN   -- BINARY_ADD
-                PERFORM public.py_opcode_BINARY_ADD(frame_id);
             WHEN 83 THEN   -- RETURN_VALUE
                 -- CPython: PyEval_EvalFrameEx returns the value on top of the stack
                 -- when RETURN_VALUE opcode is executed
@@ -134,7 +132,10 @@ BEGIN
                 SET f_lasti = i
                 WHERE ob_base = frame_id;
                 EXIT;  -- 루프 종료 (CPython과 동일)
-            -- ... 다른 opcode들은 나중에 추가
+            -- TODO: Implement the following opcodes:
+            --   - 101 (LOAD_NAME): Load name from namespace
+            --   - 23 (BINARY_ADD): Binary addition operation
+            --   - ... (other opcodes to be added)
             ELSE
                 RAISE EXCEPTION 'Unknown opcode: % at byte offset %', opcode, i;
         END CASE;

@@ -150,6 +150,16 @@ else
     exit 1
 fi
 
+# 8. VM Basic Opcodes Test
+echo "=== Phase 8: VM Basic Opcodes ==="
+if run_test "supabase/tests/08_vm_opcodes_basic.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM basic opcodes test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -167,8 +177,9 @@ echo "  ✅ 04: VM Stack Operations Test"
 echo "  ✅ 05: VM Opcode Utilities Test"
 echo "  ✅ 06: VM Integration Test"
 echo "  ✅ 07: VM Frame Evaluation Test"
+echo "  ✅ 08: VM Basic Opcodes Test"
 echo ""
-echo "Total: 8 test suites passed ✨"
+echo "Total: 9 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

@@ -29,78 +29,27 @@
 -- py_builtin_len: Implements CPython's builtin_len function
 -- Returns the number of items in a container (str, list, tuple, dict, etc.)
 -- This is equivalent to CPython's builtin_len() in Python/bltinmodule.c
+--
+-- CPython Implementation:
+--   static PyObject *builtin_len(PyObject *module, PyObject *obj) {
+--       Py_ssize_t res = PyObject_Size(obj);
+--       if (res < 0) return NULL;
+--       return PyLong_FromSsize_t(res);
+--   }
+--
+-- This function follows the same pattern: call PyObject_Size() and convert
+-- the result to a Python int object.
 CREATE OR REPLACE FUNCTION public.py_builtin_len(obj_id UUID)
 RETURNS UUID AS $$
 DECLARE
-    obj_type_id UUID;
-    type_name TEXT;
     length_value NUMERIC;
     result_id UUID;
-    -- Builtin type IDs (from bootstrap)
-    ID_STR_TYPE UUID := '00000000-0000-4000-a000-000000000003';
+    -- Builtin type ID for int (from bootstrap)
     ID_INT_TYPE UUID := '00000000-0000-4000-a000-000000000004';
-    ID_LIST_TYPE UUID := '00000000-0000-4000-a000-000000000005';
-    ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
-    ID_TUPLE_TYPE UUID := '00000000-0000-4000-a000-000000000007';
 BEGIN
-    -- Get object type
-    SELECT ob_type INTO obj_type_id
-    FROM public.py_object
-    WHERE id = obj_id;
-    
-    IF obj_type_id IS NULL THEN
-        RAISE EXCEPTION 'TypeError: object of type ''NoneType'' has no len()';
-    END IF;
-    
-    -- Get type name
-    SELECT tp_name INTO type_name
-    FROM public.py_type_object
-    WHERE ob_base = obj_type_id;
-    
-    -- Calculate length based on type
-    -- This mirrors CPython's PyObject_Size() behavior
-    IF type_name = 'str' THEN
-        -- String length: use char_length on str_value
-        SELECT char_length(str_value) INTO length_value
-        FROM public.py_unicode_object
-        WHERE ob_base = obj_id;
-        
-        IF length_value IS NULL THEN
-            RAISE EXCEPTION 'TypeError: object of type ''str'' has no len()';
-        END IF;
-        
-    ELSIF type_name = 'list' THEN
-        -- List length: use array_length on ob_item
-        SELECT array_length(ob_item, 1) INTO length_value
-        FROM public.py_list_object
-        WHERE ob_base = obj_id;
-        
-        IF length_value IS NULL THEN
-            -- Empty list: array_length returns NULL, but length is 0
-            length_value := 0;
-        END IF;
-        
-    ELSIF type_name = 'tuple' THEN
-        -- Tuple length: use array_length on ob_item
-        SELECT array_length(ob_item, 1) INTO length_value
-        FROM public.py_tuple_object
-        WHERE ob_base = obj_id;
-        
-        IF length_value IS NULL THEN
-            -- Empty tuple: array_length returns NULL, but length is 0
-            length_value := 0;
-        END IF;
-        
-    ELSIF type_name = 'dict' THEN
-        -- Dict length: count entries in py_dict_entry
-        SELECT COUNT(*) INTO length_value
-        FROM public.py_dict_entry
-        WHERE dict_id = obj_id;
-        
-    ELSE
-        -- Type does not support len()
-        RAISE EXCEPTION 'TypeError: object of type ''%'' has no len()', type_name;
-    END IF;
+    -- Call PyObject_Size() to get the length
+    -- This function looks up __len__ method in the type's tp_dict and calls it.
+    length_value := public.py_object_size(obj_id);
     
     -- Create result int object
     -- Generate new UUID for result
@@ -118,7 +67,7 @@ BEGIN
     
 EXCEPTION
     WHEN OTHERS THEN
-        -- Re-raise with context
+        -- Re-raise with context (PyObject_Size already sets appropriate error messages)
         RAISE;
 END;
 $$ LANGUAGE plpgsql;

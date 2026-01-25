@@ -280,9 +280,10 @@ create table public.py_frame_object (
   -- and pop results from it.
   f_valuestack uuid[] default array[]::uuid[],
   
-  -- f_lasti: Last instruction executed
-  -- Index of the last bytecode instruction that was executed. Used to track
+  -- f_lasti: Last instruction executed (byte offset)
+  -- Byte offset of the last bytecode instruction that was executed. Used to track
   -- execution progress and for exception handling. -1 means no instruction executed yet.
+  -- In CPython, f_lasti stores the byte offset (not instruction index) into co_code.
   f_lasti integer default -1
 );
 

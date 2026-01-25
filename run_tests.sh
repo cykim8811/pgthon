@@ -110,6 +110,16 @@ else
     exit 1
 fi
 
+# 4. VM Stack Operations Test
+echo "=== Phase 4: VM Stack Operations ==="
+if run_test "supabase/tests/04_vm_stack_operations.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM stack operations test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -123,8 +133,9 @@ echo "  ✅ 00: Bootstrap Validation (Object Model & Type System)"
 echo "  ✅ 01: Function, Code, and Frame Schema Validation"
 echo "  ✅ 02: Method Object Schema Validation"
 echo "  ✅ 03: Builtin Functions Integration Test"
+echo "  ✅ 04: VM Stack Operations Test"
 echo ""
-echo "Total: 4 test suites passed ✨"
+echo "Total: 5 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

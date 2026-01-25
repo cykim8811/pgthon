@@ -356,8 +356,9 @@ BEGIN
         RAISE EXCEPTION 'FAIL: Found function ID % does not match expected len function ID %', len_function_id, ID_LEN_FUNCTION;
     END IF;
     
-    -- Get m_ml_meth (function name) from len function object
-    SELECT m_ml_meth INTO len_ml_meth
+    -- Get m_ml_meth (function identifier) from len function object
+    -- regproc type stores function identifier, convert to text for dynamic call
+    SELECT m_ml_meth::text INTO len_ml_meth
     FROM public.py_cfunction_object
     WHERE ob_base = len_function_id;
     
@@ -372,6 +373,7 @@ BEGIN
     
     -- Call len function dynamically using m_ml_meth
     -- This simulates CPython's function call mechanism
+    -- regproc is converted to text for use in format()
     EXECUTE format('SELECT %I($1)', len_ml_meth) USING test_str_id INTO result_id;
     
     -- Verify result

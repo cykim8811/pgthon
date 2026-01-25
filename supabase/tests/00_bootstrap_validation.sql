@@ -576,7 +576,8 @@ BEGIN
     
     -- Verify len function m_ml_meth is set
     test_count := test_count + 1;
-    SELECT m_ml_meth INTO len_ml_meth
+    -- regproc type stores function identifier, convert to text for comparison
+    SELECT m_ml_meth::text INTO len_ml_meth
     FROM public.py_cfunction_object
     WHERE ob_base = ID_LEN_FUNCTION;
     

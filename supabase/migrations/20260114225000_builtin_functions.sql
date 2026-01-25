@@ -13,7 +13,7 @@
 --   - m_ml_doc: Documentation string (string object)
 --   - m_self: Self object (NULL for unbound functions)
 --   - m_module: Module object (__builtins__ module)
---   - m_ml_meth: PostgreSQL function name that implements this function
+--   - m_ml_meth: PostgreSQL function identifier (regproc) that implements this function
 --
 -- Builtin Functions Created:
 --   - len: Returns the number of items in a container (METH_O)
@@ -180,7 +180,7 @@ BEGIN
         ID_STR_LEN_DOC,             -- m_ml_doc: "Return the number of items in a container."
         NULL,                       -- m_self: NULL (unbound function)
         ID_BUILTINS_MODULE,         -- m_module: __builtins__ module
-        'py_builtin_len'            -- m_ml_meth: PostgreSQL function name
+        'py_builtin_len'::regproc   -- m_ml_meth: PostgreSQL function identifier (validates function exists)
     );
     
     -------------------------------------------------------

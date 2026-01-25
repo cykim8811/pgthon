@@ -203,19 +203,22 @@ create table public.py_cfunction_object (
   m_module uuid references public.py_object(id),
   
   -- m_ml_meth: PostgreSQL function identifier (regproc)
-  -- The name of the PostgreSQL function that implements this C function.
+  -- The PostgreSQL function that implements this C function.
   -- In CPython, m_ml->ml_meth is a C function pointer. In Elytra, we store
-  -- the PostgreSQL function name instead, which serves the same purpose:
+  -- the PostgreSQL function identifier (regproc) instead, which serves the same purpose:
   -- identifying which function to call when this builtin function is invoked.
-  -- Type: regproc (PostgreSQL function identifier) or text (function name).
+  -- The regproc type automatically validates that the function exists, similar to how
+  -- C function pointers can only point to existing functions at compile time.
   -- NULL if the function implementation is not yet available.
-  m_ml_meth text
+  m_ml_meth regproc
 );
 
 -- Note: In CPython, m_ml->ml_meth is a C function pointer that cannot be stored
--- in the database. In Elytra, we store the PostgreSQL function name (m_ml_meth)
+-- in the database. In Elytra, we store the PostgreSQL function identifier (regproc)
 -- which serves the same purpose: identifying which function to call when this
--- builtin function is invoked. The actual function implementation is a PostgreSQL
+-- builtin function is invoked. The regproc type automatically validates that the
+-- function exists, similar to how C function pointers can only point to existing
+-- functions at compile time. The actual function implementation is a PostgreSQL
 -- function that operates on PyObject IDs (UUIDs) instead of C pointers.
 
 -- py_method_object (Implements CPython's PyMethodObject)

@@ -122,6 +122,8 @@ BEGIN
         CASE opcode
             WHEN 100 THEN  -- LOAD_CONST
                 PERFORM public.py_opcode_LOAD_CONST(frame_id, arg);
+            WHEN 90 THEN   -- STORE_NAME
+                PERFORM public.py_opcode_STORE_NAME(frame_id, arg);
             WHEN 83 THEN   -- RETURN_VALUE
                 -- CPython: PyEval_EvalFrameEx returns the value on top of the stack
                 -- when RETURN_VALUE opcode is executed

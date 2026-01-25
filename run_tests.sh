@@ -170,6 +170,26 @@ else
     exit 1
 fi
 
+# 10. VM STORE_NAME Opcode Test
+echo "=== Phase 10: VM STORE_NAME Opcode ==="
+if run_test "supabase/tests/10_vm_opcode_store_name.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM STORE_NAME opcode test failed. Cannot continue."
+    exit 1
+fi
+
+# 11. VM STORE_NAME Integration Test
+echo "=== Phase 11: VM STORE_NAME Integration ==="
+if run_test "supabase/tests/11_vm_integration_store_name.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM STORE_NAME integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -189,8 +209,10 @@ echo "  ✅ 06: VM Integration Test"
 echo "  ✅ 07: VM Frame Evaluation Test"
 echo "  ✅ 08: VM Basic Opcodes Test"
 echo "  ✅ 09: VM Advanced Integration Test"
+echo "  ✅ 10: VM STORE_NAME Opcode Test"
+echo "  ✅ 11: VM STORE_NAME Integration Test"
 echo ""
-echo "Total: 10 test suites passed ✨"
+echo "Total: 12 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

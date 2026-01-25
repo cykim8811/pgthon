@@ -19,9 +19,10 @@
 -- Builtin Types Created:
 --   - object: The base class of all classes
 --   - type: The type of all types (metaclass)
---   - str, int, float, list, dict, tuple: Core builtin types
+--   - str, bytes, int, float, list, dict, tuple: Core builtin types
 --   - NoneType: The type of None
 --   - builtin_function_or_method: The type of C builtin functions
+--   - module: The type of module objects
 --   - None: The singleton None object
 --   - __builtins__: The builtins module (contains builtin functions)
 --
@@ -35,6 +36,7 @@ DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
     ID_TYPE_TYPE   UUID := '00000000-0000-4000-a000-000000000002';
     ID_STR_TYPE    UUID := '00000000-0000-4000-a000-000000000003';
+    ID_BYTES_TYPE  UUID := '00000000-0000-4000-a000-000000000012';
     ID_INT_TYPE    UUID := '00000000-0000-4000-a000-000000000004';
     ID_FLOAT_TYPE  UUID := '00000000-0000-4000-a000-000000000009';
     ID_LIST_TYPE   UUID := '00000000-0000-4000-a000-000000000005';
@@ -88,6 +90,7 @@ BEGIN
     (ID_OBJECT_TYPE, NULL),      -- object type
     (ID_TYPE_TYPE,   NULL),      -- type type
     (ID_STR_TYPE,    NULL),      -- str type
+    (ID_BYTES_TYPE,  NULL),      -- bytes type
     (ID_INT_TYPE,    NULL),      -- int type
     (ID_FLOAT_TYPE,  NULL),      -- float type
     (ID_LIST_TYPE,   NULL),      -- list type
@@ -126,6 +129,7 @@ BEGIN
     (ID_OBJECT_TYPE, 'object'),
     (ID_TYPE_TYPE,   'type'),
     (ID_STR_TYPE,    'str'),
+    (ID_BYTES_TYPE,  'bytes'),
     (ID_INT_TYPE,    'int'),
     (ID_FLOAT_TYPE,  'float'),
     (ID_LIST_TYPE,   'list'),
@@ -142,7 +146,7 @@ BEGIN
     -------------------------------------------------------
     -- All types have 'type' as their ob_type
     UPDATE public.py_object SET ob_type = ID_TYPE_TYPE 
-    WHERE id IN (ID_OBJECT_TYPE, ID_TYPE_TYPE, ID_STR_TYPE, ID_INT_TYPE, ID_FLOAT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_MODULE_TYPE);
+    WHERE id IN (ID_OBJECT_TYPE, ID_TYPE_TYPE, ID_STR_TYPE, ID_BYTES_TYPE, ID_INT_TYPE, ID_FLOAT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_MODULE_TYPE);
     
     -- None instance is a NoneType
     UPDATE public.py_object SET ob_type = ID_NONE_TYPE WHERE id = ID_NONE_OBJ;

@@ -53,7 +53,22 @@ create table public.py_unicode_object (
   str_value text
 );
 
--- 3a. py_long_object (Implements CPython's PyLongObject)
+-- 3b. py_bytes_object (Implements CPython's PyBytesObject)
+--     Bytes objects in Python. The bytes_value field stores the actual byte data.
+--     In CPython, PyBytesObject contains:
+--     - ob_sval: C array storing the byte data (char ob_sval[1], flexible array)
+--     - ob_shash: Cached hash value for dictionary lookups (Py_hash_t, -1 if not computed)
+--     For minimal implementation, we only include the byte data (ob_sval equivalent).
+--     Hash caching (ob_shash) is an optimization that can be added later if needed.
+--     In PostgreSQL, we use bytea type which can store arbitrary binary data including NULL bytes.
+create table public.py_bytes_object (
+  -- Shared-PK: the object's identity is its PyObject id.
+  ob_base uuid primary key references public.py_object(id) on delete cascade,
+  bytes_value bytea not null -- Stores the byte data (equivalent to ob_sval in CPython)
+  -- Note: ob_shash (hash cache) is omitted in minimal implementation
+);
+
+-- 3c. py_long_object (Implements CPython's PyLongObject)
 --     Integer objects in Python. PostgreSQL's numeric type provides arbitrary
 --     precision, which matches CPython's PyLongObject behavior for large integers.
 create table public.py_long_object (
@@ -62,7 +77,7 @@ create table public.py_long_object (
   long_value numeric not null -- Stores the integer value (arbitrary precision)
 );
 
--- 3b. py_float_object (Implements CPython's PyFloatObject)
+-- 3d. py_float_object (Implements CPython's PyFloatObject)
 --     Floating-point objects in Python. ob_fval stores the double-precision value.
 create table public.py_float_object (
   -- Shared-PK: the object's identity is its PyObject id.
@@ -158,6 +173,7 @@ add constraint fk_py_type_objects_tp_dict foreign key (tp_dict) references publi
 alter table public.py_object enable row level security;
 alter table public.py_type_object enable row level security;
 alter table public.py_unicode_object enable row level security;
+alter table public.py_bytes_object enable row level security;
 alter table public.py_long_object enable row level security;
 alter table public.py_float_object enable row level security;
 alter table public.py_tuple_object enable row level security;
@@ -173,6 +189,7 @@ alter table public.py_module_object enable row level security;
 create policy "Authenticated users can view py_object" on public.py_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_type_object" on public.py_type_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_unicode_object" on public.py_unicode_object for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_bytes_object" on public.py_bytes_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_long_object" on public.py_long_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_float_object" on public.py_float_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_tuple_object" on public.py_tuple_object for select using (auth.role() = 'authenticated');

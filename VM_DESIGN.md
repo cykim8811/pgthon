@@ -58,7 +58,7 @@ RETURNS UUID AS $$
 DECLARE
     code_obj_id UUID;
     co_code_id UUID;
-    bytecode TEXT;  -- unicode object의 str_value
+    bytecode bytea;  -- bytes object의 bytes_value
     opcode INTEGER;
     arg INTEGER;
     i INTEGER := 0;
@@ -74,17 +74,17 @@ BEGIN
     FROM py_code_object
     WHERE ob_base = code_obj_id;
     
-    SELECT str_value INTO bytecode
-    FROM py_unicode_object
+    SELECT bytes_value INTO bytecode
+    FROM py_bytes_object
     WHERE ob_base = co_code_id;
     
     -- 3. Bytecode 실행 루프
     WHILE i < length(bytecode) LOOP
         -- Opcode 읽기 (1바이트)
-        opcode := ascii(substring(bytecode FROM i+1 FOR 1));
+        opcode := get_byte(bytecode, i);  -- get_byte uses 0-based indexing
         
         -- Operand 읽기 (1바이트 또는 3바이트)
-        -- TODO: opcode에 따라 operand 크기 결정
+        arg := get_byte(bytecode, i + 1);  -- Operand is next byte
         
         -- Opcode dispatch
         CASE opcode
@@ -106,7 +106,7 @@ BEGIN
         WHERE ob_base = frame_id;
         
         -- 다음 instruction으로 이동
-        i := i + 2;  -- 기본적으로 2바이트 (opcode + operand)
+        i := i + py_get_opcode_size(opcode);  -- Use opcode size function
     END LOOP;
     
     -- 4. Stack에서 최종 결과 반환
@@ -446,9 +446,9 @@ $$ LANGUAGE plpgsql;
 ## 고려사항
 
 ### 1. Bytecode 저장 형식
-- 현재: `co_code`를 unicode object로 저장
-- CPython: bytes 객체
-- **해결책**: unicode object의 `str_value`에 bytecode를 문자열로 저장하거나, 별도의 bytes 타입 필요
+- ✅ 해결됨: `co_code`를 bytes object (`py_bytes_object`)로 저장
+- CPython: bytes 객체 (PyBytesObject)
+- PostgreSQL: `bytea` 타입 사용 (NULL 바이트 포함 가능)
 
 ### 2. Opcode 확장 (EXTENDED_ARG)
 - 일부 opcode는 3바이트 operand 사용

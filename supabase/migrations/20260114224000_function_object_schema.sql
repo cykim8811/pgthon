@@ -15,7 +15,7 @@
 --   - func_closure: Closure tuple (optional, NULL if no closure)
 --
 --   PyCodeObject:
---   - co_code: Bytecode instructions (unicode object storing bytecode)
+--   - co_code: Bytecode instructions (bytes object storing bytecode)
 --   - co_consts: Constants tuple
 --   - co_names: Names tuple
 --   - co_filename: Source filename (string object)
@@ -115,9 +115,11 @@ create table public.py_code_object (
   -- Shared-PK: the code object's identity is its PyObject id.
   ob_base uuid primary key references public.py_object(id) on delete cascade,
   
-  -- co_code: Bytecode instructions (unicode object)
-  -- The actual bytecode instructions to execute, stored as a unicode object.
-  -- In CPython this is bytes, but in Elytra we use unicode for storage.
+  -- co_code: Bytecode instructions (bytes object)
+  -- The actual bytecode instructions to execute, stored as a bytes object.
+  -- In CPython, co_code is a PyBytesObject containing the bytecode as raw bytes.
+  -- This allows storing NULL bytes and arbitrary binary data, which is essential
+  -- for bytecode which can contain any byte value (0-255).
   co_code uuid references public.py_object(id) not null,
   
   -- co_consts: Constants tuple

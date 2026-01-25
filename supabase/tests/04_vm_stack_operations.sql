@@ -19,6 +19,7 @@ DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
     ID_TYPE_TYPE UUID := '00000000-0000-4000-a000-000000000002';
     ID_STR_TYPE UUID := '00000000-0000-4000-a000-000000000003';
+    ID_BYTES_TYPE UUID := '00000000-0000-4000-a000-000000000012';
     ID_INT_TYPE UUID := '00000000-0000-4000-a000-000000000004';
     ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
     
@@ -85,8 +86,8 @@ BEGIN
         
         -- Create code object's co_code (empty bytecode)
         co_code_id := gen_random_uuid();
-        INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_STR_TYPE);
-        INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (co_code_id, '');
+        INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
+        INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x'::bytea);
         
         -- Set all tuple/string references
         co_consts_id := empty_tuple_id;

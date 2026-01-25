@@ -162,6 +162,16 @@ create table public.py_code_object (
 -- C function objects represent builtin functions implemented in C.
 -- These are the functions exposed as builtin_function_or_method in Python.
 -- Examples: len, print, abs, max, min, sum, sorted, etc.
+--
+-- Note on structure flattening:
+-- In CPython, PyCFunctionObject contains m_ml (PyMethodDef* pointer).
+-- PyMethodDef is a struct with fields: ml_name, ml_meth, ml_flags, ml_doc.
+-- In Elytra, we flatten PyMethodDef fields directly into this table:
+--   - m_ml->ml_name -> m_ml_name (stored as PyObject reference, not C string)
+--   - m_ml->ml_flags -> m_ml_flags
+--   - m_ml->ml_doc -> m_ml_doc (stored as PyObject reference, not C string)
+--   - m_ml->ml_meth -> m_ml_meth (PostgreSQL function name instead of C pointer)
+-- This flattening is necessary because databases cannot store C pointers or structs.
 create table public.py_cfunction_object (
   -- Shared-PK: the C function object's identity is its PyObject id.
   ob_base uuid primary key references public.py_object(id) on delete cascade,

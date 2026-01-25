@@ -100,20 +100,31 @@ else
     exit 1
 fi
 
+# 3. Builtin Functions Integration Test
+echo "=== Phase 3: Builtin Functions Integration ==="
+if run_test "supabase/tests/03_builtin_functions_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Builtin functions integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
 
 echo "==========================================="
-echo "🎉 Bootstrap Validation Passed!"
+echo "🎉 All Tests Passed!"
 echo "==========================================="
 echo ""
 echo "Summary:"
 echo "  ✅ 00: Bootstrap Validation (Object Model & Type System)"
 echo "  ✅ 01: Function, Code, and Frame Schema Validation"
 echo "  ✅ 02: Method Object Schema Validation"
+echo "  ✅ 03: Builtin Functions Integration Test"
 echo ""
-echo "Total: 3 test suites passed ✨"
+echo "Total: 4 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

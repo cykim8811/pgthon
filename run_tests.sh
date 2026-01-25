@@ -160,6 +160,16 @@ else
     exit 1
 fi
 
+# 9. VM Advanced Integration Test
+echo "=== Phase 9: VM Advanced Integration ==="
+if run_test "supabase/tests/09_vm_integration_advanced.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM advanced integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -178,8 +188,9 @@ echo "  ✅ 05: VM Opcode Utilities Test"
 echo "  ✅ 06: VM Integration Test"
 echo "  ✅ 07: VM Frame Evaluation Test"
 echo "  ✅ 08: VM Basic Opcodes Test"
+echo "  ✅ 09: VM Advanced Integration Test"
 echo ""
-echo "Total: 9 test suites passed ✨"
+echo "Total: 10 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

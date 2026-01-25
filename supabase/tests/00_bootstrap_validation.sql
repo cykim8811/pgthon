@@ -31,6 +31,7 @@ DECLARE
     ID_MODULE_TYPE UUID := '00000000-0000-4000-a000-000000000011';
     ID_NONE_OBJ    UUID := '00000000-0000-4000-b000-000000000001';
     ID_BUILTINS_MODULE UUID := '00000000-0000-4000-b000-000000000002';
+    ID_LEN_FUNCTION UUID := '00000000-0000-4000-b000-000000000003';
 
     -- Test counters
     test_count INTEGER := 0;
@@ -45,6 +46,16 @@ DECLARE
     tuple_bases_id UUID;
     tuple_content UUID[];
     type_count INTEGER;
+    -- Variables for len function test
+    len_ml_name UUID;
+    len_ml_flags INTEGER;
+    len_ml_doc UUID;
+    len_m_self UUID;
+    len_m_module UUID;
+    len_name_str TEXT;
+    len_doc_str TEXT;
+    builtins_dict_id UUID;
+    len_key_id UUID;
 BEGIN
     RAISE NOTICE '========================================';
     RAISE NOTICE 'Bootstrap Validation Test';
@@ -442,6 +453,125 @@ BEGIN
     ELSE
         RAISE EXCEPTION 'FAIL: __builtins__ module md_dict or md_name is NULL';
     END IF;
+
+    -- ========================================================================
+    -- Test 12: Verify len builtin function
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 12: Verifying len builtin function...';
+    
+    -- Verify len function exists in py_object
+    test_count := test_count + 1;
+    SELECT COUNT(*) INTO type_count
+    FROM public.py_object
+    WHERE id = ID_LEN_FUNCTION;
+    
+    IF type_count = 1 THEN
+        RAISE NOTICE '  ✓ len function exists in py_object';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: len function does not exist';
+    END IF;
+    
+    -- Verify len function ob_type
+    test_count := test_count + 1;
+    SELECT ob_type INTO actual_ob_type FROM public.py_object WHERE id = ID_LEN_FUNCTION;
+    IF actual_ob_type = ID_BUILTIN_FUNCTION_OR_METHOD_TYPE THEN
+        RAISE NOTICE '  ✓ len function has ob_type = builtin_function_or_method';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: len function ob_type is %, expected %', actual_ob_type, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE;
+    END IF;
+    
+    -- Verify len function object exists
+    test_count := test_count + 1;
+    SELECT COUNT(*) INTO type_count
+    FROM public.py_cfunction_object
+    WHERE ob_base = ID_LEN_FUNCTION;
+    
+    IF type_count = 1 THEN
+        RAISE NOTICE '  ✓ len function object exists';
+        pass_count := pass_count + 1;
+    ELSE
+        RAISE EXCEPTION 'FAIL: len function object does not exist';
+    END IF;
+    
+    -- Verify len function m_ml_name, m_ml_flags, m_ml_doc
+    test_count := test_count + 1;
+    SELECT m_ml_name, m_ml_flags, m_ml_doc, m_self, m_module
+    INTO len_ml_name, len_ml_flags, len_ml_doc, len_m_self, len_m_module
+    FROM public.py_cfunction_object
+    WHERE ob_base = ID_LEN_FUNCTION;
+    
+    IF len_ml_name IS NULL THEN
+        RAISE EXCEPTION 'FAIL: len function m_ml_name is NULL';
+    END IF;
+    
+    IF len_ml_flags IS NULL OR len_ml_flags != 8 THEN
+        RAISE EXCEPTION 'FAIL: len function m_ml_flags is %, expected 8 (METH_O)', len_ml_flags;
+    END IF;
+    
+    IF len_ml_doc IS NULL THEN
+        RAISE EXCEPTION 'FAIL: len function m_ml_doc is NULL';
+    END IF;
+    
+    IF len_m_self IS NOT NULL THEN
+        RAISE EXCEPTION 'FAIL: len function m_self is not NULL (expected NULL for unbound function)';
+    END IF;
+    
+    IF len_m_module != ID_BUILTINS_MODULE THEN
+        RAISE EXCEPTION 'FAIL: len function m_module is %, expected %', len_m_module, ID_BUILTINS_MODULE;
+    END IF;
+    
+    -- Verify function name string
+    SELECT str_value INTO len_name_str
+    FROM public.py_unicode_object
+    WHERE ob_base = len_ml_name;
+    
+    IF len_name_str != 'len' THEN
+        RAISE EXCEPTION 'FAIL: len function m_ml_name string is "%", expected "len"', len_name_str;
+    END IF;
+    
+    -- Verify function docstring
+    SELECT str_value INTO len_doc_str
+    FROM public.py_unicode_object
+    WHERE ob_base = len_ml_doc;
+    
+    IF len_doc_str != 'Return the number of items in a container.' THEN
+        RAISE EXCEPTION 'FAIL: len function m_ml_doc string is "%", expected "Return the number of items in a container."', len_doc_str;
+    END IF;
+    
+    RAISE NOTICE '  ✓ len function has correct m_ml_name, m_ml_flags (METH_O), m_ml_doc, m_self (NULL), m_module';
+    pass_count := pass_count + 1;
+    
+    -- Verify len function is registered in __builtins__ module dict
+    test_count := test_count + 1;
+    -- Get __builtins__ module dict
+    SELECT md_dict INTO builtins_dict_id
+    FROM public.py_module_object
+    WHERE ob_base = ID_BUILTINS_MODULE;
+    
+    -- Find "len" key in the dict
+    SELECT me_key INTO len_key_id
+    FROM public.py_dict_entry
+    WHERE dict_id = builtins_dict_id
+    AND me_value = ID_LEN_FUNCTION;
+    
+    IF len_key_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: len function is not registered in __builtins__ module dict';
+    END IF;
+    
+    -- Verify the key is the "len" string
+    SELECT str_value INTO len_name_str
+    FROM public.py_unicode_object
+    WHERE ob_base = len_key_id;
+    
+    IF len_name_str != 'len' THEN
+        RAISE EXCEPTION 'FAIL: len function dict key is "%", expected "len"', len_name_str;
+    END IF;
+    
+    RAISE NOTICE '  ✓ len function is registered in __builtins__ module dict';
+    pass_count := pass_count + 1;
 
     -- ========================================================================
     -- Test Summary

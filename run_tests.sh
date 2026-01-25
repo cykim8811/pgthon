@@ -120,6 +120,26 @@ else
     exit 1
 fi
 
+# 5. VM Opcode Utilities Test
+echo "=== Phase 5: VM Opcode Utilities ==="
+if run_test "supabase/tests/05_vm_opcode_utils.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM opcode utilities test failed. Cannot continue."
+    exit 1
+fi
+
+# 6. VM Integration Test
+echo "=== Phase 6: VM Integration ==="
+if run_test "supabase/tests/06_vm_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -134,8 +154,10 @@ echo "  ✅ 01: Function, Code, and Frame Schema Validation"
 echo "  ✅ 02: Method Object Schema Validation"
 echo "  ✅ 03: Builtin Functions Integration Test"
 echo "  ✅ 04: VM Stack Operations Test"
+echo "  ✅ 05: VM Opcode Utilities Test"
+echo "  ✅ 06: VM Integration Test"
 echo ""
-echo "Total: 5 test suites passed ✨"
+echo "Total: 7 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

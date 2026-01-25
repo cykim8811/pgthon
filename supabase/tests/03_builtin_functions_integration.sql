@@ -48,12 +48,19 @@ DECLARE
     
     -- Temporary variables for nested blocks
     result_type_id UUID;
+    
+    -- Builtin function lookup
+    ID_BUILTINS_MODULE UUID := '00000000-0000-4000-b000-000000000002';
+    ID_LEN_FUNCTION UUID := '00000000-0000-4000-b000-000000000003';
+    builtins_dict_id UUID;
+    len_function_id UUID;
+    len_ml_meth TEXT;
+    len_name_str_id UUID;
     elem1_id UUID;
     elem2_id UUID;
     elem3_id UUID;
     tup_elem1_id UUID;
     tup_elem2_id UUID;
-    dict_id UUID;
     key1_id UUID;
     key2_id UUID;
     val1_id UUID;
@@ -251,9 +258,6 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (test_dict_id, ID_DICT_TYPE);
     INSERT INTO public.py_dict_object (ob_base) VALUES (test_dict_id);
     
-    -- Get dict object ID (same as test_dict_id due to shared-PK)
-    dict_id := test_dict_id;
-    
     -- Create key and value objects
     INSERT INTO public.py_object (id, ob_type) VALUES
     (key1_id, ID_STR_TYPE),
@@ -266,10 +270,10 @@ BEGIN
     (key1_id, 'a'),
     (key2_id, 'b');
     
-    -- Create dict entries
+    -- Create dict entries (test_dict_id is the dict_id due to shared-PK)
     INSERT INTO public.py_dict_entry (dict_id, me_key, me_value) VALUES
-    (dict_id, key1_id, val1_id),
-    (dict_id, key2_id, val2_id);
+    (test_dict_id, key1_id, val1_id),
+    (test_dict_id, key2_id, val2_id);
     
     -- Call len function
     SELECT public.py_builtin_len(test_dict_id) INTO result_id;
@@ -317,6 +321,74 @@ BEGIN
     END IF;
     
     RAISE NOTICE '  ✓ len(42) correctly raises TypeError';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 8: len() via __builtins__ lookup (CPython-style invocation)
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 8: Testing len() via __builtins__ lookup...';
+    test_count := test_count + 1;
+    
+    -- Get __builtins__ module dict
+    SELECT md_dict INTO builtins_dict_id
+    FROM public.py_module_object
+    WHERE ob_base = ID_BUILTINS_MODULE;
+    
+    IF builtins_dict_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: __builtins__ module dict not found';
+    END IF;
+    
+    -- Find "len" string object in __builtins__ dict
+    SELECT me_value INTO len_function_id
+    FROM public.py_dict_entry de
+    WHERE de.dict_id = builtins_dict_id
+    AND de.me_key IN (
+        SELECT ob_base FROM public.py_unicode_object WHERE str_value = 'len'
+    );
+    
+    IF len_function_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: len function not found in __builtins__ dict';
+    END IF;
+    
+    -- Verify it's the correct len function
+    IF len_function_id != ID_LEN_FUNCTION THEN
+        RAISE EXCEPTION 'FAIL: Found function ID % does not match expected len function ID %', len_function_id, ID_LEN_FUNCTION;
+    END IF;
+    
+    -- Get m_ml_meth (function name) from len function object
+    SELECT m_ml_meth INTO len_ml_meth
+    FROM public.py_cfunction_object
+    WHERE ob_base = len_function_id;
+    
+    IF len_ml_meth IS NULL OR len_ml_meth != 'py_builtin_len' THEN
+        RAISE EXCEPTION 'FAIL: len function m_ml_meth is "%", expected "py_builtin_len"', len_ml_meth;
+    END IF;
+    
+    -- Create a test string object
+    test_str_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (test_str_id, ID_STR_TYPE);
+    INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (test_str_id, 'world');
+    
+    -- Call len function dynamically using m_ml_meth
+    -- This simulates CPython's function call mechanism
+    EXECUTE format('SELECT %I($1)', len_ml_meth) USING test_str_id INTO result_id;
+    
+    -- Verify result
+    IF result_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: len("world") via __builtins__ lookup returned NULL';
+    END IF;
+    
+    -- Get result value
+    SELECT lo.long_value INTO result_value
+    FROM public.py_long_object lo
+    WHERE lo.ob_base = result_id;
+    
+    IF result_value != 5 THEN
+        RAISE EXCEPTION 'FAIL: len("world") via __builtins__ lookup returned %, expected 5', result_value;
+    END IF;
+    
+    RAISE NOTICE '  ✓ len("world") via __builtins__ lookup = 5';
     pass_count := pass_count + 1;
 
     -- ========================================================================

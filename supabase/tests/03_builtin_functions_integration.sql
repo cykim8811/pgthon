@@ -23,6 +23,7 @@ DECLARE
     ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
     ID_TUPLE_TYPE UUID := '00000000-0000-4000-a000-000000000007';
     ID_NONE_TYPE UUID := '00000000-0000-4000-a000-000000000008';
+    ID_FLOAT_TYPE UUID := '00000000-0000-4000-a000-000000000009';
     
     -- Test counters
     test_count INTEGER := 0;
@@ -52,10 +53,14 @@ DECLARE
     -- Builtin function lookup
     ID_BUILTINS_MODULE UUID := '00000000-0000-4000-b000-000000000002';
     ID_LEN_FUNCTION UUID := '00000000-0000-4000-b000-000000000003';
+    ID_ABS_FUNCTION UUID := '00000000-0000-4000-b000-000000000004';
     builtins_dict_id UUID;
     len_function_id UUID;
     len_ml_meth TEXT;
     len_name_str_id UUID;
+    abs_function_id UUID;
+    abs_ml_meth TEXT;
+    abs_name_str_id UUID;
     elem1_id UUID;
     elem2_id UUID;
     elem3_id UUID;
@@ -699,6 +704,220 @@ BEGIN
     END IF;
     
     RAISE NOTICE '  ✓ len() function correctly calls PyObject_Size for all types';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 16: abs() on positive int
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 16: Testing abs() on positive int...';
+    test_count := test_count + 1;
+    
+    -- Create test int: 42
+    DECLARE
+        test_int_id UUID;
+        result_id UUID;
+        result_value NUMERIC;
+    BEGIN
+        test_int_id := gen_random_uuid();
+        INSERT INTO public.py_object (id, ob_type) VALUES (test_int_id, ID_INT_TYPE);
+        INSERT INTO public.py_long_object (ob_base, long_value) VALUES (test_int_id, 42);
+        
+        -- Call abs function
+        SELECT public.py_builtin_abs(test_int_id) INTO result_id;
+        
+        -- Verify result
+        IF result_id IS NULL THEN
+            RAISE EXCEPTION 'FAIL: abs(42) returned NULL';
+        END IF;
+        
+        -- Get result value
+        SELECT long_value INTO result_value
+        FROM public.py_long_object
+        WHERE ob_base = result_id;
+        
+        IF result_value != 42 THEN
+            RAISE EXCEPTION 'FAIL: abs(42) returned %, expected 42', result_value;
+        END IF;
+    END;
+    
+    RAISE NOTICE '  ✓ abs(42) = 42';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 17: abs() on negative int
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 17: Testing abs() on negative int...';
+    test_count := test_count + 1;
+    
+    -- Create test int: -42
+    DECLARE
+        test_int_id UUID;
+        result_id UUID;
+        result_value NUMERIC;
+    BEGIN
+        test_int_id := gen_random_uuid();
+        INSERT INTO public.py_object (id, ob_type) VALUES (test_int_id, ID_INT_TYPE);
+        INSERT INTO public.py_long_object (ob_base, long_value) VALUES (test_int_id, -42);
+        
+        -- Call abs function
+        SELECT public.py_builtin_abs(test_int_id) INTO result_id;
+        
+        -- Get result value
+        SELECT long_value INTO result_value
+        FROM public.py_long_object
+        WHERE ob_base = result_id;
+        
+        IF result_value != 42 THEN
+            RAISE EXCEPTION 'FAIL: abs(-42) returned %, expected 42', result_value;
+        END IF;
+    END;
+    
+    RAISE NOTICE '  ✓ abs(-42) = 42';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 18: abs() on positive float
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 18: Testing abs() on positive float...';
+    test_count := test_count + 1;
+    
+    -- Create test float: 3.14
+    DECLARE
+        test_float_id UUID;
+        result_id UUID;
+        result_value DOUBLE PRECISION;
+    BEGIN
+        test_float_id := gen_random_uuid();
+        INSERT INTO public.py_object (id, ob_type) VALUES (test_float_id, ID_FLOAT_TYPE);
+        INSERT INTO public.py_float_object (ob_base, ob_fval) VALUES (test_float_id, 3.14);
+        
+        -- Call abs function
+        SELECT public.py_builtin_abs(test_float_id) INTO result_id;
+        
+        -- Get result value
+        SELECT ob_fval INTO result_value
+        FROM public.py_float_object
+        WHERE ob_base = result_id;
+        
+        IF ABS(result_value - 3.14) > 0.0001 THEN
+            RAISE EXCEPTION 'FAIL: abs(3.14) returned %, expected 3.14', result_value;
+        END IF;
+    END;
+    
+    RAISE NOTICE '  ✓ abs(3.14) = 3.14';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 19: abs() on negative float
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 19: Testing abs() on negative float...';
+    test_count := test_count + 1;
+    
+    -- Create test float: -3.14
+    DECLARE
+        test_float_id UUID;
+        result_id UUID;
+        result_value DOUBLE PRECISION;
+    BEGIN
+        test_float_id := gen_random_uuid();
+        INSERT INTO public.py_object (id, ob_type) VALUES (test_float_id, ID_FLOAT_TYPE);
+        INSERT INTO public.py_float_object (ob_base, ob_fval) VALUES (test_float_id, -3.14);
+        
+        -- Call abs function
+        SELECT public.py_builtin_abs(test_float_id) INTO result_id;
+        
+        -- Get result value
+        SELECT ob_fval INTO result_value
+        FROM public.py_float_object
+        WHERE ob_base = result_id;
+        
+        IF ABS(result_value - 3.14) > 0.0001 THEN
+            RAISE EXCEPTION 'FAIL: abs(-3.14) returned %, expected 3.14', result_value;
+        END IF;
+    END;
+    
+    RAISE NOTICE '  ✓ abs(-3.14) = 3.14';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 20: abs() raises TypeError for unsupported types
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 20: Testing abs() raises TypeError for unsupported types...';
+    test_count := test_count + 1;
+    
+    -- Create test string (not a number)
+    DECLARE
+        test_str_id UUID;
+        result_id UUID;
+    BEGIN
+        test_str_id := gen_random_uuid();
+        INSERT INTO public.py_object (id, ob_type) VALUES (test_str_id, ID_STR_TYPE);
+        INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (test_str_id, 'hello');
+        
+        -- Call abs function - should raise TypeError
+        BEGIN
+            SELECT public.py_builtin_abs(test_str_id) INTO result_id;
+            RAISE EXCEPTION 'FAIL: abs() did not raise TypeError for string';
+        EXCEPTION
+            WHEN OTHERS THEN
+                error_message := SQLERRM;
+                IF error_message NOT LIKE 'TypeError: bad operand type for abs(): ''str''%' THEN
+                    RAISE EXCEPTION 'FAIL: abs() raised wrong exception: %', error_message;
+                END IF;
+        END;
+    END;
+    
+    RAISE NOTICE '  ✓ abs() correctly raises TypeError for unsupported types';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 21: abs function is registered in __builtins__
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 21: Testing abs function is registered in __builtins__...';
+    test_count := test_count + 1;
+    
+    -- Get __builtins__ module dict
+    SELECT md_dict INTO builtins_dict_id
+    FROM public.py_module_object
+    WHERE ob_base = ID_BUILTINS_MODULE;
+    
+    IF builtins_dict_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: __builtins__ module dict not found';
+    END IF;
+    
+    -- Find "abs" string object in __builtins__ dict
+    SELECT me_value INTO abs_function_id
+    FROM public.py_dict_entry de
+    WHERE de.dict_id = builtins_dict_id
+    AND de.me_key IN (
+        SELECT ob_base FROM public.py_unicode_object WHERE str_value = 'abs'
+    );
+    
+    IF abs_function_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: abs function not found in __builtins__ dict';
+    END IF;
+    
+    -- Verify it's the correct abs function
+    IF abs_function_id != ID_ABS_FUNCTION THEN
+        RAISE EXCEPTION 'FAIL: Found function ID % does not match expected abs function ID %', abs_function_id, ID_ABS_FUNCTION;
+    END IF;
+    
+    -- Get m_ml_meth (function identifier) from abs function object
+    SELECT m_ml_meth::text INTO abs_ml_meth
+    FROM public.py_cfunction_object
+    WHERE ob_base = abs_function_id;
+    
+    IF abs_ml_meth IS NULL OR abs_ml_meth != 'py_builtin_abs' THEN
+        RAISE EXCEPTION 'FAIL: abs function m_ml_meth is "%", expected "py_builtin_abs"', abs_ml_meth;
+    END IF;
+    
+    RAISE NOTICE '  ✓ abs function is correctly registered in __builtins__';
     pass_count := pass_count + 1;
 
     -- ========================================================================

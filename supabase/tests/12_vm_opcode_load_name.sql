@@ -24,8 +24,8 @@ DECLARE
     ID_INT_TYPE UUID := '00000000-0000-4000-a000-000000000004';
     ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
     ID_TUPLE_TYPE UUID := '00000000-0000-4000-a000-000000000007';
-    ID_BUILTINS_MODULE UUID := '00000000-0000-4000-a000-000000000010';
-    ID_LEN_FUNCTION UUID := '00000000-0000-4000-a000-000000000020';
+    ID_BUILTINS_MODULE UUID := '00000000-0000-4000-b000-000000000002';
+    ID_LEN_FUNCTION UUID := '00000000-0000-4000-b000-000000000003';
     
     -- Test counters
     test_count INTEGER := 0;
@@ -108,6 +108,16 @@ BEGIN
     IF real_builtins_dict_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: __builtins__ module dict not found. Bootstrap migration must run first.';
     END IF;
+    
+    -- Create empty tuple for various tuple fields
+    empty_tuple_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (empty_tuple_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (empty_tuple_id, array[]::uuid[]);
+    
+    -- Create empty string
+    empty_str_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (empty_str_id, ID_STR_TYPE);
+    INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (empty_str_id, '');
     
     -- Create constants tuple (co_consts) - empty for this test
     co_consts_id := gen_random_uuid();
@@ -270,22 +280,23 @@ BEGIN
     WHERE ob_base = frame_id;
     
     -- Remove 'len' from locals and globals (if exists)
+    -- Use len_str_id (from bootstrap) instead of name2_str_id (test-created)
     DELETE FROM public.py_dict_entry
     WHERE dict_id = locals_dict_id
-    AND me_key = name2_str_id;
+    AND me_key = len_str_id;
     
     DELETE FROM public.py_dict_entry
     WHERE dict_id = globals_dict_id
-    AND me_key = name2_str_id;
+    AND me_key = len_str_id;
     
     -- Update frame to use real builtins dict
     UPDATE public.py_frame_object
     SET f_builtins = real_builtins_dict_id
     WHERE ob_base = frame_id;
     
-    -- Update co_names to include 'len'
+    -- Update co_names to include 'len' (use bootstrap's len_str_id, not test-created name2_str_id)
     UPDATE public.py_tuple_object
-    SET ob_item = ARRAY[name2_str_id]
+    SET ob_item = ARRAY[len_str_id]
     WHERE ob_base = co_names_id;
     
     -- Execute LOAD_NAME(0) - should find 'len' in builtins

@@ -26,7 +26,7 @@ DECLARE
     ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
     ID_TUPLE_TYPE UUID := '00000000-0000-4000-a000-000000000007';
     ID_BUILTIN_FUNCTION_OR_METHOD_TYPE UUID := '00000000-0000-4000-a000-000000000011';
-    ID_LEN_FUNCTION UUID := '00000000-0000-4000-a000-000000000020';
+    ID_LEN_FUNCTION UUID := '00000000-0000-4000-b000-000000000003';
     
     -- Test counters
     test_count INTEGER := 0;
@@ -180,9 +180,11 @@ BEGIN
     RAISE NOTICE 'Test 2: CALL_FUNCTION calls len function correctly...';
     test_count := test_count + 1;
     
-    -- Push arguments onto stack (right-to-left order: arg first, then function)
-    PERFORM public.py_stack_push(frame_id, test_str_id);  -- argument
-    PERFORM public.py_stack_push(frame_id, len_func_id);  -- function
+    -- Push arguments onto stack (function first, then arguments)
+    -- CPython: function is pushed first, then arguments left-to-right
+    -- CALL_FUNCTION pops arguments right-to-left, then pops function
+    PERFORM public.py_stack_push(frame_id, len_func_id);  -- function (pushed first, popped last)
+    PERFORM public.py_stack_push(frame_id, test_str_id);  -- argument (pushed last, popped first)
     
     -- Execute CALL_FUNCTION(1) - 1 argument
     PERFORM public.py_opcode_CALL_FUNCTION(frame_id, 1);
@@ -239,9 +241,10 @@ BEGIN
         INSERT INTO public.py_object (id, ob_type) VALUES (test_str2_id, ID_STR_TYPE);
         INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (test_str2_id, 'world');
         
-        -- Push arguments in correct order: arg first, then function
-        PERFORM public.py_stack_push(frame_id, test_str2_id);  -- argument (pushed first, popped last)
-        PERFORM public.py_stack_push(frame_id, len_func_id);   -- function (pushed last, popped first)
+        -- Push arguments in correct order: function first, then arguments
+        -- CPython: function is pushed first, then arguments left-to-right
+        PERFORM public.py_stack_push(frame_id, len_func_id);   -- function (pushed first, popped last)
+        PERFORM public.py_stack_push(frame_id, test_str2_id);  -- argument (pushed last, popped first)
         
         -- Execute CALL_FUNCTION(1)
         PERFORM public.py_opcode_CALL_FUNCTION(frame_id, 1);

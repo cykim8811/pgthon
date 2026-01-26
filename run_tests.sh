@@ -190,6 +190,56 @@ else
     exit 1
 fi
 
+# 12. VM LOAD_NAME Opcode Test
+echo "=== Phase 12: VM LOAD_NAME Opcode ==="
+if run_test "supabase/tests/12_vm_opcode_load_name.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM LOAD_NAME opcode test failed. Cannot continue."
+    exit 1
+fi
+
+# 13. VM LOAD_NAME Integration Test
+echo "=== Phase 13: VM LOAD_NAME Integration ==="
+if run_test "supabase/tests/13_vm_integration_load_name.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM LOAD_NAME integration test failed. Cannot continue."
+    exit 1
+fi
+
+# 14. VM CALL_FUNCTION Opcode Test
+echo "=== Phase 14: VM CALL_FUNCTION Opcode ==="
+if run_test "supabase/tests/14_vm_opcode_call_function.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM CALL_FUNCTION opcode test failed. Cannot continue."
+    exit 1
+fi
+
+# 15. VM CALL_FUNCTION Integration Test
+echo "=== Phase 15: VM CALL_FUNCTION Integration ==="
+if run_test "supabase/tests/15_vm_integration_call_function.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM CALL_FUNCTION integration test failed. Cannot continue."
+    exit 1
+fi
+
+# 16. VM abs() Function Integration Test
+echo "=== Phase 16: VM abs() Function Integration ==="
+if run_test "supabase/tests/16_vm_integration_abs.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM abs() function integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -211,8 +261,13 @@ echo "  ✅ 08: VM Basic Opcodes Test"
 echo "  ✅ 09: VM Advanced Integration Test"
 echo "  ✅ 10: VM STORE_NAME Opcode Test"
 echo "  ✅ 11: VM STORE_NAME Integration Test"
+echo "  ✅ 12: VM LOAD_NAME Opcode Test"
+echo "  ✅ 13: VM LOAD_NAME Integration Test"
+echo "  ✅ 14: VM CALL_FUNCTION Opcode Test"
+echo "  ✅ 15: VM CALL_FUNCTION Integration Test"
+echo "  ✅ 16: VM abs() Function Integration Test"
 echo ""
-echo "Total: 12 test suites passed ✨"
+echo "Total: 17 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

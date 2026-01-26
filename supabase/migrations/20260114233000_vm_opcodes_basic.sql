@@ -310,12 +310,17 @@ BEGIN
     
     -- 5. Namespace lookup: locals → globals → builtins
     -- CPython's exact lookup order: frame->f_locals, then frame->f_globals, then frame->f_builtins
+    -- Note: Dict keys are compared by object equality, not by UUID identity.
+    -- For string keys, we compare by string value (str_value), not by UUID.
     
     -- 5.1. Try locals first
+    -- For string keys, compare by string value (CPython's dict equality semantics)
     SELECT me_value INTO obj_id
-    FROM public.py_dict_entry
-    WHERE dict_id = f_locals_id
-    AND me_key = name_str_id;
+    FROM public.py_dict_entry de
+    WHERE de.dict_id = f_locals_id
+    AND de.me_key IN (
+        SELECT ob_base FROM public.py_unicode_object WHERE str_value = name_str
+    );
     
     IF obj_id IS NOT NULL THEN
         PERFORM public.py_stack_push(frame_id, obj_id);
@@ -324,9 +329,11 @@ BEGIN
     
     -- 5.2. Try globals second
     SELECT me_value INTO obj_id
-    FROM public.py_dict_entry
-    WHERE dict_id = f_globals_id
-    AND me_key = name_str_id;
+    FROM public.py_dict_entry de
+    WHERE de.dict_id = f_globals_id
+    AND de.me_key IN (
+        SELECT ob_base FROM public.py_unicode_object WHERE str_value = name_str
+    );
     
     IF obj_id IS NOT NULL THEN
         PERFORM public.py_stack_push(frame_id, obj_id);
@@ -335,9 +342,11 @@ BEGIN
     
     -- 5.3. Try builtins third
     SELECT me_value INTO obj_id
-    FROM public.py_dict_entry
-    WHERE dict_id = f_builtins_id
-    AND me_key = name_str_id;
+    FROM public.py_dict_entry de
+    WHERE de.dict_id = f_builtins_id
+    AND de.me_key IN (
+        SELECT ob_base FROM public.py_unicode_object WHERE str_value = name_str
+    );
     
     IF obj_id IS NOT NULL THEN
         PERFORM public.py_stack_push(frame_id, obj_id);
@@ -404,7 +413,8 @@ BEGIN
         RAISE EXCEPTION 'py_call_cfunction: Function implementation (m_ml_meth) not found for function %', func_obj_id;
     END IF;
     
-    arg_count := array_length(args, 1);
+    -- Get argument count (array_length returns NULL for empty arrays, so use COALESCE)
+    arg_count := COALESCE(array_length(args, 1), 0);
     
     -- Dispatch based on calling convention (m_ml_flags)
     -- CPython flags: METH_NOARGS=0x0004, METH_O=0x0008, METH_VARARGS=0x0001

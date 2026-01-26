@@ -394,9 +394,9 @@ BEGIN
     pass_count := pass_count + 1;
 
     -- ========================================================================
-    -- Test 9: tp_dict __len__ system - py_object_size() function
+    -- Test 9: Method slot system - py_object_size() function
     -- ========================================================================
-    RAISE NOTICE 'Test 9: Testing py_object_size() function (tp_dict __len__ lookup)...';
+    RAISE NOTICE 'Test 9: Testing py_object_size() function (method slot system)...';
     test_count := test_count + 1;
     
     -- Test py_object_size on string
@@ -417,81 +417,97 @@ BEGIN
         RAISE EXCEPTION 'FAIL: py_object_size({"a":1,"b":2}) returned %, expected 2', result_value;
     END IF;
     
-    RAISE NOTICE '  ✓ py_object_size() works correctly via tp_dict __len__ lookup';
+    RAISE NOTICE '  ✓ py_object_size() works correctly via method slots';
     pass_count := pass_count + 1;
 
     -- ========================================================================
-    -- Test 10: __len__ method registration in tp_dict verification
+    -- Test 10: Method slot registration verification
     -- ========================================================================
-    RAISE NOTICE 'Test 10: Testing __len__ method registration in tp_dict...';
+    RAISE NOTICE 'Test 10: Testing method slot registration...';
     test_count := test_count + 1;
     
-    -- Check that __len__ methods are registered in tp_dict
+    -- Check that method slots are registered correctly (CPython structure fidelity)
+    -- This verifies the pointer chain: type->tp_as_sequence->sq_length
     DECLARE
-        str_tp_dict_id UUID;
-        list_tp_dict_id UUID;
-        tuple_tp_dict_id UUID;
-        dict_tp_dict_id UUID;
-        len_name_str_id UUID;
-        str_len_method_id UUID;
-        list_len_method_id UUID;
-        tuple_len_method_id UUID;
-        dict_len_method_id UUID;
+        str_sequence_methods_id UUID;
+        list_sequence_methods_id UUID;
+        tuple_sequence_methods_id UUID;
+        dict_mapping_methods_id UUID;
+        str_sq_length regproc;
+        list_sq_length regproc;
+        tuple_sq_length regproc;
+        dict_mp_length regproc;
     BEGIN
-        -- Get tp_dict IDs
-        SELECT tp_dict INTO str_tp_dict_id FROM public.py_type_object WHERE ob_base = ID_STR_TYPE;
-        SELECT tp_dict INTO list_tp_dict_id FROM public.py_type_object WHERE ob_base = ID_LIST_TYPE;
-        SELECT tp_dict INTO tuple_tp_dict_id FROM public.py_type_object WHERE ob_base = ID_TUPLE_TYPE;
-        SELECT tp_dict INTO dict_tp_dict_id FROM public.py_type_object WHERE ob_base = ID_DICT_TYPE;
+        -- Check str type: type->tp_as_sequence->sq_length
+        SELECT tp_as_sequence INTO str_sequence_methods_id
+        FROM public.py_type_object
+        WHERE ob_base = ID_STR_TYPE;
         
-        -- Find "__len__" string object
-        SELECT ob_base INTO len_name_str_id
-        FROM public.py_unicode_object
-        WHERE str_value = '__len__'
-        LIMIT 1;
-        
-        IF len_name_str_id IS NULL THEN
-            RAISE EXCEPTION 'FAIL: "__len__" string object not found';
+        IF str_sequence_methods_id IS NULL THEN
+            RAISE EXCEPTION 'FAIL: str type does not have tp_as_sequence pointer';
         END IF;
         
-        -- Check str.__len__
-        SELECT me_value INTO str_len_method_id
-        FROM public.py_dict_entry
-        WHERE dict_id = str_tp_dict_id AND me_key = len_name_str_id;
+        SELECT sq_length INTO str_sq_length
+        FROM public.py_sequence_methods
+        WHERE id = str_sequence_methods_id;
         
-        IF str_len_method_id IS NULL THEN
-            RAISE EXCEPTION 'FAIL: str type does not have __len__ in tp_dict';
+        IF str_sq_length IS NULL OR str_sq_length::text != 'py_unicode_sq_length' THEN
+            RAISE EXCEPTION 'FAIL: str type sequence methods do not have sq_length registered correctly';
         END IF;
         
-        -- Check list.__len__
-        SELECT me_value INTO list_len_method_id
-        FROM public.py_dict_entry
-        WHERE dict_id = list_tp_dict_id AND me_key = len_name_str_id;
+        -- Check list type: type->tp_as_sequence->sq_length
+        SELECT tp_as_sequence INTO list_sequence_methods_id
+        FROM public.py_type_object
+        WHERE ob_base = ID_LIST_TYPE;
         
-        IF list_len_method_id IS NULL THEN
-            RAISE EXCEPTION 'FAIL: list type does not have __len__ in tp_dict';
+        IF list_sequence_methods_id IS NULL THEN
+            RAISE EXCEPTION 'FAIL: list type does not have tp_as_sequence pointer';
         END IF;
         
-        -- Check tuple.__len__
-        SELECT me_value INTO tuple_len_method_id
-        FROM public.py_dict_entry
-        WHERE dict_id = tuple_tp_dict_id AND me_key = len_name_str_id;
+        SELECT sq_length INTO list_sq_length
+        FROM public.py_sequence_methods
+        WHERE id = list_sequence_methods_id;
         
-        IF tuple_len_method_id IS NULL THEN
-            RAISE EXCEPTION 'FAIL: tuple type does not have __len__ in tp_dict';
+        IF list_sq_length IS NULL OR list_sq_length::text != 'py_list_sq_length' THEN
+            RAISE EXCEPTION 'FAIL: list type sequence methods do not have sq_length registered correctly';
         END IF;
         
-        -- Check dict.__len__
-        SELECT me_value INTO dict_len_method_id
-        FROM public.py_dict_entry
-        WHERE dict_id = dict_tp_dict_id AND me_key = len_name_str_id;
+        -- Check tuple type: type->tp_as_sequence->sq_length
+        SELECT tp_as_sequence INTO tuple_sequence_methods_id
+        FROM public.py_type_object
+        WHERE ob_base = ID_TUPLE_TYPE;
         
-        IF dict_len_method_id IS NULL THEN
-            RAISE EXCEPTION 'FAIL: dict type does not have __len__ in tp_dict';
+        IF tuple_sequence_methods_id IS NULL THEN
+            RAISE EXCEPTION 'FAIL: tuple type does not have tp_as_sequence pointer';
+        END IF;
+        
+        SELECT sq_length INTO tuple_sq_length
+        FROM public.py_sequence_methods
+        WHERE id = tuple_sequence_methods_id;
+        
+        IF tuple_sq_length IS NULL OR tuple_sq_length::text != 'py_tuple_sq_length' THEN
+            RAISE EXCEPTION 'FAIL: tuple type sequence methods do not have sq_length registered correctly';
+        END IF;
+        
+        -- Check dict type: type->tp_as_mapping->mp_length
+        SELECT tp_as_mapping INTO dict_mapping_methods_id
+        FROM public.py_type_object
+        WHERE ob_base = ID_DICT_TYPE;
+        
+        IF dict_mapping_methods_id IS NULL THEN
+            RAISE EXCEPTION 'FAIL: dict type does not have tp_as_mapping pointer';
+        END IF;
+        
+        SELECT mp_length INTO dict_mp_length
+        FROM public.py_mapping_methods
+        WHERE id = dict_mapping_methods_id;
+        
+        IF dict_mp_length IS NULL OR dict_mp_length::text != 'py_dict_mp_length' THEN
+            RAISE EXCEPTION 'FAIL: dict type mapping methods do not have mp_length registered correctly';
         END IF;
     END;
     
-    RAISE NOTICE '  ✓ __len__ methods are correctly registered in tp_dict for all builtin types';
+    RAISE NOTICE '  ✓ Method slots are correctly registered for all builtin types';
     pass_count := pass_count + 1;
 
     -- ========================================================================

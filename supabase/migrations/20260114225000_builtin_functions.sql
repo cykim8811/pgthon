@@ -48,7 +48,8 @@ DECLARE
     ID_INT_TYPE UUID := '00000000-0000-4000-a000-000000000004';
 BEGIN
     -- Call PyObject_Size() to get the length
-    -- This function looks up __len__ method in the type's tp_dict and calls it.
+    -- This function checks method slots (tp_as_sequence->sq_length or
+    -- tp_as_mapping->mp_length) and calls the appropriate type-specific function.
     length_value := public.py_object_size(obj_id);
     
     -- Create result int object

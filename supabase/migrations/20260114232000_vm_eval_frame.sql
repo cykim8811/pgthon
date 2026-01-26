@@ -122,6 +122,8 @@ BEGIN
         CASE opcode
             WHEN 100 THEN  -- LOAD_CONST
                 PERFORM public.py_opcode_LOAD_CONST(frame_id, arg);
+            WHEN 101 THEN  -- LOAD_NAME
+                PERFORM public.py_opcode_LOAD_NAME(frame_id, arg);
             WHEN 90 THEN   -- STORE_NAME
                 PERFORM public.py_opcode_STORE_NAME(frame_id, arg);
             WHEN 83 THEN   -- RETURN_VALUE
@@ -135,8 +137,8 @@ BEGIN
                 WHERE ob_base = frame_id;
                 EXIT;  -- 루프 종료 (CPython과 동일)
             -- TODO: Implement the following opcodes:
-            --   - 101 (LOAD_NAME): Load name from namespace
             --   - 23 (BINARY_ADD): Binary addition operation
+            --   - 141 (CALL_FUNCTION): Function call
             --   - ... (other opcodes to be added)
             ELSE
                 RAISE EXCEPTION 'Unknown opcode: % at byte offset %', opcode, i;

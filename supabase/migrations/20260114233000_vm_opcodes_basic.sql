@@ -9,6 +9,7 @@
 --   Opcodes:
 --   - py_opcode_LOAD_CONST: Load a constant from co_consts tuple onto stack
 --   - py_opcode_STORE_NAME: Store a value from stack into locals dictionary
+--   - py_opcode_LOAD_NAME: Load a name from namespace (locals → globals → builtins)
 --
 -- Design:
 --   - Each opcode handler is a separate function
@@ -18,6 +19,7 @@
 -- CPython Compatibility:
 --   - LOAD_CONST: Reads from co_consts[arg] and pushes to stack
 --   - STORE_NAME: Pops value from stack and stores it in f_locals dict
+--   - LOAD_NAME: Looks up name in locals → globals → builtins and pushes to stack
 --   - Operand (arg) is the index into co_names/co_consts tuple
 --   - PostgreSQL arrays are 1-based, so arg + 1 is used
 --
@@ -205,5 +207,145 @@ BEGIN
         INSERT INTO public.py_dict_entry (dict_id, me_key, me_value)
         VALUES (f_locals_id, name_str_id, value_obj_id);
     END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- LOAD_NAME Opcode
+-- ============================================================================
+
+-- py_opcode_LOAD_NAME: Load a name from namespace onto stack
+--
+-- Parameters:
+--   frame_id: UUID of the frame object
+--   name_index: INTEGER index into co_names tuple (0-based, from bytecode operand)
+--
+-- Behavior:
+--   Looks up the name from co_names[name_index] in the namespace hierarchy
+--   (locals → globals → builtins) and pushes the found object onto the
+--   evaluation stack. This is equivalent to CPython's LOAD_NAME opcode.
+--
+--   In CPython:
+--   - LOAD_NAME looks up frame->f_code->co_names[arg] in:
+--     1. frame->f_locals (local namespace)
+--     2. frame->f_globals (global namespace)
+--     3. frame->f_builtins (builtin namespace)
+--   - The first match is pushed onto the stack
+--   - If not found in any namespace, raises NameError
+--
+-- Usage:
+--   PERFORM py_opcode_LOAD_NAME(frame_id, name_index);
+--
+-- CPython Reference:
+--   This opcode is defined in Python/ceval.c and corresponds to opcode 101.
+--   It implements Python's name resolution rules (LEGB: Local, Enclosing, Global, Builtin).
+--   Note: In CPython 3.x, LOAD_NAME is used for module-level code; function-level
+--   code uses LOAD_FAST/LOAD_GLOBAL for optimization.
+--
+CREATE OR REPLACE FUNCTION public.py_opcode_LOAD_NAME(frame_id UUID, name_index INTEGER)
+RETURNS VOID AS $$
+DECLARE
+    code_obj_id UUID;
+    co_names_id UUID;
+    name_str_id UUID;
+    name_str TEXT;
+    obj_id UUID;
+    f_locals_id UUID;
+    f_globals_id UUID;
+    f_builtins_id UUID;
+BEGIN
+    -- Validate frame exists
+    IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
+        RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
+    END IF;
+    
+    -- Validate name_index is non-negative
+    IF name_index < 0 THEN
+        RAISE EXCEPTION 'LOAD_NAME: name_index must be non-negative, got %', name_index;
+    END IF;
+    
+    -- 1. Get code object from frame
+    SELECT f_code INTO code_obj_id
+    FROM public.py_frame_object
+    WHERE ob_base = frame_id;
+    
+    IF code_obj_id IS NULL THEN
+        RAISE EXCEPTION 'LOAD_NAME: Frame with id % does not have a code object', frame_id;
+    END IF;
+    
+    -- 2. Get co_names tuple from code object
+    SELECT co_names INTO co_names_id
+    FROM public.py_code_object
+    WHERE ob_base = code_obj_id;
+    
+    IF co_names_id IS NULL THEN
+        RAISE EXCEPTION 'LOAD_NAME: Code object with id % does not have co_names', code_obj_id;
+    END IF;
+    
+    -- 3. Get name string object from co_names tuple
+    -- PostgreSQL arrays are 1-based, so name_index + 1
+    -- CPython uses 0-based indexing, so name_index from bytecode is 0-based
+    SELECT ob_item[name_index + 1] INTO name_str_id
+    FROM public.py_tuple_object
+    WHERE ob_base = co_names_id;
+    
+    IF name_str_id IS NULL THEN
+        RAISE EXCEPTION 'LOAD_NAME: Index % out of range for co_names tuple', name_index;
+    END IF;
+    
+    -- Get name string value for error message (if lookup fails)
+    SELECT str_value INTO name_str
+    FROM public.py_unicode_object
+    WHERE ob_base = name_str_id;
+    
+    -- 4. Get namespace dictionaries from frame
+    SELECT f_locals, f_globals, f_builtins
+    INTO f_locals_id, f_globals_id, f_builtins_id
+    FROM public.py_frame_object
+    WHERE ob_base = frame_id;
+    
+    IF f_locals_id IS NULL OR f_globals_id IS NULL OR f_builtins_id IS NULL THEN
+        RAISE EXCEPTION 'LOAD_NAME: Frame with id % does not have all required namespaces (locals, globals, builtins)', frame_id;
+    END IF;
+    
+    -- 5. Namespace lookup: locals → globals → builtins
+    -- CPython's exact lookup order: frame->f_locals, then frame->f_globals, then frame->f_builtins
+    
+    -- 5.1. Try locals first
+    SELECT me_value INTO obj_id
+    FROM public.py_dict_entry
+    WHERE dict_id = f_locals_id
+    AND me_key = name_str_id;
+    
+    IF obj_id IS NOT NULL THEN
+        PERFORM public.py_stack_push(frame_id, obj_id);
+        RETURN;
+    END IF;
+    
+    -- 5.2. Try globals second
+    SELECT me_value INTO obj_id
+    FROM public.py_dict_entry
+    WHERE dict_id = f_globals_id
+    AND me_key = name_str_id;
+    
+    IF obj_id IS NOT NULL THEN
+        PERFORM public.py_stack_push(frame_id, obj_id);
+        RETURN;
+    END IF;
+    
+    -- 5.3. Try builtins third
+    SELECT me_value INTO obj_id
+    FROM public.py_dict_entry
+    WHERE dict_id = f_builtins_id
+    AND me_key = name_str_id;
+    
+    IF obj_id IS NOT NULL THEN
+        PERFORM public.py_stack_push(frame_id, obj_id);
+        RETURN;
+    END IF;
+    
+    -- 6. Name not found in any namespace - raise NameError
+    -- CPython raises: NameError: name 'X' is not defined
+    RAISE EXCEPTION 'NameError: name ''%'' is not defined', COALESCE(name_str, 'unknown');
 END;
 $$ LANGUAGE plpgsql;

@@ -349,3 +349,157 @@ BEGIN
     RAISE EXCEPTION 'NameError: name ''%'' is not defined', COALESCE(name_str, 'unknown');
 END;
 $$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- CALL_FUNCTION Opcode Support Functions
+-- ============================================================================
+
+-- py_call_cfunction: Call a C function (builtin function)
+--
+-- Parameters:
+--   func_obj_id: UUID of the PyCFunction object
+--   args: Array of argument object IDs (UUID[])
+--
+-- Returns:
+--   UUID: The PyObject ID returned by the function
+--
+-- Behavior:
+--   Calls a builtin C function based on its m_ml_meth and m_ml_flags.
+--   Currently supports METH_O (single argument) calling convention.
+--   This is equivalent to CPython's PyCFunction_Call().
+--
+--   In CPython:
+--   - PyCFunction_Call checks m_ml_flags to determine calling convention
+--   - METH_O (0x0008): Takes exactly one argument (PyObject*)
+--   - METH_VARARGS (0x0001): Takes variable arguments (PyObject* args tuple)
+--   - METH_NOARGS (0x0004): Takes no arguments
+--
+-- Usage:
+--   result_id := py_call_cfunction(func_obj_id, ARRAY[arg1_id]);
+--
+-- CPython Reference:
+--   This function implements the core logic of PyCFunction_Call in
+--   Objects/methodobject.c. It dispatches to the appropriate calling convention
+--   based on m_ml_flags.
+--
+CREATE OR REPLACE FUNCTION public.py_call_cfunction(func_obj_id UUID, args UUID[])
+RETURNS UUID AS $$
+DECLARE
+    ml_meth regproc;
+    ml_flags INTEGER;
+    result_id UUID;
+    arg_count INTEGER;
+BEGIN
+    -- Validate function object exists
+    IF NOT EXISTS (SELECT 1 FROM public.py_cfunction_object WHERE ob_base = func_obj_id) THEN
+        RAISE EXCEPTION 'py_call_cfunction: Function object with id % does not exist', func_obj_id;
+    END IF;
+    
+    -- Get function metadata
+    SELECT m_ml_meth, m_ml_flags INTO ml_meth, ml_flags
+    FROM public.py_cfunction_object
+    WHERE ob_base = func_obj_id;
+    
+    IF ml_meth IS NULL THEN
+        RAISE EXCEPTION 'py_call_cfunction: Function implementation (m_ml_meth) not found for function %', func_obj_id;
+    END IF;
+    
+    arg_count := array_length(args, 1);
+    
+    -- Dispatch based on calling convention (m_ml_flags)
+    -- CPython flags: METH_NOARGS=0x0004, METH_O=0x0008, METH_VARARGS=0x0001
+    IF (ml_flags & 8) != 0 THEN  -- METH_O: single argument
+        IF arg_count != 1 THEN
+            RAISE EXCEPTION 'py_call_cfunction: METH_O function expects 1 argument, got %', COALESCE(arg_count, 0);
+        END IF;
+        
+        -- Call function with single argument
+        EXECUTE format('SELECT %I($1)', ml_meth::text) USING args[1] INTO result_id;
+        
+    ELSIF (ml_flags & 4) != 0 THEN  -- METH_NOARGS: no arguments
+        IF arg_count != 0 THEN
+            RAISE EXCEPTION 'py_call_cfunction: METH_NOARGS function expects 0 arguments, got %', arg_count;
+        END IF;
+        
+        -- Call function with no arguments
+        EXECUTE format('SELECT %I()', ml_meth::text) INTO result_id;
+        
+    ELSIF (ml_flags & 1) != 0 THEN  -- METH_VARARGS: variable arguments (tuple)
+        -- METH_VARARGS functions receive a tuple of arguments
+        -- For now, we'll support simple cases. Full implementation would require
+        -- unpacking the tuple and calling with appropriate number of arguments.
+        RAISE EXCEPTION 'py_call_cfunction: METH_VARARGS calling convention not yet implemented';
+        
+    ELSE
+        RAISE EXCEPTION 'py_call_cfunction: Unsupported calling convention (m_ml_flags=%)', ml_flags;
+    END IF;
+    
+    RETURN result_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- CALL_FUNCTION Opcode
+-- ============================================================================
+
+-- py_opcode_CALL_FUNCTION: Call a function with positional arguments
+--
+-- Parameters:
+--   frame_id: UUID of the frame object
+--   arg_count: INTEGER number of positional arguments (from bytecode operand)
+--
+-- Behavior:
+--   Pops arg_count arguments from the stack (in reverse order), then pops the
+--   function object, calls it with the arguments, and pushes the result.
+--   This is equivalent to CPython's CALL_FUNCTION opcode.
+--
+--   In CPython:
+--   - CALL_FUNCTION pops function and args from stack
+--   - Dispatches based on function type (builtin_function_or_method, function, etc.)
+--   - Calls the function and pushes result onto stack
+--
+-- Usage:
+--   PERFORM py_opcode_CALL_FUNCTION(frame_id, arg_count);
+--
+-- CPython Reference:
+--   This opcode is defined in Python/ceval.c and corresponds to opcode 141.
+--   It implements function calls with positional arguments only.
+--
+CREATE OR REPLACE FUNCTION public.py_opcode_CALL_FUNCTION(frame_id UUID, arg_count INTEGER)
+RETURNS VOID AS $$
+DECLARE
+    func_obj_id UUID;
+    args UUID[];
+    i INTEGER;
+    result_id UUID;
+BEGIN
+    -- Validate frame exists
+    IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
+        RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
+    END IF;
+    
+    -- Validate arg_count is non-negative
+    IF arg_count < 0 THEN
+        RAISE EXCEPTION 'CALL_FUNCTION: arg_count must be non-negative, got %', arg_count;
+    END IF;
+    
+    -- 1. Pop arguments from stack (in reverse order)
+    -- CPython: Arguments are pushed left-to-right, so we pop right-to-left
+    args := array[]::UUID[];
+    FOR i IN 1..arg_count LOOP
+        args := array_prepend(public.py_stack_pop(frame_id), args);
+    END LOOP;
+    
+    -- 2. Pop function object from stack
+    func_obj_id := public.py_stack_pop(frame_id);
+    
+    -- 3. Call the object using its tp_call slot
+    -- CPython: PyObject_Call() checks Py_TYPE(obj)->tp_call and calls it
+    -- This is the CPython-faithful way to check if an object is callable
+    -- and invoke it, rather than checking type name strings.
+    result_id := public.py_object_call(func_obj_id, args);
+    
+    -- 4. Push result onto stack
+    PERFORM public.py_stack_push(frame_id, result_id);
+END;
+$$ LANGUAGE plpgsql;

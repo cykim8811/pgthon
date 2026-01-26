@@ -23,7 +23,8 @@
 --   1. Adds tp_call field to py_type_object table
 --   2. Implements py_object_call() function (equivalent to PyObject_Call)
 --   3. Updates CALL_FUNCTION to use tp_call slot instead of type name comparison
---   4. Registers tp_call for builtin_function_or_method type
+--   4. Registers tp_call for builtin_function_or_method type (directly to py_call_cfunction,
+--      matching CPython's PyCFunction_Type.tp_call = PyCFunction_Call pattern)
 --
 -- ============================================================================
 
@@ -122,75 +123,23 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================================
--- Function: py_callable_tp_call (Generic tp_call implementation for builtin functions)
--- ============================================================================
-
--- py_callable_tp_call: Generic tp_call implementation for callable types
---
--- Parameters:
---   obj_id: UUID of the object being called (the function object)
---   args: Array of argument object IDs (UUID[])
---
--- Returns:
---   UUID: The PyObject ID returned by the function call
---
--- Behavior:
---   This is a generic tp_call implementation that dispatches to the appropriate
---   calling mechanism based on the object's type. For builtin_function_or_method,
---   it calls py_call_cfunction. For other types, it can be extended.
---
---   In CPython:
---   - PyCFunction_Type.tp_call calls PyCFunction_Call()
---   - PyFunction_Type.tp_call creates a new frame and executes it
---
--- Usage:
---   This function is registered as tp_call for builtin_function_or_method type.
---
-CREATE OR REPLACE FUNCTION public.py_callable_tp_call(obj_id UUID, args UUID[])
-RETURNS UUID AS $$
-DECLARE
-    obj_type_id UUID;
-    func_type_name TEXT;
-    result_id UUID;
-BEGIN
-    -- Get object type
-    SELECT ob_type INTO obj_type_id
-    FROM public.py_object
-    WHERE id = obj_id;
-    
-    SELECT tp_name INTO func_type_name
-    FROM public.py_type_object
-    WHERE ob_base = obj_type_id;
-    
-    -- Dispatch based on function type
-    IF func_type_name = 'builtin_function_or_method' THEN
-        -- C function (builtin) call
-        result_id := public.py_call_cfunction(obj_id, args);
-        
-    ELSIF func_type_name = 'function' THEN
-        -- Python function call (not yet implemented)
-        RAISE EXCEPTION 'py_callable_tp_call: Python function calls not yet implemented';
-        
-    ELSE
-        -- This should not happen if tp_call is correctly registered
-        RAISE EXCEPTION 'py_callable_tp_call: Unsupported callable type: %', func_type_name;
-    END IF;
-    
-    RETURN result_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- ============================================================================
 -- Bootstrap: Register tp_call for builtin_function_or_method type
 -- ============================================================================
 
+-- In CPython, PyCFunction_Type.tp_call directly points to PyCFunction_Call().
+-- Similarly, in Elytra, we register py_call_cfunction directly as the tp_call
+-- for builtin_function_or_method type, without any intermediate dispatch function.
+-- This matches CPython's structure where each type has its own dedicated tp_call
+-- function, rather than using a generic dispatcher with type name string comparison.
 DO $$
 DECLARE
     ID_BUILTIN_FUNCTION_OR_METHOD_TYPE UUID := '00000000-0000-4000-a000-000000000010';
 BEGIN
     -- Register tp_call for builtin_function_or_method type
-    -- This makes all builtin functions callable via the tp_call slot
+    -- This makes all builtin functions callable via the tp_call slot.
+    -- py_call_cfunction has the correct signature (obj_id UUID, args UUID[])
+    -- which matches what py_object_call expects for tp_call functions.
     UPDATE public.py_type_object
-    SET tp_call = 'py_callable_tp_call'::regproc
+    SET tp_call = 'py_call_cfunction'::regproc
     WHERE ob_base = ID_BUILTIN_FUNCTION_OR_METHOD_TYPE;
 END $$;

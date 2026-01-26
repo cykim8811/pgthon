@@ -511,6 +511,197 @@ BEGIN
     pass_count := pass_count + 1;
 
     -- ========================================================================
+    -- Test 11: Type-specific length calculation functions (direct calls)
+    -- ========================================================================
+    RAISE NOTICE 'Test 11: Testing type-specific length calculation functions...';
+    test_count := test_count + 1;
+    
+    -- Test py_unicode_sq_length directly
+    SELECT public.py_unicode_sq_length(test_str_id) INTO result_value;
+    IF result_value != 5 THEN
+        RAISE EXCEPTION 'FAIL: py_unicode_sq_length("hello") returned %, expected 5', result_value;
+    END IF;
+    
+    -- Test py_list_sq_length directly
+    SELECT public.py_list_sq_length(test_list_id) INTO result_value;
+    IF result_value != 3 THEN
+        RAISE EXCEPTION 'FAIL: py_list_sq_length([1,2,3]) returned %, expected 3', result_value;
+    END IF;
+    
+    -- Test py_tuple_sq_length directly
+    SELECT public.py_tuple_sq_length(test_tuple_id) INTO result_value;
+    IF result_value != 2 THEN
+        RAISE EXCEPTION 'FAIL: py_tuple_sq_length((1,2)) returned %, expected 2', result_value;
+    END IF;
+    
+    -- Test py_dict_mp_length directly
+    SELECT public.py_dict_mp_length(test_dict_id) INTO result_value;
+    IF result_value != 2 THEN
+        RAISE EXCEPTION 'FAIL: py_dict_mp_length({"a":1,"b":2}) returned %, expected 2', result_value;
+    END IF;
+    
+    -- Test empty list
+    SELECT public.py_list_sq_length(test_empty_list_id) INTO result_value;
+    IF result_value != 0 THEN
+        RAISE EXCEPTION 'FAIL: py_list_sq_length([]) returned %, expected 0', result_value;
+    END IF;
+    
+    -- Test empty string
+    SELECT public.py_unicode_sq_length(test_empty_str_id) INTO result_value;
+    IF result_value != 0 THEN
+        RAISE EXCEPTION 'FAIL: py_unicode_sq_length("") returned %, expected 0', result_value;
+    END IF;
+    
+    RAISE NOTICE '  ✓ All type-specific length functions work correctly';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 12: PyObject_Size pointer chain traversal (CPython structure fidelity)
+    -- ========================================================================
+    RAISE NOTICE 'Test 12: Testing PyObject_Size pointer chain traversal...';
+    test_count := test_count + 1;
+    
+    -- Test that PyObject_Size correctly follows the pointer chain
+    -- type->tp_as_sequence->sq_length for sequences
+    SELECT public.py_object_size(test_str_id) INTO result_value;
+    IF result_value != 5 THEN
+        RAISE EXCEPTION 'FAIL: PyObject_Size pointer chain failed for str';
+    END IF;
+    
+    SELECT public.py_object_size(test_list_id) INTO result_value;
+    IF result_value != 3 THEN
+        RAISE EXCEPTION 'FAIL: PyObject_Size pointer chain failed for list';
+    END IF;
+    
+    -- Test that PyObject_Size correctly follows the pointer chain
+    -- type->tp_as_mapping->mp_length for mappings
+    SELECT public.py_object_size(test_dict_id) INTO result_value;
+    IF result_value != 2 THEN
+        RAISE EXCEPTION 'FAIL: PyObject_Size pointer chain failed for dict';
+    END IF;
+    
+    RAISE NOTICE '  ✓ PyObject_Size correctly traverses pointer chain';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 13: PyObject_Size error handling (unsupported types)
+    -- ========================================================================
+    RAISE NOTICE 'Test 13: Testing PyObject_Size error handling...';
+    test_count := test_count + 1;
+    
+    -- Test that PyObject_Size raises TypeError for types without length
+    error_occurred := FALSE;
+    BEGIN
+        SELECT public.py_object_size(test_int_id) INTO result_value;
+        error_occurred := FALSE;
+    EXCEPTION
+        WHEN OTHERS THEN
+            error_occurred := TRUE;
+            error_message := SQLERRM;
+    END;
+    
+    IF NOT error_occurred THEN
+        RAISE EXCEPTION 'FAIL: PyObject_Size(42) should raise TypeError, but it did not';
+    END IF;
+    
+    IF error_message NOT LIKE '%TypeError%' AND error_message NOT LIKE '%has no len()%' THEN
+        RAISE EXCEPTION 'FAIL: PyObject_Size(42) raised error but message is incorrect: %', error_message;
+    END IF;
+    
+    RAISE NOTICE '  ✓ PyObject_Size correctly raises TypeError for unsupported types';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 14: Method slot structure integrity (NULL pointer checks)
+    -- ========================================================================
+    RAISE NOTICE 'Test 14: Testing method slot structure integrity...';
+    test_count := test_count + 1;
+    
+    -- Verify that types without sequence/mapping methods have NULL pointers
+    -- (This matches CPython: if tp_as_sequence is NULL, it's not a sequence)
+    DECLARE
+        int_sequence_methods_id UUID;
+        int_mapping_methods_id UUID;
+        float_sequence_methods_id UUID;
+    BEGIN
+        -- int type should not have sequence or mapping methods
+        SELECT tp_as_sequence, tp_as_mapping 
+        INTO int_sequence_methods_id, int_mapping_methods_id
+        FROM public.py_type_object
+        WHERE ob_base = ID_INT_TYPE;
+        
+        IF int_sequence_methods_id IS NOT NULL THEN
+            RAISE EXCEPTION 'FAIL: int type should not have tp_as_sequence pointer';
+        END IF;
+        
+        IF int_mapping_methods_id IS NOT NULL THEN
+            RAISE EXCEPTION 'FAIL: int type should not have tp_as_mapping pointer';
+        END IF;
+        
+        -- float type should not have sequence or mapping methods
+        DECLARE
+            ID_FLOAT_TYPE UUID := '00000000-0000-4000-a000-000000000009';
+            float_sequence_methods_id UUID;
+            float_mapping_methods_id UUID;
+        BEGIN
+            SELECT tp_as_sequence, tp_as_mapping 
+            INTO float_sequence_methods_id, float_mapping_methods_id
+            FROM public.py_type_object
+            WHERE ob_base = ID_FLOAT_TYPE;
+            
+            IF float_sequence_methods_id IS NOT NULL THEN
+                RAISE EXCEPTION 'FAIL: float type should not have tp_as_sequence pointer';
+            END IF;
+            
+            IF float_mapping_methods_id IS NOT NULL THEN
+                RAISE EXCEPTION 'FAIL: float type should not have tp_as_mapping pointer';
+            END IF;
+        END;
+    END;
+    
+    RAISE NOTICE '  ✓ Method slot structure integrity verified (NULL pointers correct)';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 15: len() function calls PyObject_Size (CPython compatibility)
+    -- ========================================================================
+    RAISE NOTICE 'Test 15: Testing len() function calls PyObject_Size...';
+    test_count := test_count + 1;
+    
+    -- Verify that py_builtin_len calls py_object_size
+    -- This is the CPython pattern: builtin_len() -> PyObject_Size()
+    SELECT public.py_builtin_len(test_str_id) INTO result_id;
+    SELECT long_value INTO result_value
+    FROM public.py_long_object
+    WHERE ob_base = result_id;
+    
+    IF result_value != 5 THEN
+        RAISE EXCEPTION 'FAIL: len("hello") via py_builtin_len returned %, expected 5', result_value;
+    END IF;
+    
+    -- Verify it works for all types
+    SELECT public.py_builtin_len(test_list_id) INTO result_id;
+    SELECT long_value INTO result_value
+    FROM public.py_long_object
+    WHERE ob_base = result_id;
+    
+    IF result_value != 3 THEN
+        RAISE EXCEPTION 'FAIL: len([1,2,3]) via py_builtin_len returned %, expected 3', result_value;
+    END IF;
+    
+    SELECT public.py_builtin_len(test_dict_id) INTO result_id;
+    SELECT long_value INTO result_value
+    FROM public.py_long_object
+    WHERE ob_base = result_id;
+    
+    IF result_value != 2 THEN
+        RAISE EXCEPTION 'FAIL: len({"a":1,"b":2}) via py_builtin_len returned %, expected 2', result_value;
+    END IF;
+    
+    RAISE NOTICE '  ✓ len() function correctly calls PyObject_Size for all types';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
     -- Test Summary
     -- ========================================================================
     RAISE NOTICE '';

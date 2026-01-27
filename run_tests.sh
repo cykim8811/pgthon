@@ -240,6 +240,16 @@ else
     exit 1
 fi
 
+# 17. tp_hash Slot System Test
+echo "=== Phase 17: tp_hash Slot System ==="
+if run_test "supabase/tests/17_tp_hash_slot.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ tp_hash slot system test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -266,8 +276,9 @@ echo "  ✅ 13: VM LOAD_NAME Integration Test"
 echo "  ✅ 14: VM CALL_FUNCTION Opcode Test"
 echo "  ✅ 15: VM CALL_FUNCTION Integration Test"
 echo "  ✅ 16: VM abs() Function Integration Test"
+echo "  ✅ 17: tp_hash Slot System Test"
 echo ""
-echo "Total: 17 test suites passed ✨"
+echo "Total: 18 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

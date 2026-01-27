@@ -249,11 +249,11 @@ tp_richcompare 슬롯 마이그레이션(§7.1)에서는 이 객체 id를 부트
 - **정의 위치**: 위와 동일한 `supabase/migrations/20260114236000_tp_richcompare_slot.sql` 안에 두면, `tp_hash`를 `20260114235000_tp_hash_slot.sql`에 모아둔 것과 같은 구조가 된다.
 - **함수 이름·역할**:
   - `public.py_unicode_richcompare(self_id UUID, other_id UUID, op INTEGER) RETURNS UUID`  
-    - `op = Py_EQ` 일 때 `py_unicode_object.str_value` 비교 후 True/False id 반환.  
-    - 그 외 op는 당장은 `NotImplemented` id 반환해도 됨.
+    - 236000: `Py_EQ`만 str_value 비교 후 True/False id; 그 외·other 타입이면 NotImplemented id.  
+    - **237000**: Py_LT/LE/EQ/NE/GT/GE 전부 구현. str은 렉시코그래픽, other가 str이 아니면 NotImplemented.
   - `public.py_long_richcompare(self_id UUID, other_id UUID, op INTEGER) RETURNS UUID`  
-    - `op = Py_EQ` 일 때 `py_long_object.long_value` 비교 후 True/False id 반환.  
-    - 그 외 op는 당장은 `NotImplemented` id 반환해도 됨.
+    - 236000: `Py_EQ`만 long_value 비교 후 True/False id; 그 외·other 타입이면 NotImplemented id.  
+    - **237000**: Py_LT/LE/EQ/NE/GT/GE 전부 구현. int는 수치 비교, other가 int가 아니면 NotImplemented.
 - **등록**: `py_type_object`에서 `tp_name = 'str'` 인 행의 `tp_richcompare`에 `'py_unicode_richcompare'::regproc`, `tp_name = 'int'` 인 행에 `'py_long_richcompare'::regproc` 설정.
 
 ### 7.4 범용 디스패치·dict용 보조 함수
@@ -280,7 +280,8 @@ tp_richcompare 슬롯 마이그레이션(§7.1)에서는 이 객체 id를 부트
 
 | 구분 | 파일 | 내용 |
 |------|------|------|
-| 슬롯·타입별 함수·디스패치 | `supabase/migrations/20260114236000_tp_richcompare_slot.sql` | `tp_richcompare` 컬럼 추가, `py_unicode_richcompare`, `py_long_richcompare`, `py_object_richcompare`, `py_object_richcompare_eq` 정의 및 str/int에 슬롯 등록 |
+| 슬롯·타입별 함수·디스패치 | `supabase/migrations/20260114236000_tp_richcompare_slot.sql` | `tp_richcompare` 컬럼 추가, `py_unicode_richcompare`, `py_long_richcompare`(Py_EQ만), `py_object_richcompare`, `py_object_richcompare_eq` 정의 및 str/int에 슬롯 등록 |
+| str/int 전 op 지원 | `supabase/migrations/20260114237000_tp_richcompare_full_ops.sql` | `py_unicode_richcompare`·`py_long_richcompare`를 Py_LT/LE/EQ/NE/GT/GE 전부 구현하도록 교체 (CPython 고증: str 렉시코그래픽, int 수치) |
 | True/False/NotImplemented | `supabase/migrations/20260114223000_python_bootstrap.sql` | 비교 결과용 싱글턴을 None과 동일하게 실제 객체로 생성 (`py_bool_object`·`py_not_implemented_object`). §7.2 참고. |
 | dict 키 비교 호출부 | `py_dict_get_item` / `py_dict_set_item` 이 정의된 마이그레이션 | 1단계: `py_object_equals_key` → 2단계: `py_object_richcompare_eq` 로 교체 |
 

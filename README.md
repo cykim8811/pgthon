@@ -78,5 +78,5 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
 ## TODO
 
 - **Dict lookup hash 1단계**: 완료. `LOAD_NAME`/`STORE_NAME`과 dict 조회는 hash·동등성 기반(`py_dict_get_item`/`py_dict_set_item`)으로 동작한다. 설계는 **[docs/DICT_LOOKUP_DESIGN.md](docs/DICT_LOOKUP_DESIGN.md)** 참고.
-- **Dict lookup 2단계**: 완료. 키 동등성은 `tp_richcompare` 슬롯 경유 `py_object_richcompare_eq` 사용. True/False/NotImplemented는 부트스트랩에 이미 있으며, `20260114236000_tp_richcompare_slot.sql`에서 슬롯·타입별 함수·디스패치·dict 연동까지 구현됨.
+- **Dict lookup 2단계**: 완료. 키 동등성은 `tp_richcompare` 슬롯 경유 `py_object_richcompare_eq` 사용. True/False/NotImplemented는 부트스트랩에 이미 있으며, `20260114236000_tp_richcompare_slot.sql`에서 슬롯·타입별 함수·디스패치·dict 연동까지 구현됨. **`20260114237000_tp_richcompare_full_ops.sql`**에서 str/int에 대해 Py_LT·Py_LE·Py_NE·Py_GT·Py_GE까지 CPython과 동일하게 구현(str 렉시코그래픽, int 수치, 다른 타입은 NotImplemented).
 - **같은 해시 다른 문자열 테스트**: `18_dict_lookup_hash.sql` Test 10은 서로 다른 str이 같은 `py_object_hash`인 쌍을 써서, 같은 `me_hash` 다른 키에 대해 `get_item`이 equality로 올바른 값을 반환하는지 검증한다. 충돌 쌍은 **`supabase/scripts/find_hash_collision.sql`**을 한 번 실행해 얻고, 출력된 두 문자열을 Test 10의 `COLLISION_A`/`COLLISION_B`에 하드코딩해 두었다. 테스트는 매번 탐색하지 않으므로 가볍게 동작한다.

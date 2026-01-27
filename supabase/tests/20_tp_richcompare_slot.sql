@@ -5,13 +5,13 @@
 --   Verifies tp_richcompare slot and dict key equality via py_object_richcompare_eq.
 --   Design: docs/DICT_LOOKUP_DESIGN.md §7.
 --   - tp_richcompare column and registration for str/int
---   - py_unicode_richcompare, py_long_richcompare (Py_EQ -> True/False, else NotImplemented)
+--   - py_unicode_richcompare, py_long_richcompare (all six ops for str/int; other type -> NotImplemented)
 --   - py_object_richcompare dispatch; no-slot type -> NotImplemented
 --   - py_object_richcompare_eq (True/False/NotImplemented + reverse)
 --   - dict get/set still treat equal str/int keys as same key (uses richcompare_eq)
 --
 -- Usage:
---   Run after migrations (tp_richcompare is in 20260114236000_tp_richcompare_slot.sql).
+--   Run after migrations (tp_richcompare in 236000; full ops for str/int in 237000).
 --   If any assertion fails, an exception is raised with details.
 -- ============================================================================
 
@@ -26,7 +26,12 @@ DECLARE
     ID_FALSE_OBJ  UUID := '00000000-0000-4000-b000-000000000011';
     ID_NOT_IMPLEMENTED_OBJ UUID := '00000000-0000-4000-b000-000000000012';
 
+    Py_LT INTEGER := 0;
+    Py_LE INTEGER := 1;
     Py_EQ INTEGER := 2;
+    Py_NE INTEGER := 3;
+    Py_GT INTEGER := 4;
+    Py_GE INTEGER := 5;
 
     test_count INTEGER := 0;
     pass_count INTEGER := 0;
@@ -173,18 +178,48 @@ BEGIN
     pass_count := pass_count + 1;
 
     -- ========================================================================
-    -- Test 7: py_unicode_richcompare op <> Py_EQ -> NotImplemented id
+    -- Test 7: py_unicode_richcompare Py_LT/LE/NE/GT/GE (full ops, 237000)
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 7: py_unicode_richcompare(str, str, Py_LT) -> NotImplemented id...';
+    RAISE NOTICE 'Test 7: py_unicode_richcompare str Py_LT/LE/NE/GT/GE...';
     test_count := test_count + 1;
 
-    res_id := public.py_unicode_richcompare(str_a, str_b, 0);  -- Py_LT
+    -- str_a="x", str_c="y": lexicographic
+    res_id := public.py_unicode_richcompare(str_a, str_c, Py_LT);
+    IF res_id IS DISTINCT FROM ID_TRUE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_unicode_richcompare("x","y",Py_LT) should return True id, got %', res_id;
+    END IF;
+    res_id := public.py_unicode_richcompare(str_c, str_a, Py_LT);
+    IF res_id IS DISTINCT FROM ID_FALSE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_unicode_richcompare("y","x",Py_LT) should return False id, got %', res_id;
+    END IF;
+    res_id := public.py_unicode_richcompare(str_a, str_b, Py_LE);
+    IF res_id IS DISTINCT FROM ID_TRUE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_unicode_richcompare("x","x",Py_LE) should return True id, got %', res_id;
+    END IF;
+    res_id := public.py_unicode_richcompare(str_a, str_b, Py_NE);
+    IF res_id IS DISTINCT FROM ID_FALSE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_unicode_richcompare("x","x",Py_NE) should return False id, got %', res_id;
+    END IF;
+    res_id := public.py_unicode_richcompare(str_a, str_c, Py_NE);
+    IF res_id IS DISTINCT FROM ID_TRUE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_unicode_richcompare("x","y",Py_NE) should return True id, got %', res_id;
+    END IF;
+    res_id := public.py_unicode_richcompare(str_c, str_a, Py_GT);
+    IF res_id IS DISTINCT FROM ID_TRUE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_unicode_richcompare("y","x",Py_GT) should return True id, got %', res_id;
+    END IF;
+    res_id := public.py_unicode_richcompare(str_a, str_b, Py_GE);
+    IF res_id IS DISTINCT FROM ID_TRUE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_unicode_richcompare("x","x",Py_GE) should return True id, got %', res_id;
+    END IF;
+    -- other not str -> NotImplemented (CPython: mixed-type comparison)
+    res_id := public.py_unicode_richcompare(str_a, int_x, Py_LT);
     IF res_id IS DISTINCT FROM ID_NOT_IMPLEMENTED_OBJ THEN
-        RAISE EXCEPTION 'FAIL: py_unicode_richcompare(..., Py_LT) should return NotImplemented id, got %', res_id;
+        RAISE EXCEPTION 'FAIL: py_unicode_richcompare(str,int,Py_LT) should return NotImplemented id, got %', res_id;
     END IF;
 
-    RAISE NOTICE '  ✓ py_unicode_richcompare(..., Py_LT) = NotImplemented id';
+    RAISE NOTICE '  ✓ py_unicode_richcompare str Py_LT/LE/NE/GT/GE correct (+ other type -> NotImplemented)';
     pass_count := pass_count + 1;
 
     -- ========================================================================
@@ -222,6 +257,46 @@ BEGIN
     END IF;
 
     RAISE NOTICE '  ✓ py_long_richcompare(different int, Py_EQ) = False id';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 9b: py_long_richcompare Py_LT/LE/NE/GT/GE (full ops, 237000)
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 9b: py_long_richcompare int Py_LT/LE/NE/GT/GE...';
+    test_count := test_count + 1;
+
+    -- int_x=1, int_z=2: numeric
+    res_id := public.py_long_richcompare(int_x, int_z, Py_LT);
+    IF res_id IS DISTINCT FROM ID_TRUE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_long_richcompare(1,2,Py_LT) should return True id, got %', res_id;
+    END IF;
+    res_id := public.py_long_richcompare(int_z, int_x, Py_LT);
+    IF res_id IS DISTINCT FROM ID_FALSE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_long_richcompare(2,1,Py_LT) should return False id, got %', res_id;
+    END IF;
+    res_id := public.py_long_richcompare(int_x, int_y, Py_LE);
+    IF res_id IS DISTINCT FROM ID_TRUE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_long_richcompare(1,1,Py_LE) should return True id, got %', res_id;
+    END IF;
+    res_id := public.py_long_richcompare(int_x, int_y, Py_NE);
+    IF res_id IS DISTINCT FROM ID_FALSE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_long_richcompare(1,1,Py_NE) should return False id, got %', res_id;
+    END IF;
+    res_id := public.py_long_richcompare(int_x, int_z, Py_NE);
+    IF res_id IS DISTINCT FROM ID_TRUE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_long_richcompare(1,2,Py_NE) should return True id, got %', res_id;
+    END IF;
+    res_id := public.py_long_richcompare(int_z, int_x, Py_GT);
+    IF res_id IS DISTINCT FROM ID_TRUE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_long_richcompare(2,1,Py_GT) should return True id, got %', res_id;
+    END IF;
+    res_id := public.py_long_richcompare(int_x, int_y, Py_GE);
+    IF res_id IS DISTINCT FROM ID_TRUE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: py_long_richcompare(1,1,Py_GE) should return True id, got %', res_id;
+    END IF;
+
+    RAISE NOTICE '  ✓ py_long_richcompare int Py_LT/LE/NE/GT/GE correct';
     pass_count := pass_count + 1;
 
     -- ========================================================================

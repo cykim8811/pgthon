@@ -78,5 +78,5 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
 ## TODO
 
 - **Dict lookup hash 1단계**: 완료. `LOAD_NAME`/`STORE_NAME`과 dict 조회는 hash·동등성 기반(`py_dict_get_item`/`py_dict_set_item`, `py_object_equals_key` str/int)으로 동작한다. 설계·추후 2단계는 **[docs/DICT_LOOKUP_DESIGN.md](docs/DICT_LOOKUP_DESIGN.md)** 참고.
-- **테스트 추가 예정 — 같은 해시 다른 문자열**: Dict lookup hash 테스트(`supabase/tests/18_dict_lookup_hash.sql`)에서 "같은 `me_hash`를 가진 서로 다른 키 두 개에 대해 `py_dict_get_item`이 equality로 구분해 올바른 값을 반환하는지" 검증하는 케이스가 필요하다. 해시 충돌(서로 다른 문자열이 같은 `py_object_hash`를 갖는 쌍)이 필요하며, 현재는 Test 10을 스킵 중이다. 충돌 쌍 탐색 로직 또는 고정 충돌 쌍 도입으로 테스트를 추가할 것.
+- **같은 해시 다른 문자열 테스트**: `18_dict_lookup_hash.sql` Test 10은 서로 다른 str이 같은 `py_object_hash`인 쌍을 써서, 같은 `me_hash` 다른 키에 대해 `get_item`이 equality로 올바른 값을 반환하는지 검증한다. 충돌 쌍은 **`supabase/scripts/find_hash_collision.sql`**을 한 번 실행해 얻고, 출력된 두 문자열을 Test 10의 `COLLISION_A`/`COLLISION_B`에 하드코딩해 두었다. 테스트는 매번 탐색하지 않으므로 가볍게 동작한다.
 - **Dict lookup 2단계 (추후)**: tp_richcompare 기반 키 동등성(`py_object_richcompare_eq`), True/False/NotImplemented 부트스트랩. DICT_LOOKUP_DESIGN §7.

@@ -28,8 +28,13 @@ DECLARE
 
     -- Objects
     dict_id UUID;
+    k1_id UUID;
+    k2_id UUID;
     v1_id UUID;
     v2_id UUID;
+    -- Test 10: two distinct strings with same py_object_hash (from scripts/find_hash_collision.sql)
+    COLLISION_A TEXT := 'q16584';
+    COLLISION_B TEXT := 'q52834';
     str_a_id UUID;
     str_a2_id UUID;
     str_b_id UUID;
@@ -248,14 +253,45 @@ BEGIN
     pass_count := pass_count + 1;
 
     -- ========================================================================
-    -- Test 10: same hash, different keys — SKIP (TODO)
-    -- 검증 대상: 같은 me_hash를 가진 서로 다른 키 두 개에 대해 get_item이
-    -- equality로 구분하여 올바른 값을 반환하는지. 해시 충돌(같은 해시 다른
-    -- 문자열 쌍)이 필요하나 현재 충돌을 찾지 못해 스킵. 추가 예정은 README 참고.
+    -- Test 10: same hash, different keys — equality disambiguates
+    -- COLLISION_A/COLLISION_B are two distinct strings with same py_object_hash.
+    -- From supabase/scripts/find_hash_collision.sql (run once to refresh if needed).
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 10: same me_hash different keys — SKIP (테스트 추가 예정, README TODO)';
+    RAISE NOTICE 'Test 10: same me_hash different keys — get_item returns correct value per key...';
     test_count := test_count + 1;
+
+    k1_id := gen_random_uuid();
+    k2_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (k1_id, ID_STR_TYPE), (k2_id, ID_STR_TYPE);
+    INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (k1_id, COLLISION_A), (k2_id, COLLISION_B);
+
+    dict_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (dict_id, ID_DICT_TYPE);
+    INSERT INTO public.py_dict_object (ob_base) VALUES (dict_id);
+
+    v1_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (v1_id, ID_INT_TYPE);
+    INSERT INTO public.py_long_object (ob_base, long_value) VALUES (v1_id, 1);
+    v2_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (v2_id, ID_INT_TYPE);
+    INSERT INTO public.py_long_object (ob_base, long_value) VALUES (v2_id, 2);
+
+    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value, me_hash)
+    VALUES
+        (dict_id, k1_id, v1_id, public.py_object_hash(k1_id)),
+        (dict_id, k2_id, v2_id, public.py_object_hash(k1_id));
+
+    SELECT public.py_dict_get_item(dict_id, k1_id) INTO out_id;
+    IF out_id IS NULL OR out_id != v1_id THEN
+        RAISE EXCEPTION 'FAIL: get_item(k1) expected %, got %', v1_id, out_id;
+    END IF;
+    SELECT public.py_dict_get_item(dict_id, k2_id) INTO out_id;
+    IF out_id IS NULL OR out_id != v2_id THEN
+        RAISE EXCEPTION 'FAIL: get_item(k2) expected %, got %', v2_id, out_id;
+    END IF;
+
+    RAISE NOTICE '  ✓ same hash different keys disambiguated by equality';
     pass_count := pass_count + 1;
 
     -- ========================================================================

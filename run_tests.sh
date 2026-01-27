@@ -270,6 +270,16 @@ else
     exit 1
 fi
 
+# 20. tp_richcompare Slot Test
+echo "=== Phase 20: tp_richcompare Slot ==="
+if run_test "supabase/tests/20_tp_richcompare_slot.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ tp_richcompare slot test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -299,8 +309,9 @@ echo "  ✅ 16: VM abs() Function Integration Test"
 echo "  ✅ 17: tp_hash Slot System Test"
 echo "  ✅ 18: Dict Lookup Hash-Based Test"
 echo "  ✅ 19: VM Full Pipeline Integration Test"
+echo "  ✅ 20: tp_richcompare Slot Test"
 echo ""
-echo "Total: 20 test suites passed ✨"
+echo "Total: 21 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

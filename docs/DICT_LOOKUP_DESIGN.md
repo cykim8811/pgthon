@@ -178,13 +178,59 @@ CPython의 dict lookup을 hash 기반으로 구현하기 위한 설계·구현 �
 
 dict 키 동등성을 “타입이 정의한 비교”로 통일할 때 쓸 **구체적인 파일·함수·배치**다. 구현 순서는 아래 순서를 참고하면 된다.
 
+### 7.0 구현 과정 (고증·비임시방편 원칙)
+
+아래는 tp_richcompare를 추가할 때 **CPython 고증을 지키고**, **임시방편을 넣지 않기 위해** 지킬 과정이다.
+
+#### CPython 고증 포인트
+
+- **비교 연산 상수**: `Include/object.h`와 동일한 값 사용.
+  - `Py_LT=0`, `Py_LE=1`, `Py_EQ=2`, `Py_NE=3`, `Py_GT=4`, `Py_GE=5`
+- **tp_richcompare 시그니처**: CPython은 `PyObject *(*richcmpfunc)(PyObject *, PyObject *, int)`.
+  - Elytra에서는 `(self_id UUID, other_id UUID, op INTEGER) RETURNS UUID`로 매핑. CPython이 `int`를 쓰므로 PostgreSQL은 INTEGER로 둔다.
+  - 반환값은 **객체 id 하나**이며, 의미상 True / False / NotImplemented 중 하나.
+- **반환 객체**: True·False·NotImplemented는 **실제 DB 객체**(`py_bool_object`, `py_not_implemented_object` 행)로만 사용한다. "매직 id 상수만 쓰고 테이블 없이 넘어가는" 방식은 쓰지 않는다.
+- **디스패치**: 비교 로직은 **타입별 분기 if/else가 아니라** `ob_type` → `tp_richcompare` 슬롯 조회 → 그 함수 호출로만 수행한다. 새 타입은 "슬롯 등록"만으로 붙어야 한다.
+
+#### 임시방편을 피하는 원칙
+
+1. **타입 이름 하드코딩 최소화**  
+   타입별 richcompare 함수 내부에서는 "str인지 int인지"를 타입 이름 문자열로 분기하지 않는다. 해당 함수는 이미 그 타입 전용이므로, 테이블(`py_unicode_object` 등)만 보면 된다. 디스패치는 `py_object_richcompare`에서 **tp_richcompare 슬롯 유무**만 보면 된다.
+
+2. **True/False/NotImplemented는 부트스트랩 상수로만 참조**  
+   236000 마이그레이션에서는 `ID_TRUE_OBJ` 등 부트스트랩에서 이미 쓰는 고정 UUID 상수만 사용한다. "테이블에서 한 행만 잡아서 쓰자" 같은 동적 조회는 불필요하다. 부트스트랩이 먼저 돌므로, 236000 시점에는 이미 DB에 있다.
+
+3. **dict 키 동등성은 "한 군데만" 교체**  
+   `py_dict_get_item` / `py_dict_set_item` 안에서 **키 동등성 판단**만 `py_object_equals_key` → `py_object_richcompare_eq`로 바꾼다. 그 외 hash·인덱스·INSERT 경로는 1단계와 동일하게 둔다. "dict만을 위한 특수 비교 경로"를 따로 두지 않고, 전부 `py_object_richcompare_eq` 한 경로로 통일한다.
+
+4. **Py_EQ 외 op는 "NotImplemented 반환"으로 통일**  
+   str/int의 타입별 richcompare에서 Py_EQ가 아닌 op는 당분간 전부 NotImplemented id를 반환한다. CPython도 해당 타입이 그 op를 구현하지 않으면 NotImplemented를 돌려주므로, "일단 False 넣어두기" 같은 임시 처리보다 고증에 맞다.
+
+#### 구현 순서(의존 관계)
+
+1. **선행 조건 확인**  
+   - `py_bool_object`, `py_not_implemented_object` 스키마 및 True/False/NotImplemented 부트스트랩이 이미 있음(현재 코드 기준 만족). 없으면 §7.2·§7.1 전에 220000/223000에서 보완.
+
+2. **236000 마이그레이션 한 파일 안에서 할 일** (아래 순서대로 작성해도 됨)
+   - `ALTER TABLE py_type_object ADD COLUMN tp_richcompare regproc;`
+   - 상수 정의: `Py_EQ` 등 op 값, 및 `ID_TRUE_OBJ`, `ID_FALSE_OBJ`, `ID_NOT_IMPLEMENTED_OBJ`(부트스트랩과 동일 값).
+   - 타입별 함수: `py_unicode_richcompare`, `py_long_richcompare` (시그니처·반환 의미가 §7.3과 맞는지 확인).
+   - 범용 디스패치: `py_object_richcompare` (슬롯이 없으면 NotImplemented id 반환).
+   - dict용 보조: `py_object_richcompare_eq` (True/False/NotImplemented + reverse 한 번 시도, §7.4).
+   - 슬롯 등록: str/int의 `tp_richcompare`에 위 타입별 함수 등록.
+
+3. **dict 쪽 전환**  
+   - `py_dict_get_item` / `py_dict_set_item` 내부의 `py_object_equals_key(me_key, key_id)` 호출만 `py_object_richcompare_eq(me_key, key_id)`로 교체. 이 작업은 236000 다음 마이그레이션에 넣거나, "235000 자체를 수정해 236000에서 쓰는 새 함수를 부른다"는 식으로 정책을 정해 한 곳에서만 바꾼다. 설계상 호출부는 **한 군데**로 유지한다(§7.5).
+
+이 순서와 원칙을 지키면, "타입 슬롯 하나로 비교를 확장하는" CPython 방식이 그대로 유지되고, 나중에 float·bytes 등은 **타입별 richcompare 함수 추가 + 슬롯 등록**만으로 붙일 수 있다.
+
 ### 7.1 스키마·슬롯
 
 - **위치**: `py_type_object`에 컬럼 추가이므로, 기존 타입 스키마를 직접 건드리지 않고 **새 마이그레이션**에서 `ALTER TABLE`로 추가하는 편이 기존 규칙과 맞다. `tp_hash`와 같은 방식.
 - **파일**: `supabase/migrations/20260114236000_tp_richcompare_slot.sql` (또는 35000 다음 번호).
 - **내용**:  
   - `ALTER TABLE public.py_type_object ADD COLUMN tp_richcompare regproc;`  
-  - 시그니처 규약: `(self_id UUID, other_id UUID, op SMALLINT) RETURNS UUID`.  
+  - 시그니처 규약: `(self_id UUID, other_id UUID, op INTEGER) RETURNS UUID`. (CPython의 op 인자 타입 `int`에 대응.)  
   - `op`는 CPython과 동일하게 `Py_LT=0, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE` 값 사용.  
   - 반환 UUID는 **True / False / NotImplemented** 에 대응하는 객체 id.
 
@@ -202,10 +248,10 @@ tp_richcompare 슬롯 마이그레이션(§7.1)에서는 이 객체 id를 부트
 
 - **정의 위치**: 위와 동일한 `supabase/migrations/20260114236000_tp_richcompare_slot.sql` 안에 두면, `tp_hash`를 `20260114235000_tp_hash_slot.sql`에 모아둔 것과 같은 구조가 된다.
 - **함수 이름·역할**:
-  - `public.py_unicode_richcompare(self_id UUID, other_id UUID, op SMALLINT) RETURNS UUID`  
+  - `public.py_unicode_richcompare(self_id UUID, other_id UUID, op INTEGER) RETURNS UUID`  
     - `op = Py_EQ` 일 때 `py_unicode_object.str_value` 비교 후 True/False id 반환.  
     - 그 외 op는 당장은 `NotImplemented` id 반환해도 됨.
-  - `public.py_long_richcompare(self_id UUID, other_id UUID, op SMALLINT) RETURNS UUID`  
+  - `public.py_long_richcompare(self_id UUID, other_id UUID, op INTEGER) RETURNS UUID`  
     - `op = Py_EQ` 일 때 `py_long_object.long_value` 비교 후 True/False id 반환.  
     - 그 외 op는 당장은 `NotImplemented` id 반환해도 됨.
 - **등록**: `py_type_object`에서 `tp_name = 'str'` 인 행의 `tp_richcompare`에 `'py_unicode_richcompare'::regproc`, `tp_name = 'int'` 인 행에 `'py_long_richcompare'::regproc` 설정.
@@ -214,7 +260,7 @@ tp_richcompare 슬롯 마이그레이션(§7.1)에서는 이 객체 id를 부트
 
 - **정의 위치**: 동일 마이그레이션 `20260114236000_tp_richcompare_slot.sql`.
 - **함수 이름·역할**:
-  - `public.py_object_richcompare(self_id UUID, other_id UUID, op SMALLINT) RETURNS UUID`  
+  - `public.py_object_richcompare(self_id UUID, other_id UUID, op INTEGER) RETURNS UUID`  
     - `self_id`의 `ob_type`으로 `py_type_object.tp_richcompare` 조회 후, NULL이면 NotImplemented id 반환.  
     - 있으면 `tp_richcompare(self_id, other_id, op)` 호출 결과를 그대로 반환.  
     - (추가로 “reverse” 호출은, `py_object_richcompare_eq` 단계에서 처리해도 됨.)

@@ -276,9 +276,9 @@ BEGIN
     (key2_id, 'b');
     
     -- Create dict entries (test_dict_id is the dict_id due to shared-PK)
-    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value) VALUES
-    (test_dict_id, key1_id, val1_id),
-    (test_dict_id, key2_id, val2_id);
+    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value, me_hash) VALUES
+    (test_dict_id, key1_id, val1_id, public.py_object_hash(key1_id)),
+    (test_dict_id, key2_id, val2_id, public.py_object_hash(key2_id));
     
     -- Call len function
     SELECT public.py_builtin_len(test_dict_id) INTO result_id;

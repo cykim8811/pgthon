@@ -195,8 +195,8 @@ BEGIN
     );
     
     -- Store value in locals dict with key 'x'
-    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value)
-    VALUES (locals_dict_id, name0_str_id, const0_id);
+    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value, me_hash)
+    VALUES (locals_dict_id, name0_str_id, const0_id, public.py_object_hash(name0_str_id));
     
     -- Execute LOAD_NAME(0) - loads 'x' from locals
     PERFORM public.py_opcode_LOAD_NAME(frame_id, 0);
@@ -240,8 +240,8 @@ BEGIN
     AND me_key = name0_str_id;
     
     -- Store value in globals dict with key 'x'
-    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value)
-    VALUES (globals_dict_id, name0_str_id, const0_id);
+    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value, me_hash)
+    VALUES (globals_dict_id, name0_str_id, const0_id, public.py_object_hash(name0_str_id));
     
     -- Execute LOAD_NAME(0) - should find 'x' in globals
     PERFORM public.py_opcode_LOAD_NAME(frame_id, 0);
@@ -349,11 +349,11 @@ BEGIN
         INSERT INTO public.py_long_object (ob_base, long_value) VALUES (globals_value_id, 200);
         
         -- Store 'x' in both locals and globals (different values)
-        INSERT INTO public.py_dict_entry (dict_id, me_key, me_value)
-        VALUES (locals_dict_id, name0_str_id, locals_value_id);
+        INSERT INTO public.py_dict_entry (dict_id, me_key, me_value, me_hash)
+        VALUES (locals_dict_id, name0_str_id, locals_value_id, public.py_object_hash(name0_str_id));
         
-        INSERT INTO public.py_dict_entry (dict_id, me_key, me_value)
-        VALUES (globals_dict_id, name0_str_id, globals_value_id);
+        INSERT INTO public.py_dict_entry (dict_id, me_key, me_value, me_hash)
+        VALUES (globals_dict_id, name0_str_id, globals_value_id, public.py_object_hash(name0_str_id));
         
         -- Update co_names to include 'x'
         UPDATE public.py_tuple_object

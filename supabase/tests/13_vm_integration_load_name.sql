@@ -179,8 +179,8 @@ BEGIN
     test_count := test_count + 1;
     
     -- Store value in locals dict
-    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value)
-    VALUES (locals_dict_id, name0_str_id, const0_id);
+    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value, me_hash)
+    VALUES (locals_dict_id, name0_str_id, const0_id, public.py_object_hash(name0_str_id));
     
     -- Create names tuple with 'x'
     co_names_id := gen_random_uuid();
@@ -280,8 +280,8 @@ BEGIN
     INSERT INTO public.py_dict_object (ob_base) VALUES (locals_dict_id);
     
     -- Store value in globals dict
-    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value)
-    VALUES (globals_dict_id, name0_str_id, const0_id);
+    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value, me_hash)
+    VALUES (globals_dict_id, name0_str_id, const0_id, public.py_object_hash(name0_str_id));
     
     -- Create names tuple with 'x'
     co_names_id := gen_random_uuid();
@@ -378,11 +378,11 @@ BEGIN
     INSERT INTO public.py_dict_object (ob_base) VALUES (globals_dict_id);
     
     -- Store different values in locals and globals
-    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value)
-    VALUES (locals_dict_id, name0_str_id, const0_id);
+    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value, me_hash)
+    VALUES (locals_dict_id, name0_str_id, const0_id, public.py_object_hash(name0_str_id));
     
-    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value)
-    VALUES (globals_dict_id, name0_str_id, const1_id);
+    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value, me_hash)
+    VALUES (globals_dict_id, name0_str_id, const1_id, public.py_object_hash(name0_str_id));
     
     -- Create names tuple with 'x'
     co_names_id := gen_random_uuid();

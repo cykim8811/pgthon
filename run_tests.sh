@@ -250,6 +250,16 @@ else
     exit 1
 fi
 
+# 18. Dict Lookup Hash-Based Test
+echo "=== Phase 18: Dict Lookup Hash-Based ==="
+if run_test "supabase/tests/18_dict_lookup_hash.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Dict lookup hash-based test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -277,8 +287,9 @@ echo "  ✅ 14: VM CALL_FUNCTION Opcode Test"
 echo "  ✅ 15: VM CALL_FUNCTION Integration Test"
 echo "  ✅ 16: VM abs() Function Integration Test"
 echo "  ✅ 17: tp_hash Slot System Test"
+echo "  ✅ 18: Dict Lookup Hash-Based Test"
 echo ""
-echo "Total: 18 test suites passed ✨"
+echo "Total: 19 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

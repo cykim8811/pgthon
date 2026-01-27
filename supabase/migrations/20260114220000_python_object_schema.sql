@@ -111,11 +111,14 @@ create table public.py_dict_object (
 -- 7. py_dict_entry (Implements CPython's PyDictEntry: entries for dict)
 --    Individual key-value pairs within a dictionary.
 --    Note: This is not a shared-PK table because entries are not standalone objects.
+--    me_hash caches key's hash (CPython's PyDictKeyEntry.me_hash) for hash-based lookup.
+--    Nullable until backfilled; dict_lookup_hash migration sets NOT NULL after backfill.
 create table public.py_dict_entry (
   id uuid primary key default gen_random_uuid(),
   dict_id uuid references public.py_object(id) on delete cascade, -- Dict object (type checked at runtime)
   me_key uuid references public.py_object(id),   -- Key object (must be hashable)
-  me_value uuid references public.py_object(id) -- Value object
+  me_value uuid references public.py_object(id), -- Value object
+  me_hash bigint                                 -- Cached hash of me_key (PyDictKeyEntry.me_hash). Set on insert/backfill.
 );
 
 -- 8. py_instance_object (Stores instance __dict__ for user-defined class instances)

@@ -139,6 +139,21 @@ create table public.py_none_object (
   ob_base uuid primary key references public.py_object(id) on delete cascade
 );
 
+-- 9b. py_bool_object (Implements CPython's PyBoolObject: True/False singletons)
+--     In CPython, bool is a subtype of int; True and False are the only two instances.
+--     Used as return values from tp_richcompare and elsewhere. Bootstrap creates exactly two rows.
+create table public.py_bool_object (
+  ob_base uuid primary key references public.py_object(id) on delete cascade,
+  bool_value boolean not null
+);
+
+-- 9c. py_not_implemented_object (Implements CPython's Py_NotImplemented singleton)
+--     Returned by tp_richcompare when a type does not implement a comparison.
+--     Bootstrap creates exactly one row. Same pattern as py_none_object.
+create table public.py_not_implemented_object (
+  ob_base uuid primary key references public.py_object(id) on delete cascade
+);
+
 -- 10. py_module_object (Implements CPython's PyModuleObject)
 --     Module objects represent Python modules. Each module has a namespace
 --     dictionary (md_dict) that stores the module's attributes and a name (md_name).
@@ -182,6 +197,8 @@ alter table public.py_dict_object enable row level security;
 alter table public.py_dict_entry enable row level security;
 alter table public.py_instance_object enable row level security;
 alter table public.py_none_object enable row level security;
+alter table public.py_bool_object enable row level security;
+alter table public.py_not_implemented_object enable row level security;
 alter table public.py_module_object enable row level security;
 
 -- Default Policies (Allow authenticated users to read everything for now)
@@ -198,4 +215,6 @@ create policy "Authenticated users can view py_dict_object" on public.py_dict_ob
 create policy "Authenticated users can view py_dict_entry" on public.py_dict_entry for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_instance_object" on public.py_instance_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_none_object" on public.py_none_object for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_bool_object" on public.py_bool_object for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_not_implemented_object" on public.py_not_implemented_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_module_object" on public.py_module_object for select using (auth.role() = 'authenticated');

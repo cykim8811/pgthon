@@ -77,4 +77,4 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
 
 ## TODO
 
-- **Dict lookup의 hash 기반 구현**: 현재 `LOAD_NAME` 등에서 dict lookup이 `IN (SELECT ...)` 서브쿼리로 문자열 내용을 비교하는 임시방편적 구현입니다. CPython의 hash-based O(1) lookup을 구현해야 합니다. 키 객체의 hash 계산 → hash로 bucket 찾기 → 같은 bucket 내에서 equality 비교하는 순서로 동작해야 합니다.
+- **Dict lookup의 hash 기반 구현**: 현재 `LOAD_NAME` 등에서 dict lookup이 `IN (SELECT ...)` 서브쿼리로 문자열 내용을 비교하는 임시방편적 구현입니다. CPython의 hash-based lookup 의미론(hash로 후보 축소 → 키 동등성으로 확정)에 맞게 구현해야 합니다. 상세 설계·구현 목록·주의사항은 **[docs/DICT_LOOKUP_DESIGN.md](docs/DICT_LOOKUP_DESIGN.md)** 에 정리되어 있습니다.

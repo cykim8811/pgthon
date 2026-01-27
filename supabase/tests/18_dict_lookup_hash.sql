@@ -10,7 +10,7 @@
 --   - Unhashable key: TypeError propagated from py_object_hash
 --
 -- Usage:
---   Run after migrations (including 20260114235500_dict_lookup_hash).
+--   Run after migrations (dict lookup hash is in 20260114235000_tp_hash_slot).
 --   If any assertion fails, an exception is raised with details.
 -- ============================================================================
 

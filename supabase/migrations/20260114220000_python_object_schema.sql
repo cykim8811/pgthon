@@ -112,7 +112,7 @@ create table public.py_dict_object (
 --    Individual key-value pairs within a dictionary.
 --    Note: This is not a shared-PK table because entries are not standalone objects.
 --    me_hash caches key's hash (CPython's PyDictKeyEntry.me_hash) for hash-based lookup.
---    Nullable until backfilled; dict_lookup_hash migration sets NOT NULL after backfill.
+--    Nullable until backfilled; 20260114235000_tp_hash_slot sets NOT NULL after backfill.
 create table public.py_dict_entry (
   id uuid primary key default gen_random_uuid(),
   dict_id uuid references public.py_object(id) on delete cascade, -- Dict object (type checked at runtime)

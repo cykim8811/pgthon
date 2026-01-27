@@ -344,13 +344,11 @@ BEGIN
         RAISE EXCEPTION 'FAIL: __builtins__ module dict not found';
     END IF;
     
-    -- Find "len" string object in __builtins__ dict
-    SELECT me_value INTO len_function_id
-    FROM public.py_dict_entry de
-    WHERE de.dict_id = builtins_dict_id
-    AND de.me_key IN (
-        SELECT ob_base FROM public.py_unicode_object WHERE str_value = 'len'
-    );
+    -- Look up "len" in __builtins__ via hash-based dict API (CPython semantics)
+    SELECT public.py_dict_get_item(builtins_dict_id, u.ob_base) INTO len_function_id
+    FROM public.py_unicode_object u
+    WHERE u.str_value = 'len'
+    LIMIT 1;
     
     IF len_function_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: len function not found in __builtins__ dict';
@@ -891,13 +889,11 @@ BEGIN
         RAISE EXCEPTION 'FAIL: __builtins__ module dict not found';
     END IF;
     
-    -- Find "abs" string object in __builtins__ dict
-    SELECT me_value INTO abs_function_id
-    FROM public.py_dict_entry de
-    WHERE de.dict_id = builtins_dict_id
-    AND de.me_key IN (
-        SELECT ob_base FROM public.py_unicode_object WHERE str_value = 'abs'
-    );
+    -- Look up "abs" in __builtins__ via hash-based dict API (CPython semantics)
+    SELECT public.py_dict_get_item(builtins_dict_id, u.ob_base) INTO abs_function_id
+    FROM public.py_unicode_object u
+    WHERE u.str_value = 'abs'
+    LIMIT 1;
     
     IF abs_function_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: abs function not found in __builtins__ dict';

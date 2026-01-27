@@ -77,5 +77,6 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
 
 ## TODO
 
-- **Dict lookup의 hash 기반 구현**: 현재 `LOAD_NAME` 등에서 dict lookup이 `IN (SELECT ...)` 서브쿼리로 문자열 내용을 비교하는 임시방편적 구현입니다. CPython의 hash-based lookup 의미론(hash로 후보 축소 → 키 동등성으로 확정)에 맞게 구현해야 합니다. 상세 설계·구현 목록·주의사항은 **[docs/DICT_LOOKUP_DESIGN.md](docs/DICT_LOOKUP_DESIGN.md)** 에 정리되어 있습니다.
-- **테스트 추가 예정 — 같은 해시 다른 문자열**: Dict lookup hash 테스트(`supabase/tests/18_dict_lookup_hash.sql`)에서 "같은 `me_hash`를 가진 서로 다른 키 두 개에 대해 `py_dict_get_item`이 equality로 구분해 올바른 값을 반환하는지" 검증하는 케이스가 필요하다. 이를 위해 해시 충돌(서로 다른 문자열이 같은 `py_object_hash`를 갖는 쌍)이 필요한데, 현재는 해당 케이스를 넣지 않고 Test 10을 스킵하고 있다. 추후 충돌 쌍을 구하는 방식이나 고정된 충돌 쌍을 도입해 테스트를 추가할 것.
+- **Dict lookup hash 1단계**: 완료. `LOAD_NAME`/`STORE_NAME`과 dict 조회는 hash·동등성 기반(`py_dict_get_item`/`py_dict_set_item`, `py_object_equals_key` str/int)으로 동작한다. 설계·추후 2단계는 **[docs/DICT_LOOKUP_DESIGN.md](docs/DICT_LOOKUP_DESIGN.md)** 참고.
+- **테스트 추가 예정 — 같은 해시 다른 문자열**: Dict lookup hash 테스트(`supabase/tests/18_dict_lookup_hash.sql`)에서 "같은 `me_hash`를 가진 서로 다른 키 두 개에 대해 `py_dict_get_item`이 equality로 구분해 올바른 값을 반환하는지" 검증하는 케이스가 필요하다. 해시 충돌(서로 다른 문자열이 같은 `py_object_hash`를 갖는 쌍)이 필요하며, 현재는 Test 10을 스킵 중이다. 충돌 쌍 탐색 로직 또는 고정 충돌 쌍 도입으로 테스트를 추가할 것.
+- **Dict lookup 2단계 (추후)**: tp_richcompare 기반 키 동등성(`py_object_richcompare_eq`), True/False/NotImplemented 부트스트랩. DICT_LOOKUP_DESIGN §7.

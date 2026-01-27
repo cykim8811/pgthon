@@ -182,6 +182,11 @@ BEGIN
     IF stored_value_id != const0_id THEN
         RAISE EXCEPTION 'FAIL: Stored value is %, expected % (const0_id)', stored_value_id, const0_id;
     END IF;
+    -- Verify via dict API (hash-based lookup)
+    stored_value_id := public.py_dict_get_item(locals_dict_id, name0_str_id);
+    IF stored_value_id IS NULL OR stored_value_id != const0_id THEN
+        RAISE EXCEPTION 'FAIL: py_dict_get_item(locals,''x'') expected const0_id, got %', stored_value_id;
+    END IF;
     
     -- Verify stack is empty
     SELECT array_length(f_valuestack, 1) INTO stack_size
@@ -268,6 +273,12 @@ BEGIN
     IF entry_count != 3 THEN
         RAISE EXCEPTION 'FAIL: Found % entries in locals dict, expected 3', entry_count;
     END IF;
+    -- Verify via dict API
+    IF public.py_dict_get_item(locals_dict_id, name0_str_id) != const0_id
+       OR public.py_dict_get_item(locals_dict_id, name1_str_id) != const1_id
+       OR public.py_dict_get_item(locals_dict_id, name2_str_id) != const2_id THEN
+        RAISE EXCEPTION 'FAIL: py_dict_get_item(locals, x/y/z) should return stored values';
+    END IF;
     
     RAISE NOTICE '  ✓ Multiple variable assignments work correctly';
     pass_count := pass_count + 1;
@@ -313,6 +324,10 @@ BEGIN
         
         IF stored_value_id != new_const_id THEN
             RAISE EXCEPTION 'FAIL: Reassigned value is %, expected % (new_const_id)', stored_value_id, new_const_id;
+        END IF;
+        stored_value_id := public.py_dict_get_item(locals_dict_id, name0_str_id);
+        IF stored_value_id IS NULL OR stored_value_id != new_const_id THEN
+            RAISE EXCEPTION 'FAIL: py_dict_get_item(locals,''x'') after reassign expected new_const_id, got %', stored_value_id;
         END IF;
         
         -- Verify still only 3 entries (no duplication)
@@ -446,6 +461,10 @@ BEGIN
         IF second_stored_value != const1_id THEN
             RAISE EXCEPTION 'FAIL: Second frame variable value is %, expected %', second_stored_value, const1_id;
         END IF;
+        IF public.py_dict_get_item(first_locals_dict_id, name0_str_id) != const0_id
+           OR public.py_dict_get_item(second_locals_dict_id, name0_str_id) != const1_id THEN
+            RAISE EXCEPTION 'FAIL: py_dict_get_item per-frame locals should return frame-specific values';
+        END IF;
         
         -- Verify frames are independent (different values)
         IF first_stored_value = second_stored_value THEN
@@ -510,6 +529,10 @@ BEGIN
     
     IF stored_value_id != const0_id THEN
         RAISE EXCEPTION 'FAIL: Variable ''y'' value is %, expected %', stored_value_id, const0_id;
+    END IF;
+    IF public.py_dict_get_item(locals_dict_id, name0_str_id) != const0_id
+       OR public.py_dict_get_item(locals_dict_id, name1_str_id) != const0_id THEN
+        RAISE EXCEPTION 'FAIL: py_dict_get_item(locals, x/y) should return const0_id';
     END IF;
     
     -- Verify exactly 2 entries

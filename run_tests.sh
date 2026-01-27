@@ -260,6 +260,16 @@ else
     exit 1
 fi
 
+# 19. VM Full Pipeline Integration Test
+echo "=== Phase 19: VM Full Pipeline Integration ==="
+if run_test "supabase/tests/19_vm_integration_full_pipeline.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ VM full pipeline integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -288,8 +298,9 @@ echo "  ✅ 15: VM CALL_FUNCTION Integration Test"
 echo "  ✅ 16: VM abs() Function Integration Test"
 echo "  ✅ 17: tp_hash Slot System Test"
 echo "  ✅ 18: Dict Lookup Hash-Based Test"
+echo "  ✅ 19: VM Full Pipeline Integration Test"
 echo ""
-echo "Total: 19 test suites passed ✨"
+echo "Total: 20 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

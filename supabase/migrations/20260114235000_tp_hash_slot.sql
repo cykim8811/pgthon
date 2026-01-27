@@ -21,34 +21,18 @@
 --   - Hash values are used for dictionary lookups and set membership
 --
 -- This migration:
---   1. Adds tp_hash field to py_type_object table
---   2. Implements py_object_hash() function (equivalent to PyObject_Hash)
---   3. Implements type-specific hash functions (str, int)
---   4. Registers tp_hash for hashable builtin types
---   5. Dict lookup hash-based: me_hash backfill/index, py_object_equals_key,
+--   1. Implements py_object_hash() function (equivalent to PyObject_Hash)
+--   2. Implements type-specific hash functions (str, int)
+--   3. Registers tp_hash for hashable builtin types
+--   4. Dict lookup hash-based: me_hash backfill/index, py_object_equals_key,
 --      py_dict_get_item, py_dict_set_item, LOAD_NAME/STORE_NAME (hash-based).
 --      Design: docs/DICT_LOOKUP_DESIGN.md
+--   (tp_hash column is defined in 20260114220000_python_object_schema.sql)
 --
 -- ============================================================================
 
--- ============================================================================
--- Schema Modification: Add tp_hash Slot to PyTypeObject
--- ============================================================================
-
--- Add tp_hash field to py_type_object table
--- This field stores a PostgreSQL function identifier (regproc) that implements
--- the hash behavior for objects of this type. NULL means the type is unhashable.
---
--- In CPython:
---   hashfunc tp_hash;  // typedef Py_hash_t (*hashfunc)(PyObject *)
---   This is a function pointer that takes a PyObject* and returns Py_hash_t
---
--- In Elytra:
---   regproc tp_hash;  // PostgreSQL function identifier
---   The function signature is: func(obj_id UUID) RETURNS BIGINT
---   BIGINT corresponds to CPython's Py_hash_t (typically long/Py_ssize_t)
-ALTER TABLE public.py_type_object
-ADD COLUMN tp_hash regproc;
+-- tp_hash column is defined in py_type_object (20260114220000_python_object_schema.sql).
+-- This migration only adds functions, dict-entry me_hash/backfill/index, and slot registration.
 
 -- ============================================================================
 -- Function: py_object_hash (Equivalent to PyObject_Hash)

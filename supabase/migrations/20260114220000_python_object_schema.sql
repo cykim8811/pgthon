@@ -35,8 +35,11 @@ create table public.py_type_object (
   ob_base uuid primary key references public.py_object(id) on delete cascade,
   tp_name text not null,
   tp_bases uuid, -- Points to a tuple object containing base types (type checked at runtime)
-  tp_dict uuid   -- Points to a dict object containing type attributes (type checked at runtime)
-                  -- In CPython, each type object has its own __dict__ for storing type attributes.
+  tp_dict uuid,  -- Points to a dict object containing type attributes (type checked at runtime)
+  -- In CPython, each type object has its own __dict__ for storing type attributes.
+  tp_call regproc,       -- CPython ternaryfunc tp_call; NULL = not callable. See 234000.
+  tp_hash regproc,       -- CPython hashfunc tp_hash; NULL = unhashable. See 235000.
+  tp_richcompare regproc -- CPython richcmpfunc tp_richcompare; NULL = not implemented. See 236000.
 );
 
 -- Link PyObject to its type (ob_type is a PyTypeObject, whose identity is its PyObject id)

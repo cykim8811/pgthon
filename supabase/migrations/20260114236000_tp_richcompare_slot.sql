@@ -14,20 +14,18 @@
 --   Returns Py_True, Py_False, or Py_NotImplemented.
 --
 -- This migration:
---   1. Adds tp_richcompare to py_type_object
---   2. Defines type-specific richcompare for str (Py_EQ) and int (Py_EQ)
---   3. Defines py_object_richcompare (dispatch) and py_object_richcompare_eq
---   4. Registers tp_richcompare for str and int
---   5. Switches py_dict_get_item / py_dict_set_item to py_object_richcompare_eq
+--   1. Defines type-specific richcompare for str (Py_EQ) and int (Py_EQ)
+--   2. Defines py_object_richcompare (dispatch) and py_object_richcompare_eq
+--   3. Registers tp_richcompare for str and int
+--   4. Switches py_dict_get_item / py_dict_set_item to py_object_richcompare_eq
+--   (tp_richcompare column is defined in 20260114220000_python_object_schema.sql)
 --
 -- Singleton IDs must match bootstrap (20260114223000_python_bootstrap.sql).
+-- tp_richcompare column is defined in py_type_object (20260114220000_python_object_schema.sql).
 -- ============================================================================
 
 -- Opcode constants (CPython Include/object.h)
 -- Py_LT=0, Py_LE=1, Py_EQ=2, Py_NE=3, Py_GT=4, Py_GE=5
-
-ALTER TABLE public.py_type_object
-ADD COLUMN tp_richcompare regproc;
 
 COMMENT ON COLUMN public.py_type_object.tp_richcompare IS
 'tp_richcompare slot: (self_id uuid, other_id uuid, op integer) returns uuid. op: 0=LT,1=LE,2=EQ,3=NE,4=GT,5=GE (CPython int). Return True/False/NotImplemented object id.';

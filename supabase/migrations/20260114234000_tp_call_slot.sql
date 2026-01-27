@@ -20,32 +20,16 @@
 --   - This allows user-defined classes to implement __call__ method
 --
 -- This migration:
---   1. Adds tp_call field to py_type_object table
---   2. Implements py_object_call() function (equivalent to PyObject_Call)
---   3. Updates CALL_FUNCTION to use tp_call slot instead of type name comparison
---   4. Registers tp_call for builtin_function_or_method type (directly to py_call_cfunction,
+--   1. Implements py_object_call() function (equivalent to PyObject_Call)
+--   2. Updates CALL_FUNCTION to use tp_call slot instead of type name comparison
+--   3. Registers tp_call for builtin_function_or_method type (directly to py_call_cfunction,
 --      matching CPython's PyCFunction_Type.tp_call = PyCFunction_Call pattern)
+--   (tp_call column is defined in 20260114220000_python_object_schema.sql)
 --
 -- ============================================================================
 
--- ============================================================================
--- Schema Modification: Add tp_call Slot to PyTypeObject
--- ============================================================================
-
--- Add tp_call field to py_type_object table
--- This field stores a PostgreSQL function identifier (regproc) that implements
--- the call behavior for objects of this type. NULL means the type is not callable.
---
--- In CPython:
---   ternaryfunc tp_call;  // typedef PyObject *(*ternaryfunc)(PyObject *, PyObject *, PyObject *)
---   This is a function pointer that takes (self, args, kwargs) and returns PyObject*
---
--- In Elytra:
---   regproc tp_call;  // PostgreSQL function identifier
---   The function signature is: func(obj_id UUID, args UUID[], kwargs UUID) RETURNS UUID
---   For now, we only support positional arguments (args array), kwargs can be added later
-ALTER TABLE public.py_type_object
-ADD COLUMN tp_call regproc;
+-- tp_call column is defined in py_type_object (20260114220000_python_object_schema.sql).
+-- This migration only adds functions and registers the slot.
 
 -- ============================================================================
 -- Function: py_object_call (Equivalent to PyObject_Call)

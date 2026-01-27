@@ -211,28 +211,28 @@ dict 키 동등성을 “타입이 정의한 비교”로 통일할 때 쓸 **�
 1. **선행 조건 확인**  
    - `py_bool_object`, `py_not_implemented_object` 스키마 및 True/False/NotImplemented 부트스트랩이 이미 있음(현재 코드 기준 만족). 없으면 §7.2·§7.1 전에 220000/223000에서 보완.
 
-2. **236000 마이그레이션 한 파일 안에서 할 일** (아래 순서대로 작성해도 됨)
-   - `ALTER TABLE py_type_object ADD COLUMN tp_richcompare regproc;`
+2. **스키마**: `py_type_object`에 `tp_richcompare regproc` 컬럼이 있어야 한다. **지향**: 새 마이그레이션의 `ALTER TABLE`이 아니라 기존 테이블 정의 파일(`20260114220000_python_object_schema.sql`)을 직접 수정해 `create table public.py_type_object (...)` 안에 해당 컬럼을 넣는다.
+
+3. **함수·슬롯 마이그레이션**(예: 236000) 한 파일 안에서 할 일 (아래 순서대로 작성해도 됨)
    - 상수 정의: `Py_EQ` 등 op 값, 및 `ID_TRUE_OBJ`, `ID_FALSE_OBJ`, `ID_NOT_IMPLEMENTED_OBJ`(부트스트랩과 동일 값).
    - 타입별 함수: `py_unicode_richcompare`, `py_long_richcompare` (시그니처·반환 의미가 §7.3과 맞는지 확인).
    - 범용 디스패치: `py_object_richcompare` (슬롯이 없으면 NotImplemented id 반환).
    - dict용 보조: `py_object_richcompare_eq` (True/False/NotImplemented + reverse 한 번 시도, §7.4).
    - 슬롯 등록: str/int의 `tp_richcompare`에 위 타입별 함수 등록.
 
-3. **dict 쪽 전환**  
+4. **dict 쪽 전환**  
    - `py_dict_get_item` / `py_dict_set_item` 내부의 `py_object_equals_key(me_key, key_id)` 호출만 `py_object_richcompare_eq(me_key, key_id)`로 교체. 이 작업은 236000 다음 마이그레이션에 넣거나, "235000 자체를 수정해 236000에서 쓰는 새 함수를 부른다"는 식으로 정책을 정해 한 곳에서만 바꾼다. 설계상 호출부는 **한 군데**로 유지한다(§7.5).
 
 이 순서와 원칙을 지키면, "타입 슬롯 하나로 비교를 확장하는" CPython 방식이 그대로 유지되고, 나중에 float·bytes 등은 **타입별 richcompare 함수 추가 + 슬롯 등록**만으로 붙일 수 있다.
 
 ### 7.1 스키마·슬롯
 
-- **위치**: `py_type_object`에 컬럼 추가이므로, 기존 타입 스키마를 직접 건드리지 않고 **새 마이그레이션**에서 `ALTER TABLE`로 추가하는 편이 기존 규칙과 맞다. `tp_hash`와 같은 방식.
-- **파일**: `supabase/migrations/20260114236000_tp_richcompare_slot.sql` (또는 35000 다음 번호).
-- **내용**:  
-  - `ALTER TABLE public.py_type_object ADD COLUMN tp_richcompare regproc;`  
+- **위치·방식**: `py_type_object`에 컬럼을 넣을 때는 새 마이그레이션에서 `ALTER TABLE`로 넣지 말고, **기존 테이블 정의 마이그레이션**(`supabase/migrations/20260114220000_python_object_schema.sql`)을 직접 수정하여 `create table public.py_type_object (...)` 안에 컬럼을 포함하는 것을 지향한다. (README 규칙: "Migration은 최대한 작게 유지 … 변경하는 migration을 추가하는 것이 아닌, 기존의 스키마 생성 코드를 수정하는 방향".)
+- **내용**: `py_type_object`에 `tp_richcompare regproc` 컬럼이 필요하다.  
   - 시그니처 규약: `(self_id UUID, other_id UUID, op INTEGER) RETURNS UUID`. (CPython의 op 인자 타입 `int`에 대응.)  
   - `op`는 CPython과 동일하게 `Py_LT=0, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE` 값 사용.  
   - 반환 UUID는 **True / False / NotImplemented** 에 대응하는 객체 id.
+- **함수·슬롯 등록**은 별도 마이그레이션(예: `20260114236000_tp_richcompare_slot.sql`)에 둘 수 있다. 스키마 정의만 기존 파일 직접 수정을 지향한다.
 
 ### 7.2 부트스트랩(싱글턴)
 

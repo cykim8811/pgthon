@@ -280,6 +280,16 @@ else
     exit 1
 fi
 
+# 21. BINARY_ADD Slots (nb_add, sq_concat, dispatch)
+echo "=== Phase 21: BINARY_ADD Slots ==="
+if run_test "supabase/tests/21_binary_add_slots.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ BINARY_ADD slots test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -310,8 +320,9 @@ echo "  ✅ 17: tp_hash Slot System Test"
 echo "  ✅ 18: Dict Lookup Hash-Based Test"
 echo "  ✅ 19: VM Full Pipeline Integration Test"
 echo "  ✅ 20: tp_richcompare Slot Test"
+echo "  ✅ 21: BINARY_ADD Slots (nb_add, sq_concat, dispatch)"
 echo ""
-echo "Total: 21 test suites passed ✨"
+echo "Total: 22 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

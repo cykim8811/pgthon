@@ -118,7 +118,7 @@ CPython의 `PyObject_Call(callable, args, kwargs)` / `ternaryfunc tp_call(obj, a
 
 - **tp_call 컬럼**  
   - 그대로 `regproc`.  
-  - “이 regproc은 (UUID, UUID[], UUID) RETURNS UUID 시그니처를 가진다”를 **규약**으로만 적어두면 됨.
+  - **규약**: tp_call에 등록되는 모든 함수는 `(obj_id UUID, args UUID[], kwargs_id UUID) RETURNS UUID` 시그니처를 가진다. `kwargs_id = NULL`이면 키워드 인자 없음. (234500부터 적용.)
 - **기존 builtin**  
   - len, abs 등은 모두 METH_O 등이라 kwargs를 받지 않음.  
   - `py_call_cfunction`에서 kwargs_id만 검사하고, 있을 때만 TypeError 내면 되므로,  

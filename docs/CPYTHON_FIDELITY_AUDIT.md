@@ -79,27 +79,22 @@ Elytra 마이그레이션 구현이 CPython의 의미·구조와 얼마나 맞�
 
 ## 3. 고증 격차 또는 원칙 위반 가능성
 
-### 3.1 abs()에 대한 타입 이름 분기 (원칙 위반 가능성)
+### 3.1 abs()에 대한 타입 이름 분기 — ✅ 해결됨
 
-- **CPython**: `builtin_abs` → `PyNumber_Absolute(obj)` → **nb_absolute** 슬롯 등 번치 프로토콜 사용.
-- **Elytra** (225000): `tp_name = 'int'` / `'float'` 분기로 처리.
+- **CPython**: `builtin_abs` → `PyNumber_Absolute(obj)` → **tp_as_number->nb_absolute** 슬롯.
+- **Elytra**: 235500에서 `py_number_methods`·`tp_as_number` 도입, `py_builtin_abs`는 `py_object_absolute`(슬롯 경유)만 호출. tp_name 분기 제거됨.
 
-README/VM_DESIGN 원칙(“타입 이름 분기 최소화”, “슬롯으로 디스패치”)과 어긋납니다.  
-CPython 고증 측면에서는 “abs가 숫자에 대해 동작한다”는 의미는 맞지만, **구현 경로**가 tp_name에 의존해 있어, 나중에 사용자 타입이 `nb_absolute`를 쓰는 경우와의 정합성이 떨어집니다.
-
-**권장**: `PyNumberMethods`의 `nb_absolute`에 상응하는 슬롯을 두고, int/float만 해당 슬롯을 채운 뒤, `py_builtin_abs`는 “obj의 타입 → nb_absolute 호출, 없으면 TypeError”로 통일하는 것이 고증·확장성 모두에 유리합니다.
-
-### 3.2 Hashable 타입 축소
+### 3.2 Hashable 타입 확장 — ✅ 해결됨
 
 - **CPython**: tuple, bytes, float, bool, None은 (조건부 포함) hashable.  
   - tuple: 원소가 모두 hashable이면 hashable.  
-  - bool: int 서브타입으로 hashable.  
+  - bool: hash(True)==1, hash(False)==0.  
   - None: hashable.
-- **Elytra**: 235000에서 **str, int에만** `tp_hash` 등록. tuple/bytes/float/bool/NoneType은 tp_hash NULL.
-
-따라서 “tuple을 dict 키로 쓴다”, “None을 dict 키로 쓴다” 등은 현재 Elytra에서 지원되지 않으며, CPython과의 **동작 집합** 차이로 이어집니다.  
-“Minimal” 범위를 “지금 필요한 것만”으로 두었다면 설계 선택으로 볼 수 있으나, **문서에 “hashable 집합이 CPython보다 좁다”**라고 명시해 두는 편이 좋습니다.  
-향후 tuple/bytes/float/bool/None에 tp_hash를 등록하면, 해당 타입만 CPython과 더 가깝게 맞출 수 있습니다.
+- **Elytra**: 235800 `tp_hash_extended`에서 **bytes, float, bool, NoneType, tuple**에 tp_hash 등록.  
+  - 타입별 함수: `py_bytes_hash`, `py_float_hash`, `py_bool_hash`, `py_none_hash`, `py_tuple_hash`.  
+  - tuple은 원소마다 `py_object_hash` 호출로 “원소가 unhashable이면 TypeError” 의미 유지.  
+  - 판별은 구체 테이블 존재 여부만 사용, tp_name 분기 없음.  
+  - 계획: docs/CHANGE_2_TP_HASH_EXTENDED_PLAN.md.
 
 ### 3.3 py_object_equals_key의 tp_name 분기 (역할 축소됨)
 

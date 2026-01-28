@@ -40,6 +40,7 @@ create table public.py_type_object (
   tp_call regproc,       -- CPython ternaryfunc tp_call; NULL = not callable. See 234000.
   tp_hash regproc,       -- CPython hashfunc tp_hash; NULL = unhashable. See 235000.
   tp_richcompare regproc -- CPython richcmpfunc tp_richcompare; NULL = not implemented. See 236000.
+  -- tp_as_number: PyNumberMethods* (nb_absolute, nb_add, ...). Added in 235500 via py_number_methods.
 );
 
 -- Link PyObject to its type (ob_type is a PyTypeObject, whose identity is its PyObject id)

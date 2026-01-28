@@ -89,6 +89,8 @@ DECLARE
     call_func regproc;
     result_id UUID;
     func_type_name TEXT;
+    call_nspname TEXT;
+    call_proname TEXT;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_object WHERE id = obj_id) THEN
         RAISE EXCEPTION 'py_object_call: Object with id % does not exist', obj_id;
@@ -113,8 +115,18 @@ BEGIN
         RAISE EXCEPTION 'TypeError: ''%'' object is not callable', COALESCE(func_type_name, 'unknown');
     END IF;
 
+    -- Resolve regproc to schema+name so the dynamic call is "schema.func(...)", not "\"schema.func\"(...)".
+    SELECT n.nspname, p.proname INTO call_nspname, call_proname
+    FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE p.oid = call_func::oid;
+
+    IF call_nspname IS NULL OR call_proname IS NULL THEN
+        RAISE EXCEPTION 'py_object_call: tp_call regproc % does not resolve to a function', call_func;
+    END IF;
+
     -- tp_call convention: (obj_id UUID, args UUID[], kwargs_id UUID) RETURNS UUID
-    EXECUTE format('SELECT %I($1, $2, $3)', call_func::text)
+    EXECUTE format('SELECT %I.%I($1, $2, $3)', call_nspname, call_proname)
     USING obj_id, args, COALESCE(kwargs_id, NULL) INTO result_id;
 
     RETURN result_id;

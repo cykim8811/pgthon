@@ -18,7 +18,6 @@ Elytra는 **CPython의 객체 모델을 PostgreSQL 위에 충실하게 구현**�
 - **Faithful**: CPython의 개념(객체/타입/상속/내장 싱글턴 등)을 왜곡하지 않습니다.
 - **Minimal**: "필요한 만큼만" 구현합니다. 단, 생략은 **개념을 훼손하지 않는 범위**에서만 합니다.
 - **Composable**: 이후 개념(예: descriptor, MRO, attribute lookup, opcode/frames 등)이 자연스럽게 쌓이도록, 기반을 단단히 합니다.
-- **Test-first**: 각 단계는 테스트로 기대 동작을 고정하고, 구현으로 통과시키는 방식으로 진행합니다.
 
 ---
 
@@ -35,19 +34,26 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
 
 ## 데이터베이스 (Supabase / PostgreSQL)
 
-`supabase/migrations/`는 세 가지 계층으로 구성됩니다:
+`supabase/migrations/`는 다음 계층으로 구성됩니다. 상세한 파일 목록은 디렉터리 번호순을 참고한다.
 
-- `20260112141514_app_schema.sql`
-  - **앱 스키마**: 사용자 프로필, 워크스페이스, 권한 관리 등 애플리케이션 레벨 인프라
+- **앱 스키마** (`20260112141514_app_schema.sql`)
+  - 사용자 프로필, 워크스페이스, 권한 관리 등 애플리케이션 레벨 인프라
   - RLS 정책 및 자동화 트리거 포함
 
-- `20260114220000_python_object_schema.sql`
-  - **CPython 구조체 정의**: `py_object`, `py_type_object`, `py_unicode_object` 등 테이블 스키마
-  - CPython의 내부 구조체를 PostgreSQL 테이블로 매핑 (C 헤더 파일과 유사한 역할)
+- **CPython 구조체·부트스트랩** (`20260114220000`·`20260114223000`)
+  - 구조체 정의: `py_object`, `py_type_object`, `py_unicode_object` 등 테이블 스키마 (C 헤더와 유사)
+  - 부트스트랩: `object`, `type`, `str`, `int`, `list`, `dict`, `tuple`, `NoneType`, `None` 싱글턴 등 "세계의 바닥" 구축
 
-- `20260114223000_python_bootstrap.sql`
-  - **객체 인스턴스 생성**: `object`, `type`, `str`, `int`, `list`, `dict`, `tuple`, `NoneType` 및 `None` 싱글턴
-  - CPython 런타임 초기화와 유사하게 "세계의 바닥"을 구축
+- **실행 모델** (function/code/frame 스키마, builtin 함수, type method slots)
+  - `py_function_object`, `py_code_object`, `py_frame_object` 등과 내장 함수(`len`, `abs`) 등록
+  - `tp_as_sequence`/`tp_as_mapping`·`PyObject_Size` 등 타입 슬롯 기반 길이 연산
+
+- **VM 코어·opcode** (스택, eval_frame, 기본 opcode)
+  - 스택 연산·바이트코드 해석·`py_eval_frame` 메인 루프
+  - `LOAD_CONST` 등 기본 opcode; `STORE_NAME`/`LOAD_NAME`의 이름공간 조회·저장은 tp_hash 쪽 migration에서 구현
+
+- **타입 슬롯** (tp_call, tp_hash, tp_richcompare)
+  - 호출 가능·해시·비교를 슬롯으로 디스패치; dict lookup은 hash + tp_richcompare 기반으로 동작
 
 ---
 
@@ -55,12 +61,11 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
 
 - **CPython 고증 우선, 임시구현 최소화**: 설계 결정 시 "CPython은 왜/어떻게 하는가"가 최우선 기준입니다. CPython보다 기능이 적은 것은 허용하지만, CPython과 다른 방향의 구현은 허용하지 않습니다. 임시방편을 최소화하고 구조적으로 올바른 방향으로 진행합니다.
   - 만약 이것이 PostgreSQL의 한계이거나 다른 방향의 구현이 더 낫다는 판단이 들면, 사용자에게 확인을 받습니다. 구조적 오류나 설계상 문제가 발견되면 사용자에게 알립니다.
-- **테스트 우선 개발**: 각 단계에서 기대되는 결과를 바탕으로 테스트를 먼저 작성하고, 테스트가 실패하는 것을 확인한 후 구현을 진행합니다. 구현 후에는 모든 부분에 대해 세부적인 테스트를 작성하고, 테스트가 실패하면 문제의 핵심을 파악하여 수정합니다.
 - **테스트 파일은 run_tests.sh에 반드시 추가**: 새로운 테스트 파일을 작성할 때는 반드시 `run_tests.sh`에 추가해야 합니다. 테스트 파일은 `supabase/tests/` 디렉토리에 생성하고, `run_tests.sh`의 적절한 위치에 Phase 번호와 함께 추가합니다. 테스트가 통과하지 않으면 다음 단계로 진행하지 않도록 설계되어 있으므로, 모든 테스트가 순서대로 실행되도록 보장해야 합니다.
 - **임시방편 금지**: 테스트를 통과시키기 위한 "특례/하드코딩/우회"는 금지합니다. 테스트 성공을 목표로 임시구현이 들어가기 쉬우므로 경계합니다.
 - **단계적 구축**: 큰 기능을 한 번에 넣지 않습니다. 핵심 개념을 작은 단위로 쪼개고, 각 단위를 완성(테스트 포함)한 뒤 다음으로 진행합니다.
 - **핵심 아이디어를 기록**: 구현 디테일은 코드에, "기억해야 할 아이디어"는 README에 짧게 남깁니다.
-- **Migration은 최대한 작게 유지**: 기존 스키마 수정이 필요할 때, 변경하는 migration을 추가하는 것이 아닌, 기존의 스키마 생성 코드를 수정하는 방향으로 진행합니다.
+- **Migration은 최대한 작게 유지**: 기존 스키마 수정이 필요할 때, 변경하는 migration을 추가하는 것이 아닌, 기존의 스키마 생성 코드를 수정하는 방향으로 진행합니다. 단, backfill이나 제약(예: NOT NULL) 활성화는 그것이 의존하는 구현(tp_hash 등)이 들어온 뒤의 migration에서 수행할 수 있다.
 - **SQL 식별자 규칙**: PostgreSQL에서 대문자/따옴표 식별자는 케이스-센서티브로 동작해 사용성이 떨어집니다. 따라서 테이블/컬럼/제약 이름은 **소문자 스네이크 케이스**(`py_object`)로 작성합니다. 이는 PyObject와 같은 CPython의 구조체명과 대응됩니다.
 
 ---

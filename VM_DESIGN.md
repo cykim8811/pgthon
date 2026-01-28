@@ -497,10 +497,75 @@ $$ LANGUAGE plpgsql;
 - 현재 스키마에는 없음
 - **해결책**: 필요시 `f_blockstack` 추가
 
+---
+
+## BINARY_ADD 구현 계획 (nb_add 슬롯)
+
+CPython 고증을 지키고, 임시방편 없이 **타입 슬롯(nb_add)** 로만 이항 덧셈을 처리하는 진행 계획이다.
+
+### 1. CPython 쪽
+
+- **PyNumber_Add(o1, o2)**: `o1 + o2`를 수행하는 C API. 반환: 새 참조 또는 NULL(에러).
+- **nb_add**: `PyNumberMethods` 안의 `binaryfunc` 슬롯. 시그니처 `(PyObject *a, PyObject *b) -> PyObject*`.  
+  - 왼쪽 타입의 nb_add(a, b) 먼저 시도 → `NotImplemented`면 오른쪽 타입의 nb_add(b, a) 시도(역방향).  
+  - 둘 다 없거나 둘 다 NotImplemented면 TypeError.
+- **타입별**: int는 수치 덧셈, str은 concatenation. int+str → int의 nb_add가 NotImplemented 반환 후 str의 nb_add(str, int)도 NotImplemented → TypeError.
+
+### 2. Elytra에서 할 일(순서)
+
+| 단계 | 내용 |
+|------|------|
+| 1 | **스키마** `py_type_object`에 `nb_add regproc` 추가. **지향**: `20260114220000_python_object_schema.sql`의 `create table py_type_object`를 직접 수정해 컬럼 포함. (README 규칙: 기존 스키마 생성 코드 수정.) |
+| 2 | **타입별 구현** `py_long_nb_add(left_id, right_id)`, `py_unicode_nb_add(left_id, right_id)`. 각각 (left, right 모두 해당 타입일 때만) 덧셈/연결 후 새 객체 id 반환. 다른 타입이면 NotImplemented id 반환. |
+| 3 | **디스패치** `py_object_add(left_id, right_id)`: left의 `ob_type` → `nb_add` 조회. NULL이면 NotImplemented. 있으면 `nb_add(left, right)` 호출. 반환값이 NotImplemented id면 `nb_add(right, left)` 한 번 더 시도. 둘 다 없거나 둘 다 NotImplemented면 `RAISE EXCEPTION 'TypeError: unsupported operand type(s) for +: ...'`. |
+| 4 | **슬롯 등록** str, int의 `nb_add`에 위 타입별 함수 등록. |
+| 5 | **BINARY_ADD opcode** `py_opcode_BINARY_ADD(frame_id)`: stack에서 right, left 순으로 pop → `result_id := py_object_add(left, right)` → `py_stack_push(frame_id, result_id)`. (예외는 그대로 전파.) |
+| 6 | **eval_frame에 23 연결** opcode 23일 때 `PERFORM public.py_opcode_BINARY_ADD(frame_id);` 호출. `py_get_opcode_size`는 기본 2바이트로 23 포함되므로 수정 불필요. **배치**: BINARY_ADD/디스패치를 넣은 마이그레이션(예: 238000) **다음** 마이그레이션에서 `py_eval_frame`을 CREATE OR REPLACE로 수정해 `WHEN 23` 분기만 추가. (232000을 “이미 실행된 과거”로 두고, eval_frame 수정은 별도 마이그레이션에서만 수행.) |
+| 7 | **테스트** nb_add 슬롯·디스패치 단위, `1+2` / `"a"+"b"` 통합, `1+"a"` → TypeError. `supabase/tests/`에 추가하고 `run_tests.sh`에 Phase로 등록. |
+
+### 3. 배치(파일) 및 실행 순서
+
+- **스키마**: `20260114220000_python_object_schema.sql`의 `py_type_object` 정의에 `nb_add regproc` 한 줄 추가.
+- **함수·슬롯·opcode**: 새 마이그레이션 `20260114238000_nb_add_slot.sql`  
+  - `py_long_nb_add`, `py_unicode_nb_add`, `py_object_add` 정의, str/int에 nb_add 등록, `py_opcode_BINARY_ADD` 정의.
+- **eval_frame 연결**: 238000 **다음** 마이그레이션(예: `20260114239000_vm_eval_frame_binary_add.sql`)에서 `py_eval_frame`만 CREATE OR REPLACE로 수정해 CASE에 `WHEN 23 THEN PERFORM public.py_opcode_BINARY_ADD(frame_id);` 추가.  
+  - 스텁 없이 진행: 238000에서 이미 `py_opcode_BINARY_ADD`가 정의되므로, 그 다음에 eval_frame에서 23을 연결하면 된다. 232000 파일 자체는 수정하지 않고, “eval_frame 수정은 별도 마이그레이션에서만” 수행한다.
+
+### 4. 임시방편 금지
+
+- **타입 이름 분기 금지**: `py_object_add` 안에서는 `tp_name = 'int'` / `'str'`로 분기하지 않는다. left의 `nb_add` 슬롯 유무·호출 결과(NotImplemented 여부)와, 필요 시 right의 nb_add만 사용.
+- **타입별 함수**: `py_long_nb_add`는 “left/right가 int인가”만 확인(예: `py_long_object` 존재 여부). `py_unicode_nb_add`는 str만. 타입 이름 문자열 비교는 쓰지 않는다.
+- **NotImplemented 싱글턴**: 반환은 기존 부트스트랩의 NotImplemented 객체 id(`00000000-0000-4000-b000-000000000012`)만 사용.
+
+### 5. 이후 확장
+
+- float, bytes 등은 **타입별 nb_add 하나 정의 + 슬롯 등록**만 하면 되며, `py_object_add`와 BINARY_ADD는 수정하지 않는다.
+- 나중에 nb_subtract, nb_multiply 등이 필요하면 동일하게 “스키마에 슬롯 추가(220000 수정 지향) + 타입별 함수 + 디스패치” 패턴으로 확장.
+
+### 6. 진행 요약 (CPython 고증 · 비임시방편 · 깔끔한 구현)
+
+아래 순서대로 진행하면, 임시 스텁·타입 이름 분기·우회 구현 없이 nb_add 슬롯 방식으로만 BINARY_ADD를 넣을 수 있다.
+
+| 순서 | 작업 | 파일/위치 | 비고 |
+|------|------|-----------|------|
+| 1 | 스키마에 `nb_add regproc` 추가 | `20260114220000_python_object_schema.sql` 내 `create table py_type_object` | 기존 테이블 정의 직접 수정(README 규칙). tp_richcompare 다음 한 줄 추가. |
+| 2 | 타입별 nb_add 구현 | 새 마이그레이션 `20260114238000_nb_add_slot.sql` | `py_long_nb_add(left_id, right_id)`, `py_unicode_nb_add(left_id, right_id)`. int/str만 처리, 나머지는 NotImplemented id 반환. 타입 판별은 `py_long_object`/`py_unicode_object` 존재 여부로만. |
+| 3 | 디스패치 `py_object_add` | 같은 238000 | left의 `ob_type` → `nb_add` 호출. NotImplemented면 right의 nb_add(b,a) 한 번 더. 둘 다 없거나 둘 다 NotImplemented면 `RAISE EXCEPTION 'TypeError: unsupported operand type(s) for +: ...'`. tp_name 분기 금지. |
+| 4 | 슬롯 등록 | 같은 238000 | str, int의 `nb_add`에 위 타입별 함수 등록. |
+| 5 | BINARY_ADD opcode | 같은 238000 | `py_opcode_BINARY_ADD(frame_id)`: right/left pop → `py_object_add(left, right)` → push. |
+| 6 | eval_frame에 opcode 23 연결 | 새 마이그레이션 `20260114239000_vm_eval_frame_binary_add.sql` (238000 다음) | `py_eval_frame`만 CREATE OR REPLACE, CASE에 `WHEN 23 THEN PERFORM public.py_opcode_BINARY_ADD(frame_id);` 추가. `py_get_opcode_size`는 기본 2바이트로 23 포함되어 있으므로 변경 없음. |
+| 7 | 테스트 | `supabase/tests/21_nb_add_slot.sql` (예), `run_tests.sh` | nb_add 슬롯·디스패치 단위, `1+2`/`"a"+"b"` 통합, `1+"a"` → TypeError. Phase 21 등록. |
+
+- **CPython 고증**: PyNumber_Add / nb_add(binaryfunc) · 왼쪽 시도 → NotImplemented 시 오른쪽 역방향 · 둘 다 실패 시 TypeError.
+- **비임시방편**: 스텁 함수 없음. `py_object_add` 내부에 `tp_name`/타입 문자열 분기 없음. 타입별 함수는 테이블 존재로만 판별, NotImplemented는 부트스트랩 싱글턴 id (`00000000-0000-4000-b000-000000000012`)만 사용.
+- **깔끔한 확장**: 이후 float/bytes 등은 타입별 nb_add 함수 하나 + 슬롯 등록만 추가하면 되고, `py_object_add`·BINARY_ADD·eval_frame 분기는 수정하지 않는다.
+
+---
+
 ## 다음 단계
 
-1. **Stack operations 함수 구현 및 테스트**
-2. **LOAD_CONST opcode 구현 및 테스트**
-3. **간단한 표현식 실행 테스트** (예: `1 + 2`)
-4. **LOAD_NAME, STORE_NAME 구현**
-5. **변수 할당 및 참조 테스트**
+1. **BINARY_ADD (nb_add 슬롯)**  
+   위 “BINARY_ADD 구현 계획”대로 스키마 수정 → 238000에서 함수·슬롯·opcode → 다음 마이그레이션에서 eval_frame에 23 연결 → 테스트 추가.
+2. **간단한 표현식 실행**  
+   `1 + 2`, `"a" + "b"`가 한 프레임 실행으로 기대값이 나오는지 통합 테스트.
+3. (이후) 제어 흐름 opcode, 예외 처리 등은 VM_DESIGN Phase 4·5 참고.

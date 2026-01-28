@@ -11,6 +11,9 @@
 --   - py_opcode_STORE_NAME: (defined in 235000 tp_hash_slot, hash-based dict)
 --   - py_opcode_LOAD_NAME: (defined in 235000 tp_hash_slot, hash-based dict)
 --
+--   STORE_NAME/LOAD_NAME의 이름공간 조회·저장 구현은 235000(tp_hash_slot)의
+--   hash 기반 dict API(py_dict_get_item, py_dict_set_item)에 의존한다.
+--
 -- Design:
 --   - Each opcode handler is a separate function
 --   - Handlers operate on the frame's evaluation stack

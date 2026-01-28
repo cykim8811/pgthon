@@ -54,7 +54,7 @@ Elytra 마이그레이션 구현이 CPython의 의미·구조와 얼마나 맞�
 |------|---------|------------------|------|
 | hash(-1) | -2 (에러 반환 -1과 구분) | `IF int_val = -1 THEN hash_value := -2` | ✅ |
 | 작은 정수 | 값 그대로 등 | BIGINT 범위 내는 값 그대로 | ✅ |
-| 큰 정수 | 일종의 modular reduction | `int_val % 2147483647` | 알고리즘은 CPython과 완전 동일하지는 않을 수 있음, “해시 가능 + 정수 semantics” 수준에서는 일치 |
+| 큰 정수 | 일종의 modular reduction | `int_val % 2147483647` | 알고리즘은 CPython과 완전 동일하지는 않을 수 있음, "해시 가능 + 정수 semantics" 수준에서는 일치 |
 
 ### 1.6 Builtin·타입 슬롯 등록
 
@@ -70,10 +70,10 @@ Elytra 마이그레이션 구현이 CPython의 의미·구조와 얼마나 맞�
 
 | 항목 | CPython | Elytra | 판단 |
 |------|---------|--------|------|
-| kwargs | `PyObject_Call(obj,args,kwargs)` | `py_object_call(obj_id, args)` 만 지원, kwargs 없음 | Minimal. 주석에 “나중에 kwargs 지원 가능” 명시 ✅ |
-| dict 물리 구조 | dk_indices, perturb/probe 등 | 별도 구현 없음, hash+equality 의미만 유지 (DICT_LOOKUP_DESIGN §4) | 설계에서 “의미만 고증”으로 명시 ✅ |
-| str hash 알고리즘 | SipHash 등 (버전별 상이) | `hashtext()` | “같은 문자열이면 같은 해시” 만족, 비트 단위 동일성은 불요 ✅ |
-| tuple/bytes/float/bool/None hash | 모두 hashable, 각자 tp_hash 또는 상속 | **tp_hash 등록은 str, int만** (235000) | 아래 “고증 격차” 항으로 이동 권장 |
+| kwargs | `PyObject_Call(obj,args,kwargs)` | `py_object_call(obj_id, args)` 만 지원, kwargs 없음 | Minimal. 주석에 "나중에 kwargs 지원 가능" 명시 ✅ |
+| dict 물리 구조 | dk_indices, perturb/probe 등 | 별도 구현 없음, hash+equality 의미만 유지 (DICT_LOOKUP_DESIGN §4) | 설계에서 "의미만 고증"으로 명시 ✅ |
+| str hash 알고리즘 | SipHash 등 (버전별 상이) | `hashtext()` | "같은 문자열이면 같은 해시" 만족, 비트 단위 동일성은 불요 ✅ |
+| tuple/bytes/float/bool/None hash | 모두 hashable, 각자 tp_hash 또는 상속 | **tp_hash 등록은 str, int만** (235000) | 아래 "고증 격차" 항으로 이동 권장 |
 
 ---
 
@@ -92,7 +92,7 @@ Elytra 마이그레이션 구현이 CPython의 의미·구조와 얼마나 맞�
   - None: hashable.
 - **Elytra**: 235800 `tp_hash_extended`에서 **bytes, float, bool, NoneType, tuple**에 tp_hash 등록.  
   - 타입별 함수: `py_bytes_hash`, `py_float_hash`, `py_bool_hash`, `py_none_hash`, `py_tuple_hash`.  
-  - tuple은 원소마다 `py_object_hash` 호출로 “원소가 unhashable이면 TypeError” 의미 유지.  
+  - tuple은 원소마다 `py_object_hash` 호출로 "원소가 unhashable이면 TypeError" 의미 유지.  
   - 판별은 구체 테이블 존재 여부만 사용, tp_name 분기 없음.  
   - 계획: docs/CHANGE_2_TP_HASH_EXTENDED_PLAN.md.
 
@@ -103,32 +103,35 @@ Elytra 마이그레이션 구현이 CPython의 의미·구조와 얼마나 맞�
 
 따라서 **dict 키 동등성**은 이미 슬롯(tp_richcompare) 기반으로 이전된 상태이고, `py_object_equals_key`는 dict 경로에서는 쓰이지 않습니다.  
 다만 동일 함수가 다른 경로(테스트·레거시 호출)에서 남아 있다면, 그 경로는 여전히 tp_name 분기에 의존한다고 보는 게 맞습니다.  
-“dict는 오직 py_object_richcompare_eq”라고 설계가 정리되어 있으므로, 고증상의 문제는 dict 쪽이 아니라 **py_object_equals_key를 쓰는 다른 코드가 있다면** 그쪽에만 해당합니다.
+"dict는 오직 py_object_richcompare_eq"라고 설계가 정리되어 있으므로, 고증상의 문제는 dict 쪽이 아니라 **py_object_equals_key를 쓰는 다른 코드가 있다면** 그쪽에만 해당합니다.
 
-### 3.4 int hash “큰 정수” 공식
+### 3.4 int hash "큰 정수" — 알려진 차이
 
-- CPython의 `PyLong` 해시는 큰 정수에 대해 정해진 reduction 규칙을 사용합니다.
-- Elytra는 “BIGINT 범위 밖이면 `% 2147483647`” 로 단순화했습니다.
+- **CPython**: `PyLong` 해시는 큰 정수에 대해 정해진 reduction 규칙을 사용합니다.
+- **Elytra**: BIGINT 범위 밖이면 `int_val % 2147483647` 등으로 **단순화**해 두었습니다.
 
-해시값이 CPython과 **비트 단위로 같을 필요**까지는 설계에 없을 수 있으나, “가능한 한 CPython과 같은 규칙”을 목표로 한다면, CPython의 long hash 공식과의 차이를 문서에 한 줄 정도 적어두는 편이 좋습니다.
+→ 해시값이 CPython과 비트 단위로 같을 필요는 설계에 없으나, **알려진 차이**로 둡니다.
 
-### 3.5 tp_call 시그니처
+### 3.5 tp_call 시그니처 — 반영 완료 + 알려진 차이
 
 - **CPython**: `ternaryfunc tp_call(PyObject *callable, PyObject *args, PyObject *kwargs)`.
-- **Elytra**: `py_object_call(obj_id, args UUID[])` → 슬롯 함수는 `(obj_id, args)` 만 받음.
+- **Elytra**: 234500에서 **tp_call 시그니처를 (obj_id, args, kwargs_id) 3인자 규약**으로 반영했습니다.  
+  - `py_call_cfunction(obj_id, args, kwargs_id DEFAULT NULL)`, `py_object_call(obj_id, args, kwargs_id DEFAULT NULL)`  
+  - tp_call 슬롯 함수는 항상 3인자로 호출되며, METH_O/NOARGS/VARARGS에서 kwargs가 넘어오면 `TypeError: 'name'() takes no keyword arguments` 반환.
 
-의미적으로 “호출 시 타입의 tp_call만 본다”는 점은 맞고, kwargs 부재는 “의도적 축소”로 정리할 수 있습니다.  
-다만 공식적으로 “tp_call은 (obj, args, kwargs)를 받는 ternaryfunc”라고 적힌 문서와 대조할 때는 “kwargs는 미구현”이라고 한 줄 짚어두는 것이 고증 정리에 도움이 됩니다.
+**알려진 차이**: kwargs를 **실제로 넘겨서 쓰는** bytecode(CALL_FUNCTION_KW 등)는 아직 없습니다.  
+CALL_FUNCTION은 `py_object_call(..., NULL)`만 사용하며, "kwargs를 쓰는 호출"은 미구현 상태로 둡니다.
 
 ---
 
 ## 4. 정리
 
 - **객체/타입 모델, 타입 슬롯(tp_call/tp_hash/tp_richcompare) 사용 방식, dict lookup의 hash+동등성, VM·frame·기본 opcode 의미**는 CPython 고증에 잘 맞게 구현되어 있습니다.
-- **의도적 축소**(kwargs 미지원, dict 내부 구조 단순화, str hash 알고리즘 차이)는 Minimal·설계 문서와 양립 가능합니다.
-- **고증·원칙 측면에서 손보면 좋은 부분**은 다음 세 가지입니다.
-  1. **abs()**를 **nb_absolute** 슬롯 경유로 바꿔, 타입 이름 분기를 제거하는 것.
-  2. **hashable 범위**가 CPython보다 좁다는 점(tuple/bytes/float/bool/None 미지원)을 README나 설계 문서에 명시하는 것.
-  3. **tp_call kwargs 미구현**, **int 큰 정수 해시 공식 단순화**를 “알려진 차이”로 짧게 문서화하는 것.
+- **의도적 축소**(dict 내부 구조 단순화, str hash 알고리즘 차이)는 Minimal·설계 문서와 양립 가능합니다.
+- **고증·원칙 관련 조치 현황**:
+  1. **abs()** — 235500에서 **nb_absolute** 슬롯 경유로 전환 완료. 타입 이름 분기 제거됨.
+  2. **hashable 범위** — 235800에서 tuple/bytes/float/bool/None에 tp_hash 등록 완료. CPython과 동일 범위로 확장됨.
+  3. **tp_call 시그니처** — 234500에서 (obj_id, args, kwargs_id) 3인자 규약 반영 완료.  
+     **알려진 차이**로만 남긴 항목: **int 큰 정수 해시 공식 단순화**(§3.4), **kwargs를 넘기는 bytecode(CALL_FUNCTION_KW 등) 미구현**(§3.5).
 
-이 문서는 추후 CPython 버전을 참조한 구체적 대조가 이뤄질 때, 같은 포맷으로 “고증 유지 / 의도적 축소 / 격차”를 업데이트하는 데 쓰면 됩니다.
+이 문서는 추후 CPython 버전을 참조한 구체적 대조가 이뤄질 때, 같은 포맷으로 "고증 유지 / 의도적 축소 / 격차"를 업데이트하는 데 쓰면 됩니다.

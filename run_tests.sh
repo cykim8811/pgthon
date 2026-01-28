@@ -290,6 +290,16 @@ else
     exit 1
 fi
 
+# 22. BINARY_ADD Bytecode Integration (1+2, 'a'+'b', 1+'a'→TypeError)
+echo "=== Phase 22: BINARY_ADD Bytecode Integration ==="
+if run_test "supabase/tests/22_binary_add_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ BINARY_ADD bytecode integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -321,8 +331,9 @@ echo "  ✅ 18: Dict Lookup Hash-Based Test"
 echo "  ✅ 19: VM Full Pipeline Integration Test"
 echo "  ✅ 20: tp_richcompare Slot Test"
 echo "  ✅ 21: BINARY_ADD Slots (nb_add, sq_concat, dispatch)"
+echo "  ✅ 22: BINARY_ADD Bytecode Integration (1+2, 'a'+'b', 1+'a'→TypeError)"
 echo ""
-echo "Total: 22 test suites passed ✨"
+echo "Total: 23 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

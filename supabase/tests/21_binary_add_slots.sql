@@ -172,6 +172,61 @@ BEGIN
     pass_count := pass_count + 1;
 
     -- ========================================================================
+    -- Test 9: py_object_add(int, int) → 합 (Phase 3)
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 9: py_object_add(int, int) returns sum...';
+    test_count := test_count + 1;
+    res_id := public.py_object_add(int1_id, int2_id);
+    IF res_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: py_object_add(10, 20) returned NULL';
+    END IF;
+    SELECT long_value INTO val_num FROM public.py_long_object WHERE ob_base = res_id;
+    IF val_num IS NULL OR val_num <> 30 THEN
+        RAISE EXCEPTION 'FAIL: py_object_add(10, 20) result value is %, expected 30', val_num;
+    END IF;
+    RAISE NOTICE '  ✓ py_object_add(10, 20) = 30';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 10: py_object_add(str, str) → 연결 (Phase 3)
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 10: py_object_add(str, str) returns concatenation...';
+    test_count := test_count + 1;
+    res_id := public.py_object_add(str_a_id, str_b_id);
+    IF res_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: py_object_add("ab", "cd") returned NULL';
+    END IF;
+    SELECT str_value INTO val_txt FROM public.py_unicode_object WHERE ob_base = res_id;
+    IF val_txt IS NULL OR val_txt <> 'abcd' THEN
+        RAISE EXCEPTION 'FAIL: py_object_add("ab", "cd") result is %, expected "abcd"', COALESCE(val_txt, 'NULL');
+    END IF;
+    RAISE NOTICE '  ✓ py_object_add("ab", "cd") = "abcd"';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
+    -- Test 11: py_object_add(int, str) → TypeError (Phase 3)
+    -- ========================================================================
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 11: py_object_add(int, str) raises TypeError...';
+    test_count := test_count + 1;
+    BEGIN
+        res_id := public.py_object_add(int1_id, str_a_id);
+        RAISE EXCEPTION 'FAIL: py_object_add(int, str) should raise TypeError, got %', res_id;
+    EXCEPTION
+        WHEN OTHERS THEN
+            IF SQLERRM NOT LIKE '%unsupported operand type(s) for +%' THEN
+                RAISE;
+            END IF;
+            IF SQLERRM NOT LIKE '%int%' OR SQLERRM NOT LIKE '%str%' THEN
+                RAISE EXCEPTION 'FAIL: py_object_add(int, str) raised but message should mention int and str: %', SQLERRM;
+            END IF;
+    END;
+    RAISE NOTICE '  ✓ py_object_add(int, str) raises TypeError';
+    pass_count := pass_count + 1;
+
+    -- ========================================================================
     -- Summary
     -- ========================================================================
     RAISE NOTICE '';

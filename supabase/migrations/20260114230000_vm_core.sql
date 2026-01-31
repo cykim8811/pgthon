@@ -128,71 +128,21 @@ $$ LANGUAGE plpgsql;
 --   opcode: INTEGER opcode value (0-255)
 --
 -- Returns:
---   INTEGER: Size of the instruction in bytes
---   - 1: Opcode only (no operand)
---   - 2: Opcode + 1-byte operand (most common)
---   - 4: Opcode + 3-byte operand (with EXTENDED_ARG)
---
--- Behavior:
---   Returns the instruction size based on the opcode. Most opcodes use 2 bytes
---   (opcode 1 byte + operand 1 byte). Some opcodes have no operand and use
---   only 1 byte. Opcodes that use EXTENDED_ARG for larger operands use 4 bytes.
---
---   This function provides a default implementation that assumes 2 bytes for
---   most opcodes. As more opcodes are implemented, specific cases can be added.
---
--- Usage:
---   instruction_size := py_get_opcode_size(opcode);
---   i := i + instruction_size;  -- Move to next instruction
+--   INTEGER: Size of the instruction in bytes. Python 3.6+ uses uniform 2 bytes
+--   (opcode 1 byte + argument 1 byte) for every instruction. HAVE_ARGUMENT(90)
+--   only indicates whether the argument is semantically used; storage is always 2.
 --
 -- CPython Reference:
---   In CPython, instruction size is determined by the opcode definition in
---   Include/opcode.h. The standard format is 2 bytes (opcode + operand),
---   but some opcodes have different sizes.
+--   Python 3.6+ (hence 3.11): each bytecode instruction uses 2 bytes.
+--   Include/opcode.h: HAVE_ARGUMENT 90, HAS_ARG(op) = (op) >= 90
 --
 CREATE OR REPLACE FUNCTION public.py_get_opcode_size(opcode INTEGER)
 RETURNS INTEGER AS $$
 BEGIN
-    -- Validate opcode range
     IF opcode < 0 OR opcode > 255 THEN
         RAISE EXCEPTION 'Invalid opcode: % (must be 0-255)', opcode;
     END IF;
-    
-    -- Opcodes with no operand (1 byte total)
-    -- These are rare in CPython, but some exist
-    CASE opcode
-        WHEN 9 THEN  -- NOP (No Operation)
-            RETURN 1;
-        -- Add more 1-byte opcodes here as needed
-        ELSE
-            -- Default: Most opcodes use 2 bytes (opcode 1 byte + operand 1 byte)
-            -- This covers the vast majority of CPython opcodes
-            RETURN 2;
-    END CASE;
-    
-    -- Note: Opcodes that use EXTENDED_ARG (opcode 144) for 3-byte operands
-    -- are handled by the interpreter loop, which checks for EXTENDED_ARG
-    -- before calling this function. The base instruction size is still 2 bytes.
+    -- Python 3.6+ uniform format: all instructions are 2 bytes (opcode + arg).
+    RETURN 2;
 END;
 $$ LANGUAGE plpgsql;
-
--- ============================================================================
--- Notes on Extension
--- ============================================================================
---
--- To extend py_get_opcode_size for specific opcodes:
---
--- 1. Add specific cases in the CASE statement above
--- 2. For opcodes with EXTENDED_ARG, the interpreter loop should check for
---    EXTENDED_ARG (opcode 144) before calling this function, and handle
---    the 3-byte operand separately.
---
--- Example extension:
---   WHEN 100 THEN  -- LOAD_CONST
---       RETURN 2;  -- opcode + 1-byte operand
---   WHEN 23 THEN   -- BINARY_ADD
---       RETURN 2;  -- opcode + 1-byte operand (usually unused)
---
--- Most opcodes don't need explicit cases since the default (2 bytes) applies.
--- Only opcodes with non-standard sizes need explicit handling.
---

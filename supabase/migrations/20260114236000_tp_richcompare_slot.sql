@@ -38,13 +38,14 @@ CREATE OR REPLACE FUNCTION public.py_unicode_richcompare(
     self_id uuid, other_id uuid, op integer)
 RETURNS uuid AS $$
 DECLARE
-    sid uuid := '00000000-0000-4000-b000-000000000012'; -- NotImplemented
-    tid uuid := '00000000-0000-4000-b000-000000000010'; -- True
-    fid uuid := '00000000-0000-4000-b000-000000000011'; -- False
+    sid uuid := '00000000-0000-4000-b000-000000000012';
+    tid uuid := '00000000-0000-4000-b000-000000000010';
+    fid uuid := '00000000-0000-4000-b000-000000000011';
     sval text;
     oval text;
+    cmp boolean;
 BEGIN
-    IF op <> 2 THEN  -- Py_EQ
+    IF op NOT IN (0, 1, 2, 3, 4, 5) THEN
         RETURN sid;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM public.py_unicode_object WHERE ob_base = other_id) THEN
@@ -52,10 +53,21 @@ BEGIN
     END IF;
     SELECT str_value INTO sval FROM public.py_unicode_object WHERE ob_base = self_id;
     SELECT str_value INTO oval FROM public.py_unicode_object WHERE ob_base = other_id;
-    IF sval IS NOT DISTINCT FROM oval THEN
-        RETURN tid;
+
+    CASE op
+        WHEN 0 THEN cmp := (sval < oval);   -- Py_LT
+        WHEN 1 THEN cmp := (sval <= oval);  -- Py_LE
+        WHEN 2 THEN RETURN CASE WHEN sval IS NOT DISTINCT FROM oval THEN tid ELSE fid END;  -- Py_EQ
+        WHEN 3 THEN cmp := (sval IS DISTINCT FROM oval);  -- Py_NE
+        WHEN 4 THEN cmp := (sval > oval);   -- Py_GT
+        WHEN 5 THEN cmp := (sval >= oval);  -- Py_GE
+        ELSE RETURN sid;
+    END CASE;
+
+    IF op IN (0, 1, 3, 4, 5) THEN
+        RETURN CASE WHEN cmp THEN tid ELSE fid END;
     END IF;
-    RETURN fid;
+    RETURN sid;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -68,8 +80,9 @@ DECLARE
     fid uuid := '00000000-0000-4000-b000-000000000011';
     sval numeric;
     oval numeric;
+    cmp boolean;
 BEGIN
-    IF op <> 2 THEN
+    IF op NOT IN (0, 1, 2, 3, 4, 5) THEN
         RETURN sid;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM public.py_long_object WHERE ob_base = other_id) THEN
@@ -77,10 +90,21 @@ BEGIN
     END IF;
     SELECT long_value INTO sval FROM public.py_long_object WHERE ob_base = self_id;
     SELECT long_value INTO oval FROM public.py_long_object WHERE ob_base = other_id;
-    IF sval IS NOT DISTINCT FROM oval THEN
-        RETURN tid;
+
+    CASE op
+        WHEN 0 THEN cmp := (sval < oval);   -- Py_LT
+        WHEN 1 THEN cmp := (sval <= oval);  -- Py_LE
+        WHEN 2 THEN RETURN CASE WHEN sval IS NOT DISTINCT FROM oval THEN tid ELSE fid END;  -- Py_EQ
+        WHEN 3 THEN cmp := (sval IS DISTINCT FROM oval);  -- Py_NE
+        WHEN 4 THEN cmp := (sval > oval);   -- Py_GT
+        WHEN 5 THEN cmp := (sval >= oval);  -- Py_GE
+        ELSE RETURN sid;
+    END CASE;
+
+    IF op IN (0, 1, 3, 4, 5) THEN
+        RETURN CASE WHEN cmp THEN tid ELSE fid END;
     END IF;
-    RETURN fid;
+    RETURN sid;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,15 +112,19 @@ $$ LANGUAGE plpgsql;
 -- Dispatch and dict-key equality helper
 -- ============================================================================
 
+-- py_object_richcompare: dispatch via tp_richcompare; on NotImplemented, try other's tp_richcompare with reflected op (CPython PyObject_RichCompare).
 CREATE OR REPLACE FUNCTION public.py_object_richcompare(
     self_id uuid, other_id uuid, op integer)
 RETURNS uuid AS $$
 DECLARE
     type_id uuid;
+    other_type_id uuid;
     rcf regproc;
     res uuid;
     not_impl uuid := '00000000-0000-4000-b000-000000000012';
+    reflected_op integer;
 BEGIN
+    -- 1) left(self_id) tp_richcompare(self_id, other_id, op)
     SELECT ob_type INTO type_id FROM public.py_object WHERE id = self_id;
     IF type_id IS NULL THEN
         RETURN not_impl;
@@ -104,10 +132,35 @@ BEGIN
     SELECT tp_richcompare INTO rcf
     FROM public.py_type_object WHERE ob_base = type_id;
     IF rcf IS NULL THEN
+        NULL;
+    ELSE
+        EXECUTE format('SELECT %I($1::uuid, $2::uuid, $3::integer)', rcf::text)
+        USING self_id, other_id, op INTO res;
+        IF res IS DISTINCT FROM not_impl THEN
+            RETURN res;
+        END IF;
+    END IF;
+
+    -- 2) NotImplemented → other's tp_richcompare(other_id, self_id, reflected_op)
+    SELECT ob_type INTO other_type_id FROM public.py_object WHERE id = other_id;
+    IF other_type_id IS NULL THEN
         RETURN not_impl;
     END IF;
-    EXECUTE format('SELECT %I($1::uuid, $2::uuid, $3::integer)', rcf::text)
-    USING self_id, other_id, op INTO res;
+    SELECT tp_richcompare INTO rcf
+    FROM public.py_type_object WHERE ob_base = other_type_id;
+    IF rcf IS NULL THEN
+        RETURN not_impl;
+    END IF;
+
+    IF op IN (0, 1, 4, 5) THEN
+        reflected_op := CASE op WHEN 0 THEN 4 WHEN 1 THEN 5 WHEN 4 THEN 0 WHEN 5 THEN 1 ELSE op END;
+        EXECUTE format('SELECT %I($1::uuid, $2::uuid, $3::integer)', rcf::text)
+        USING other_id, self_id, reflected_op INTO res;
+    ELSE
+        EXECUTE format('SELECT %I($1::uuid, $2::uuid, $3::integer)', rcf::text)
+        USING other_id, self_id, op INTO res;
+    END IF;
+
     RETURN res;
 END;
 $$ LANGUAGE plpgsql;

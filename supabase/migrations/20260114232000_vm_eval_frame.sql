@@ -65,7 +65,7 @@ RETURNS UUID AS $$
 DECLARE
     code_obj_id UUID;
     co_code_id UUID;
-    bytecode bytea;  -- bytes object의 bytes_value
+    bytecode bytea;
     opcode INTEGER;
     arg INTEGER;
     i INTEGER := 0;
@@ -73,101 +73,84 @@ DECLARE
     return_value UUID := NULL;
     should_return BOOLEAN := FALSE;
     bytecode_length INTEGER;
+    next_i INTEGER := NULL;
 BEGIN
-    -- Validate frame exists
     IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
         RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
     END IF;
-    
-    -- 1. Frame에서 code object 가져오기
-    SELECT f_code INTO code_obj_id
-    FROM public.py_frame_object
-    WHERE ob_base = frame_id;
-    
+
+    SELECT f_code INTO code_obj_id FROM public.py_frame_object WHERE ob_base = frame_id;
     IF code_obj_id IS NULL THEN
         RAISE EXCEPTION 'Frame with id % does not have a code object', frame_id;
     END IF;
-    
-    -- 2. Code object에서 bytecode 가져오기
-    SELECT co_code INTO co_code_id
-    FROM public.py_code_object
-    WHERE ob_base = code_obj_id;
-    
+
+    SELECT co_code INTO co_code_id FROM public.py_code_object WHERE ob_base = code_obj_id;
     IF co_code_id IS NULL THEN
         RAISE EXCEPTION 'Code object with id % does not have co_code', code_obj_id;
     END IF;
-    
-    SELECT bytes_value INTO bytecode
-    FROM public.py_bytes_object
-    WHERE ob_base = co_code_id;
-    
+
+    SELECT bytes_value INTO bytecode FROM public.py_bytes_object WHERE ob_base = co_code_id;
     IF bytecode IS NULL THEN
         RAISE EXCEPTION 'Bytes object with id % does not have bytes_value', co_code_id;
     END IF;
-    
+
     bytecode_length := length(bytecode);
-    
-    -- 3. Bytecode 실행 루프
-    -- CPython의 PyEval_EvalFrameEx와 동일하게, RETURN_VALUE opcode에서만 반환하고 루프 종료
+
     WHILE i < bytecode_length LOOP
-        -- Opcode 읽기 (1바이트)
-        opcode := get_byte(bytecode, i);  -- get_byte uses 0-based indexing
-        
-        -- Operand 읽기 (1바이트, 나중에 EXTENDED_ARG 지원 시 확장 가능)
+        next_i := NULL;
+        opcode := get_byte(bytecode, i);
         arg := get_byte(bytecode, i + 1);
-        
-        -- Opcode dispatch
-        -- Note: Only implemented opcodes are dispatched here.
-        -- Unimplemented opcodes will raise "Unknown opcode" exception.
+
         CASE opcode
-            WHEN 100 THEN  -- LOAD_CONST
+            WHEN 1 THEN
+                PERFORM public.py_opcode_POP_TOP(frame_id);
+            WHEN 100 THEN
                 PERFORM public.py_opcode_LOAD_CONST(frame_id, arg);
-            WHEN 101 THEN  -- LOAD_NAME
+            WHEN 101 THEN
                 PERFORM public.py_opcode_LOAD_NAME(frame_id, arg);
-            WHEN 141 THEN  -- CALL_FUNCTION
+            WHEN 141 THEN
                 PERFORM public.py_opcode_CALL_FUNCTION(frame_id, arg);
-            WHEN 90 THEN   -- STORE_NAME
+            WHEN 90 THEN
                 PERFORM public.py_opcode_STORE_NAME(frame_id, arg);
-            WHEN 83 THEN   -- RETURN_VALUE
-                -- CPython: PyEval_EvalFrameEx returns the value on top of the stack
-                -- when RETURN_VALUE opcode is executed
+            WHEN 23 THEN
+                PERFORM public.py_opcode_BINARY_ADD(frame_id);
+            WHEN 24 THEN
+                PERFORM public.py_opcode_BINARY_SUBTRACT(frame_id);
+            WHEN 20 THEN
+                PERFORM public.py_opcode_BINARY_MULTIPLY(frame_id);
+            WHEN 107 THEN
+                PERFORM public.py_opcode_COMPARE_OP(frame_id, arg);
+            WHEN 110 THEN
+                next_i := i + 2 + arg * 2;
+            WHEN 114 THEN
+                next_i := public.py_opcode_POP_JUMP_FORWARD_IF_FALSE(frame_id, i, arg);
+            WHEN 115 THEN
+                next_i := public.py_opcode_POP_JUMP_FORWARD_IF_TRUE(frame_id, i, arg);
+            WHEN 83 THEN
                 return_value := public.py_stack_pop(frame_id);
                 should_return := TRUE;
-                -- f_lasti 업데이트 (RETURN_VALUE instruction의 byte offset)
-                UPDATE public.py_frame_object
-                SET f_lasti = i
-                WHERE ob_base = frame_id;
-                EXIT;  -- 루프 종료 (CPython과 동일)
-            -- TODO: Implement the following opcodes:
-            --   - 23 (BINARY_ADD): Binary addition operation
-            --   - ... (other opcodes to be added)
+                UPDATE public.py_frame_object SET f_lasti = i WHERE ob_base = frame_id;
+                EXIT;
             ELSE
                 RAISE EXCEPTION 'Unknown opcode: % at byte offset %', opcode, i;
         END CASE;
-        
-        -- f_lasti 업데이트 (byte offset)
-        -- CPython의 f_lasti는 byte offset을 저장합니다 (instruction index가 아님)
-        -- RETURN_VALUE의 경우 위에서 이미 업데이트했으므로 여기서는 건너뜀
+
         IF opcode != 83 THEN
-            UPDATE public.py_frame_object
-            SET f_lasti = i
-            WHERE ob_base = frame_id;
+            UPDATE public.py_frame_object SET f_lasti = i WHERE ob_base = frame_id;
         END IF;
-        
-        -- 다음 instruction으로 이동
+
         instruction_size := public.py_get_opcode_size(opcode);
-        i := i + instruction_size;
+        IF next_i IS NOT NULL THEN
+            i := next_i;
+        ELSE
+            i := i + instruction_size;
+        END IF;
     END LOOP;
-    
-    -- 4. 반환값 처리
-    -- CPython: PyEval_EvalFrameEx returns the value popped by RETURN_VALUE,
-    -- or NULL if no RETURN_VALUE was executed (rare, usually indicates error)
+
     IF should_return THEN
         RETURN return_value;
     ELSE
-        -- 모든 bytecode 실행 완료 (일반적이지 않음, 보통 RETURN_VALUE가 있어야 함)
-        -- CPython에서는 이런 경우 NULL을 반환하거나 예외가 발생함
-        RETURN NULL;  -- 또는 None 객체 (나중에 None 객체 구현 시 변경)
+        RETURN NULL;
     END IF;
 END;
 $$ LANGUAGE plpgsql;

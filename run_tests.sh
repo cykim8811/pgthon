@@ -400,6 +400,16 @@ else
     exit 1
 fi
 
+# 33. Exception Table Parsing (co_exceptiontable)
+echo "=== Phase 33: Exception Table Parsing ==="
+if run_test "supabase/tests/33_exception_table_parsing.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Exception table parsing test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -442,8 +452,9 @@ echo "  ✅ 29: PyObject_IsTrue Slots"
 echo "  ✅ 30: Jump Bytecode Integration (JUMP_FORWARD, POP_JUMP_FORWARD_IF_FALSE)"
 echo "  ✅ 31: POP_TOP Bytecode Integration"
 echo "  ✅ 32: Exception Schema & Helpers (CPython 3.11)"
+echo "  ✅ 33: Exception Table Parsing (co_exceptiontable)"
 echo ""
-echo "Total: 33 test suites passed ✨"
+echo "Total: 34 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

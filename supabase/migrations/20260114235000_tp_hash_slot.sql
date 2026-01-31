@@ -24,8 +24,8 @@
 --   1. Implements py_object_hash() function (equivalent to PyObject_Hash)
 --   2. Implements type-specific hash functions (str, int, bytes, float, bool, None, tuple)
 --   3. Registers tp_hash for all hashable builtin types
---   4. Dict lookup hash-based: me_hash backfill/index, py_object_equals_key,
---      py_dict_get_item, py_dict_set_item, LOAD_NAME/STORE_NAME (hash-based).
+--   4. Dict lookup hash-based: me_hash backfill/index,
+--      py_dict_get_item, py_dict_set_item (key equality via py_object_richcompare_eq in 236000), LOAD_NAME/STORE_NAME.
 --      Design: docs/DICT_LOOKUP_DESIGN.md
 --   (tp_hash column is defined in 20260114220000_python_object_schema.sql)
 --
@@ -128,9 +128,10 @@ DECLARE
     str_val TEXT;
     hash_value BIGINT;
 BEGIN
-    -- Validate object exists and is a string
+    -- Validate object exists and is a string (CPython 고증: TypeError via py_err_set_*)
     IF NOT EXISTS (SELECT 1 FROM public.py_unicode_object WHERE ob_base = obj_id) THEN
-        RAISE EXCEPTION 'TypeError: py_unicode_hash called on non-string object';
+        PERFORM public.py_err_set_type_error('py_unicode_hash called on non-string object');
+        RETURN NULL;
     END IF;
     
     -- Get string value
@@ -169,9 +170,10 @@ DECLARE
     int_val NUMERIC;
     hash_value BIGINT;
 BEGIN
-    -- Validate object exists and is an integer
+    -- Validate object exists and is an integer (CPython 고증: TypeError via py_err_set_*)
     IF NOT EXISTS (SELECT 1 FROM public.py_long_object WHERE ob_base = obj_id) THEN
-        RAISE EXCEPTION 'TypeError: py_long_hash called on non-integer object';
+        PERFORM public.py_err_set_type_error('py_long_hash called on non-integer object');
+        RETURN NULL;
     END IF;
     
     -- Get integer value
@@ -180,7 +182,8 @@ BEGIN
     WHERE ob_base = obj_id;
     
     IF int_val IS NULL THEN
-        RAISE EXCEPTION 'TypeError: integer object has no value';
+        PERFORM public.py_err_set_type_error('integer object has no value');
+        RETURN NULL;
     END IF;
     
     -- CPython's hash for integers:
@@ -257,7 +260,8 @@ DECLARE
     bval bytea;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_bytes_object WHERE ob_base = obj_id) THEN
-        RAISE EXCEPTION 'TypeError: py_bytes_hash called on non-bytes object';
+        PERFORM public.py_err_set_type_error('py_bytes_hash called on non-bytes object');
+        RETURN NULL;
     END IF;
     SELECT bytes_value INTO bval FROM public.py_bytes_object WHERE ob_base = obj_id;
     IF bval IS NULL OR length(bval) = 0 THEN
@@ -273,7 +277,8 @@ DECLARE
     fval double precision;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_float_object WHERE ob_base = obj_id) THEN
-        RAISE EXCEPTION 'TypeError: py_float_hash called on non-float object';
+        PERFORM public.py_err_set_type_error('py_float_hash called on non-float object');
+        RETURN NULL;
     END IF;
     SELECT ob_fval INTO fval FROM public.py_float_object WHERE ob_base = obj_id;
     RETURN hashtext(fval::text)::bigint;
@@ -286,7 +291,8 @@ DECLARE
     bval boolean;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_bool_object WHERE ob_base = obj_id) THEN
-        RAISE EXCEPTION 'TypeError: py_bool_hash called on non-bool object';
+        PERFORM public.py_err_set_type_error('py_bool_hash called on non-bool object');
+        RETURN NULL;
     END IF;
     SELECT bool_value INTO bval FROM public.py_bool_object WHERE ob_base = obj_id;
     RETURN CASE WHEN bval THEN 1 ELSE 0 END;
@@ -297,7 +303,8 @@ CREATE OR REPLACE FUNCTION public.py_none_hash(obj_id uuid)
 RETURNS bigint AS $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_none_object WHERE ob_base = obj_id) THEN
-        RAISE EXCEPTION 'TypeError: py_none_hash called on non-None object';
+        PERFORM public.py_err_set_type_error('py_none_hash called on non-None object');
+        RETURN NULL;
     END IF;
     RETURN 0;
 END;
@@ -316,7 +323,8 @@ DECLARE
     mid   constant numeric := 9223372036854775808;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_tuple_object WHERE ob_base = obj_id) THEN
-        RAISE EXCEPTION 'TypeError: py_tuple_hash called on non-tuple object';
+        PERFORM public.py_err_set_type_error('py_tuple_hash called on non-tuple object');
+        RETURN NULL;
     END IF;
     SELECT ob_item INTO items FROM public.py_tuple_object WHERE ob_base = obj_id;
     n := coalesce(array_length(items, 1), 0);
@@ -366,51 +374,7 @@ ALTER COLUMN me_hash SET NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_py_dict_entry_dict_id_me_hash
 ON public.py_dict_entry (dict_id, me_hash);
 
-CREATE OR REPLACE FUNCTION public.py_object_equals_key(a_id UUID, b_id UUID)
-RETURNS BOOLEAN AS $$
-DECLARE
-    type_a_id UUID;
-    type_b_id UUID;
-    tp_name_a TEXT;
-    tp_name_b TEXT;
-    str_a TEXT;
-    str_b TEXT;
-    long_a NUMERIC;
-    long_b NUMERIC;
-BEGIN
-    IF a_id IS NULL OR b_id IS NULL THEN
-        RETURN FALSE;
-    END IF;
-    IF a_id = b_id THEN
-        RETURN TRUE;
-    END IF;
-
-    SELECT ob_type INTO type_a_id FROM public.py_object WHERE id = a_id;
-    SELECT ob_type INTO type_b_id FROM public.py_object WHERE id = b_id;
-    IF type_a_id IS NULL OR type_b_id IS NULL THEN
-        RETURN FALSE;
-    END IF;
-
-    SELECT tp_name INTO tp_name_a FROM public.py_type_object WHERE ob_base = type_a_id;
-    SELECT tp_name INTO tp_name_b FROM public.py_type_object WHERE ob_base = type_b_id;
-
-    IF tp_name_a = 'str' AND tp_name_b = 'str' THEN
-        SELECT str_value INTO str_a FROM public.py_unicode_object WHERE ob_base = a_id;
-        SELECT str_value INTO str_b FROM public.py_unicode_object WHERE ob_base = b_id;
-        RETURN (str_a IS NOT DISTINCT FROM str_b);
-    END IF;
-
-    IF tp_name_a = 'int' AND tp_name_b = 'int' THEN
-        SELECT long_value INTO long_a FROM public.py_long_object WHERE ob_base = a_id;
-        SELECT long_value INTO long_b FROM public.py_long_object WHERE ob_base = b_id;
-        RETURN (long_a IS NOT DISTINCT FROM long_b);
-    END IF;
-
-    RETURN FALSE;
-END;
-$$ LANGUAGE plpgsql;
-
--- Dict key equality uses py_object_richcompare_eq (defined in 236000). Reference valid after 236000 runs.
+-- Dict key equality uses py_object_richcompare_eq (defined in 236000).
 CREATE OR REPLACE FUNCTION public.py_dict_get_item(dict_id UUID, key_id UUID)
 RETURNS UUID AS $$
 DECLARE

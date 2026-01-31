@@ -3,7 +3,7 @@
 --
 -- Purpose:
 --   Hash-based dict lookup per CPython semantics (DICT_LOOKUP_DESIGN §6).
---   - py_object_equals_key: same-id TRUE; str/int value comparison; other FALSE
+--   - py_object_richcompare_eq: dict key equality (tp_richcompare Py_EQ)
 --   - py_dict_get_item / py_dict_set_item: hash narrows, equality confirms
 --   - Same-value different key objects treated as same key (str/int)
 --   - Same-hash different keys: correct disambiguation by equality
@@ -63,11 +63,11 @@ BEGIN
     test_count := test_count + 1;
 
     SELECT EXISTS (
-        SELECT 1 FROM pg_proc WHERE proname = 'py_object_equals_key'
+        SELECT 1 FROM pg_proc WHERE proname = 'py_object_richcompare_eq'
         AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
     ) INTO func_exists;
     IF NOT func_exists THEN
-        RAISE EXCEPTION 'FAIL: py_object_equals_key does not exist';
+        RAISE EXCEPTION 'FAIL: py_object_richcompare_eq does not exist';
     END IF;
 
     SELECT EXISTS (
@@ -86,71 +86,71 @@ BEGIN
         RAISE EXCEPTION 'FAIL: py_dict_set_item does not exist';
     END IF;
 
-    RAISE NOTICE '  ✓ py_object_equals_key, py_dict_get_item, py_dict_set_item exist';
+    RAISE NOTICE '  ✓ py_object_richcompare_eq, py_dict_get_item, py_dict_set_item exist';
     pass_count := pass_count + 1;
 
     -- ========================================================================
-    -- Test 2: py_object_equals_key — same id → TRUE
+    -- Test 2: py_object_richcompare_eq — same id → TRUE
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 2: py_object_equals_key(same id) → TRUE...';
+    RAISE NOTICE 'Test 2: py_object_richcompare_eq(same id) → TRUE...';
     test_count := test_count + 1;
 
     str_a_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (str_a_id, ID_STR_TYPE);
     INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (str_a_id, 'a');
 
-    SELECT public.py_object_equals_key(str_a_id, str_a_id) INTO eq;
+    SELECT public.py_object_richcompare_eq(str_a_id, str_a_id) INTO eq;
     IF NOT eq THEN
-        RAISE EXCEPTION 'FAIL: py_object_equals_key(a_id, a_id) should be TRUE';
+        RAISE EXCEPTION 'FAIL: py_object_richcompare_eq(a_id, a_id) should be TRUE';
     END IF;
 
-    RAISE NOTICE '  ✓ py_object_equals_key(same id) = TRUE';
+    RAISE NOTICE '  ✓ py_object_richcompare_eq(same id) = TRUE';
     pass_count := pass_count + 1;
 
     -- ========================================================================
-    -- Test 3: py_object_equals_key — str same value → TRUE
+    -- Test 3: py_object_richcompare_eq — str same value → TRUE
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 3: py_object_equals_key(str, str same value) → TRUE...';
+    RAISE NOTICE 'Test 3: py_object_richcompare_eq(str, str same value) → TRUE...';
     test_count := test_count + 1;
 
     str_a2_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (str_a2_id, ID_STR_TYPE);
     INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (str_a2_id, 'a');
 
-    SELECT public.py_object_equals_key(str_a_id, str_a2_id) INTO eq;
+    SELECT public.py_object_richcompare_eq(str_a_id, str_a2_id) INTO eq;
     IF NOT eq THEN
-        RAISE EXCEPTION 'FAIL: py_object_equals_key("a", "a") should be TRUE';
+        RAISE EXCEPTION 'FAIL: py_object_richcompare_eq("a", "a") should be TRUE';
     END IF;
 
-    RAISE NOTICE '  ✓ py_object_equals_key(str same value) = TRUE';
+    RAISE NOTICE '  ✓ py_object_richcompare_eq(str same value) = TRUE';
     pass_count := pass_count + 1;
 
     -- ========================================================================
-    -- Test 4: py_object_equals_key — str different value → FALSE
+    -- Test 4: py_object_richcompare_eq — str different value → FALSE
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 4: py_object_equals_key(str, str different value) → FALSE...';
+    RAISE NOTICE 'Test 4: py_object_richcompare_eq(str, str different value) → FALSE...';
     test_count := test_count + 1;
 
     str_b_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (str_b_id, ID_STR_TYPE);
     INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (str_b_id, 'b');
 
-    SELECT public.py_object_equals_key(str_a_id, str_b_id) INTO eq;
+    SELECT public.py_object_richcompare_eq(str_a_id, str_b_id) INTO eq;
     IF eq THEN
-        RAISE EXCEPTION 'FAIL: py_object_equals_key("a", "b") should be FALSE';
+        RAISE EXCEPTION 'FAIL: py_object_richcompare_eq("a", "b") should be FALSE';
     END IF;
 
-    RAISE NOTICE '  ✓ py_object_equals_key(str different value) = FALSE';
+    RAISE NOTICE '  ✓ py_object_richcompare_eq(str different value) = FALSE';
     pass_count := pass_count + 1;
 
     -- ========================================================================
-    -- Test 5: py_object_equals_key — int same value → TRUE
+    -- Test 5: py_object_richcompare_eq — int same value → TRUE
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 5: py_object_equals_key(int, int same value) → TRUE...';
+    RAISE NOTICE 'Test 5: py_object_richcompare_eq(int, int same value) → TRUE...';
     test_count := test_count + 1;
 
     int1_id := gen_random_uuid();
@@ -161,46 +161,46 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (int1b_id, ID_INT_TYPE);
     INSERT INTO public.py_long_object (ob_base, long_value) VALUES (int1b_id, 1);
 
-    SELECT public.py_object_equals_key(int1_id, int1b_id) INTO eq;
+    SELECT public.py_object_richcompare_eq(int1_id, int1b_id) INTO eq;
     IF NOT eq THEN
-        RAISE EXCEPTION 'FAIL: py_object_equals_key(1, 1) should be TRUE';
+        RAISE EXCEPTION 'FAIL: py_object_richcompare_eq(1, 1) should be TRUE';
     END IF;
 
-    RAISE NOTICE '  ✓ py_object_equals_key(int same value) = TRUE';
+    RAISE NOTICE '  ✓ py_object_richcompare_eq(int same value) = TRUE';
     pass_count := pass_count + 1;
 
     -- ========================================================================
-    -- Test 6: py_object_equals_key — int different value → FALSE
+    -- Test 6: py_object_richcompare_eq — int different value → FALSE
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 6: py_object_equals_key(int, int different value) → FALSE...';
+    RAISE NOTICE 'Test 6: py_object_richcompare_eq(int, int different value) → FALSE...';
     test_count := test_count + 1;
 
     int2_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (int2_id, ID_INT_TYPE);
     INSERT INTO public.py_long_object (ob_base, long_value) VALUES (int2_id, 2);
 
-    SELECT public.py_object_equals_key(int1_id, int2_id) INTO eq;
+    SELECT public.py_object_richcompare_eq(int1_id, int2_id) INTO eq;
     IF eq THEN
-        RAISE EXCEPTION 'FAIL: py_object_equals_key(1, 2) should be FALSE';
+        RAISE EXCEPTION 'FAIL: py_object_richcompare_eq(1, 2) should be FALSE';
     END IF;
 
-    RAISE NOTICE '  ✓ py_object_equals_key(int different value) = FALSE';
+    RAISE NOTICE '  ✓ py_object_richcompare_eq(int different value) = FALSE';
     pass_count := pass_count + 1;
 
     -- ========================================================================
-    -- Test 7: py_object_equals_key — str vs int → FALSE, other types no id compare
+    -- Test 7: py_object_richcompare_eq — str vs int → FALSE
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 7: py_object_equals_key(str, int) → FALSE...';
+    RAISE NOTICE 'Test 7: py_object_richcompare_eq(str, int) → FALSE...';
     test_count := test_count + 1;
 
-    SELECT public.py_object_equals_key(str_a_id, int1_id) INTO eq;
+    SELECT public.py_object_richcompare_eq(str_a_id, int1_id) INTO eq;
     IF eq THEN
-        RAISE EXCEPTION 'FAIL: py_object_equals_key(str, int) should be FALSE';
+        RAISE EXCEPTION 'FAIL: py_object_richcompare_eq(str, int) should be FALSE';
     END IF;
 
-    RAISE NOTICE '  ✓ py_object_equals_key(str, int) = FALSE';
+    RAISE NOTICE '  ✓ py_object_richcompare_eq(str, int) = FALSE';
     pass_count := pass_count + 1;
 
     -- ========================================================================

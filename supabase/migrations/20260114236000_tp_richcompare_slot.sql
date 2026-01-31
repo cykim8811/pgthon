@@ -5,8 +5,7 @@
 -- Purpose:
 --   Implements CPython's tp_richcompare slot for key equality in dict lookup.
 --   Design: docs/DICT_LOOKUP_DESIGN.md §7. Dict key equality uses
---   py_object_richcompare_eq (which dispatches via tp_richcompare) instead of
---   the type‑branching py_object_equals_key.
+--   py_object_richcompare_eq (which dispatches via tp_richcompare) for dict key equality.
 --
 -- CPython:
 --   richcmpfunc tp_richcompare;  // (PyObject *, PyObject *, int) -> PyObject*

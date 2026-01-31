@@ -110,133 +110,133 @@ else
     exit 1
 fi
 
-# 4. VM Stack Operations Test
-echo "=== Phase 4: VM Stack Operations ==="
-if run_test "supabase/tests/04_vm_stack_operations.sql"; then
+# 4. Ceval Stack Operations Test
+echo "=== Phase 4: Ceval Stack Operations ==="
+if run_test "supabase/tests/04_ceval_stack_operations.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM stack operations test failed. Cannot continue."
+    echo "❌ Ceval stack operations test failed. Cannot continue."
     exit 1
 fi
 
-# 5. VM Opcode Utilities Test
-echo "=== Phase 5: VM Opcode Utilities ==="
-if run_test "supabase/tests/05_vm_opcode_utils.sql"; then
+# 5. Ceval Opcode Utilities Test
+echo "=== Phase 5: Ceval Opcode Utilities ==="
+if run_test "supabase/tests/05_ceval_opcode_utils.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM opcode utilities test failed. Cannot continue."
+    echo "❌ Ceval opcode utilities test failed. Cannot continue."
     exit 1
 fi
 
-# 6. VM Integration Test
-echo "=== Phase 6: VM Integration ==="
-if run_test "supabase/tests/06_vm_integration.sql"; then
+# 6. Ceval Integration Test
+echo "=== Phase 6: Ceval Integration ==="
+if run_test "supabase/tests/06_ceval_integration.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM integration test failed. Cannot continue."
+    echo "❌ Ceval integration test failed. Cannot continue."
     exit 1
 fi
 
-# 7. VM Frame Evaluation Test
-echo "=== Phase 7: VM Frame Evaluation ==="
-if run_test "supabase/tests/07_vm_eval_frame.sql"; then
+# 7. Ceval Eval Frame Test
+echo "=== Phase 7: Ceval Eval Frame ==="
+if run_test "supabase/tests/07_ceval_eval_frame.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM frame evaluation test failed. Cannot continue."
+    echo "❌ Ceval eval frame test failed. Cannot continue."
     exit 1
 fi
 
-# 8. VM Basic Opcodes Test
-echo "=== Phase 8: VM Basic Opcodes ==="
-if run_test "supabase/tests/08_vm_opcodes_basic.sql"; then
+# 8. Ceval Basic Opcodes Test
+echo "=== Phase 8: Ceval Basic Opcodes ==="
+if run_test "supabase/tests/08_ceval_opcodes_basic.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM basic opcodes test failed. Cannot continue."
+    echo "❌ Ceval basic opcodes test failed. Cannot continue."
     exit 1
 fi
 
-# 9. VM Advanced Integration Test
-echo "=== Phase 9: VM Advanced Integration ==="
-if run_test "supabase/tests/09_vm_integration_advanced.sql"; then
+# 9. Ceval Advanced Integration Test
+echo "=== Phase 9: Ceval Advanced Integration ==="
+if run_test "supabase/tests/09_ceval_integration_advanced.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM advanced integration test failed. Cannot continue."
+    echo "❌ Ceval advanced integration test failed. Cannot continue."
     exit 1
 fi
 
-# 10. VM STORE_NAME Opcode Test
-echo "=== Phase 10: VM STORE_NAME Opcode ==="
-if run_test "supabase/tests/10_vm_opcode_store_name.sql"; then
+# 10. Ceval STORE_NAME Opcode Test
+echo "=== Phase 10: Ceval STORE_NAME Opcode ==="
+if run_test "supabase/tests/10_ceval_opcode_store_name.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM STORE_NAME opcode test failed. Cannot continue."
+    echo "❌ Ceval STORE_NAME opcode test failed. Cannot continue."
     exit 1
 fi
 
-# 11. VM STORE_NAME Integration Test
-echo "=== Phase 11: VM STORE_NAME Integration ==="
-if run_test "supabase/tests/11_vm_integration_store_name.sql"; then
+# 11. Ceval STORE_NAME Integration Test
+echo "=== Phase 11: Ceval STORE_NAME Integration ==="
+if run_test "supabase/tests/11_ceval_integration_store_name.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM STORE_NAME integration test failed. Cannot continue."
+    echo "❌ Ceval STORE_NAME integration test failed. Cannot continue."
     exit 1
 fi
 
-# 12. VM LOAD_NAME Opcode Test
-echo "=== Phase 12: VM LOAD_NAME Opcode ==="
-if run_test "supabase/tests/12_vm_opcode_load_name.sql"; then
+# 12. Ceval LOAD_NAME Opcode Test
+echo "=== Phase 12: Ceval LOAD_NAME Opcode ==="
+if run_test "supabase/tests/12_ceval_opcode_load_name.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM LOAD_NAME opcode test failed. Cannot continue."
+    echo "❌ Ceval LOAD_NAME opcode test failed. Cannot continue."
     exit 1
 fi
 
-# 13. VM LOAD_NAME Integration Test
-echo "=== Phase 13: VM LOAD_NAME Integration ==="
-if run_test "supabase/tests/13_vm_integration_load_name.sql"; then
+# 13. Ceval LOAD_NAME Integration Test
+echo "=== Phase 13: Ceval LOAD_NAME Integration ==="
+if run_test "supabase/tests/13_ceval_integration_load_name.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM LOAD_NAME integration test failed. Cannot continue."
+    echo "❌ Ceval LOAD_NAME integration test failed. Cannot continue."
     exit 1
 fi
 
-# 14. VM CALL_FUNCTION Opcode Test
-echo "=== Phase 14: VM CALL_FUNCTION Opcode ==="
-if run_test "supabase/tests/14_vm_opcode_call_function.sql"; then
+# 14. Ceval CALL_FUNCTION Opcode Test
+echo "=== Phase 14: Ceval CALL_FUNCTION Opcode ==="
+if run_test "supabase/tests/14_ceval_opcode_call_function.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM CALL_FUNCTION opcode test failed. Cannot continue."
+    echo "❌ Ceval CALL_FUNCTION opcode test failed. Cannot continue."
     exit 1
 fi
 
-# 15. VM CALL_FUNCTION Integration Test
-echo "=== Phase 15: VM CALL_FUNCTION Integration ==="
-if run_test "supabase/tests/15_vm_integration_call_function.sql"; then
+# 15. Ceval CALL_FUNCTION Integration Test
+echo "=== Phase 15: Ceval CALL_FUNCTION Integration ==="
+if run_test "supabase/tests/15_ceval_integration_call_function.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM CALL_FUNCTION integration test failed. Cannot continue."
+    echo "❌ Ceval CALL_FUNCTION integration test failed. Cannot continue."
     exit 1
 fi
 
-# 16. VM abs() Function Integration Test
-echo "=== Phase 16: VM abs() Function Integration ==="
-if run_test "supabase/tests/16_vm_integration_abs.sql"; then
+# 16. Ceval abs() Function Integration Test
+echo "=== Phase 16: Ceval abs() Function Integration ==="
+if run_test "supabase/tests/16_ceval_integration_abs.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM abs() function integration test failed. Cannot continue."
+    echo "❌ Ceval abs() function integration test failed. Cannot continue."
     exit 1
 fi
 
@@ -260,13 +260,13 @@ else
     exit 1
 fi
 
-# 19. VM Full Pipeline Integration Test
-echo "=== Phase 19: VM Full Pipeline Integration ==="
-if run_test "supabase/tests/19_vm_integration_full_pipeline.sql"; then
+# 19. Ceval Full Pipeline Integration Test
+echo "=== Phase 19: Ceval Full Pipeline Integration ==="
+if run_test "supabase/tests/19_ceval_integration_full_pipeline.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ VM full pipeline integration test failed. Cannot continue."
+    echo "❌ Ceval full pipeline integration test failed. Cannot continue."
     exit 1
 fi
 
@@ -360,13 +360,13 @@ else
     exit 1
 fi
 
-# 29. Jump — py_object_istrue (PyObject_IsTrue)
-echo "=== Phase 29: Jump (py_object_istrue) Slots ==="
-if run_test "supabase/tests/29_jump_istrue_slots.sql"; then
+# 29. PyObject_IsTrue Slots
+echo "=== Phase 29: PyObject_IsTrue Slots ==="
+if run_test "supabase/tests/29_py_object_istrue_slots.sql"; then
     echo ""
 else
     echo ""
-    echo "❌ Jump (py_object_istrue) slots test failed. Cannot continue."
+    echo "❌ PyObject_IsTrue slots test failed. Cannot continue."
     exit 1
 fi
 
@@ -403,22 +403,22 @@ echo "  ✅ 00: Bootstrap Validation (Object Model & Type System)"
 echo "  ✅ 01: Function, Code, and Frame Schema Validation"
 echo "  ✅ 02: Method Object Schema Validation"
 echo "  ✅ 03: Builtin Functions Integration Test"
-echo "  ✅ 04: VM Stack Operations Test"
-echo "  ✅ 05: VM Opcode Utilities Test"
-echo "  ✅ 06: VM Integration Test"
-echo "  ✅ 07: VM Frame Evaluation Test"
-echo "  ✅ 08: VM Basic Opcodes Test"
-echo "  ✅ 09: VM Advanced Integration Test"
-echo "  ✅ 10: VM STORE_NAME Opcode Test"
-echo "  ✅ 11: VM STORE_NAME Integration Test"
-echo "  ✅ 12: VM LOAD_NAME Opcode Test"
-echo "  ✅ 13: VM LOAD_NAME Integration Test"
-echo "  ✅ 14: VM CALL_FUNCTION Opcode Test"
-echo "  ✅ 15: VM CALL_FUNCTION Integration Test"
-echo "  ✅ 16: VM abs() Function Integration Test"
+echo "  ✅ 04: Ceval Stack Operations Test"
+echo "  ✅ 05: Ceval Opcode Utilities Test"
+echo "  ✅ 06: Ceval Integration Test"
+echo "  ✅ 07: Ceval Eval Frame Test"
+echo "  ✅ 08: Ceval Basic Opcodes Test"
+echo "  ✅ 09: Ceval Advanced Integration Test"
+echo "  ✅ 10: Ceval STORE_NAME Opcode Test"
+echo "  ✅ 11: Ceval STORE_NAME Integration Test"
+echo "  ✅ 12: Ceval LOAD_NAME Opcode Test"
+echo "  ✅ 13: Ceval LOAD_NAME Integration Test"
+echo "  ✅ 14: Ceval CALL_FUNCTION Opcode Test"
+echo "  ✅ 15: Ceval CALL_FUNCTION Integration Test"
+echo "  ✅ 16: Ceval abs() Function Integration Test"
 echo "  ✅ 17: tp_hash Slot System Test"
 echo "  ✅ 18: Dict Lookup Hash-Based Test"
-echo "  ✅ 19: VM Full Pipeline Integration Test"
+echo "  ✅ 19: Ceval Full Pipeline Integration Test"
 echo "  ✅ 20: tp_richcompare Slot Test"
 echo "  ✅ 21: BINARY_ADD Slots (nb_add, sq_concat, dispatch)"
 echo "  ✅ 22: BINARY_ADD Bytecode Integration (1+2, 'a'+'b', 1+'a'→TypeError)"
@@ -428,7 +428,7 @@ echo "  ✅ 25: BINARY_MULTIPLY Slots (nb_multiply, sq_repeat)"
 echo "  ✅ 26: BINARY_MULTIPLY Bytecode Integration (2*3, 'a'*3, 2*'b', 'a'*'b'→TypeError)"
 echo "  ✅ 27: COMPARE_OP Slots (py_object_richcompare reflected op)"
 echo "  ✅ 28: COMPARE_OP Bytecode Integration (1<2→True, 1>2→False, 1==1→True, 1<'a'→TypeError)"
-echo "  ✅ 29: Jump (py_object_istrue) Slots"
+echo "  ✅ 29: PyObject_IsTrue Slots"
 echo "  ✅ 30: Jump Bytecode Integration (JUMP_FORWARD, POP_JUMP_FORWARD_IF_FALSE)"
 echo "  ✅ 31: POP_TOP Bytecode Integration"
 echo ""

@@ -360,6 +360,26 @@ else
     exit 1
 fi
 
+# 29. Jump — py_object_istrue (PyObject_IsTrue)
+echo "=== Phase 29: Jump (py_object_istrue) Slots ==="
+if run_test "supabase/tests/29_jump_istrue_slots.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Jump (py_object_istrue) slots test failed. Cannot continue."
+    exit 1
+fi
+
+# 30. Jump Bytecode Integration (JUMP_FORWARD, POP_JUMP_FORWARD_IF_FALSE)
+echo "=== Phase 30: Jump Bytecode Integration ==="
+if run_test "supabase/tests/30_jump_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Jump bytecode integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -398,8 +418,10 @@ echo "  ✅ 25: BINARY_MULTIPLY Slots (nb_multiply, sq_repeat)"
 echo "  ✅ 26: BINARY_MULTIPLY Bytecode Integration (2*3, 'a'*3, 2*'b', 'a'*'b'→TypeError)"
 echo "  ✅ 27: COMPARE_OP Slots (py_object_richcompare reflected op)"
 echo "  ✅ 28: COMPARE_OP Bytecode Integration (1<2→True, 1>2→False, 1==1→True, 1<'a'→TypeError)"
+echo "  ✅ 29: Jump (py_object_istrue) Slots"
+echo "  ✅ 30: Jump Bytecode Integration (JUMP_FORWARD, POP_JUMP_FORWARD_IF_FALSE)"
 echo ""
-echo "Total: 29 test suites passed ✨"
+echo "Total: 31 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

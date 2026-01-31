@@ -410,6 +410,16 @@ else
     exit 1
 fi
 
+# 34. Try/Except Integration (exception table → handler → return)
+echo "=== Phase 34: Try/Except Integration ==="
+if run_test "supabase/tests/34_try_except_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Try/except integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================

@@ -8,7 +8,9 @@
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- py_eval_frame: after each opcode, if py_err_occurred() then traceback + exception table lookup
+-- py_eval_frame: CPython-faithful — only dispatch when *this* opcode set the exception.
+-- Before opcode: had_err := py_err_occurred(). After opcode: if NOT had_err AND py_err_occurred()
+-- then traceback + exception table lookup (so handler runs without re-dispatching).
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.py_eval_frame(frame_id UUID)
 RETURNS UUID AS $$
@@ -27,6 +29,7 @@ DECLARE
     next_i INTEGER := NULL;
     handler_target integer;
     handler_depth integer;
+    had_err BOOLEAN;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
         RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
@@ -53,6 +56,7 @@ BEGIN
 
     WHILE i < bytecode_length LOOP
         next_i := NULL;
+        had_err := public.py_err_occurred();
         opcode := get_byte(bytecode, i);
         arg := get_byte(bytecode, i + 1);
 
@@ -100,7 +104,7 @@ BEGIN
                 RAISE EXCEPTION 'Unknown opcode: % at byte offset %', opcode, i;
         END CASE;
 
-        IF public.py_err_occurred() THEN
+        IF NOT had_err AND public.py_err_occurred() THEN
             PERFORM public.py_traceback_here(frame_id, i);
             IF exc_table IS NOT NULL AND length(exc_table) > 0 THEN
                 SELECT h.target_offset, h.depth INTO handler_target, handler_depth

@@ -7,7 +7,7 @@
 -- - py_stack_trim, py_stack_peek: for unwinding and CHECK_EXC_MATCH
 -- - py_type_issubclass: for CHECK_EXC_MATCH (isinstance)
 -- - RAISE_VARARGS(130), RERAISE(119), POP_EXCEPT(89), PUSH_EXC_INFO(35), CHECK_EXC_MATCH(36)
--- - py_eval_frame: after each opcode, if py_err_occurred() then exception table lookup and unwinding
+-- - py_eval_frame: only dispatch when this opcode just set the exception (NOT had_err AND py_err_occurred())
 -- ============================================================================
 
 -- Fixed UUIDs (from exception schema / bootstrap)
@@ -311,6 +311,7 @@ DECLARE
     next_i INTEGER := NULL;
     handler_target integer;
     handler_depth integer;
+    had_err BOOLEAN;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
         RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
@@ -384,7 +385,7 @@ BEGIN
                 RAISE EXCEPTION 'Unknown opcode: % at byte offset %', opcode, i;
         END CASE;
 
-        IF public.py_err_occurred() THEN
+        IF NOT had_err AND public.py_err_occurred() THEN
             IF exc_table IS NOT NULL AND length(exc_table) > 0 THEN
                 SELECT h.target_offset, h.depth INTO handler_target, handler_depth
                 FROM public.py_get_exception_handler(exc_table, i / 2) h;

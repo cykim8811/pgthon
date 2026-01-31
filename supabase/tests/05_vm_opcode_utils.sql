@@ -4,8 +4,7 @@
 -- Purpose:
 --   Tests that opcode utility functions work correctly. This verifies:
 --   - py_get_opcode_size returns correct sizes for opcodes
---   - Default size (2 bytes) works for most opcodes
---   - Special cases (1-byte opcodes) are handled correctly
+--   - Python 3.6+ uniform format: all instructions are 2 bytes (opcode + arg)
 --   - Invalid opcode values raise exceptions
 --
 -- Usage:
@@ -73,18 +72,18 @@ BEGIN
     pass_count := pass_count + 1;
     
     -- ========================================================================
-    -- Test 2: Special case - NOP (1 byte, no operand)
+    -- Test 2: NOP (9) — Python 3.6+ uniform 2-byte instruction
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 2: Special case - NOP (1 byte)...';
+    RAISE NOTICE 'Test 2: NOP (9) — uniform 2 bytes...';
     test_count := test_count + 1;
     
     opcode_size := public.py_get_opcode_size(9);  -- NOP
-    IF opcode_size != 1 THEN
-        RAISE EXCEPTION 'FAIL: NOP (9) size is %, expected 1', opcode_size;
+    IF opcode_size != 2 THEN
+        RAISE EXCEPTION 'FAIL: NOP (9) size is %, expected 2', opcode_size;
     END IF;
     
-    RAISE NOTICE '  ✓ NOP correctly returns 1 byte';
+    RAISE NOTICE '  ✓ NOP correctly returns 2 bytes (3.6+ uniform format)';
     pass_count := pass_count + 1;
     
     -- ========================================================================
@@ -172,14 +171,11 @@ BEGIN
     RAISE NOTICE 'Test 6: Multiple opcodes - verify consistency...';
     test_count := test_count + 1;
     
-    -- Test a range of opcodes to ensure default behavior
+    -- Test a range of opcodes: Python 3.6+ all instructions are 2 bytes
     FOR test_opcode IN 0..50 LOOP
-        -- Skip NOP (9) which is 1 byte
-        IF test_opcode != 9 THEN
-            opcode_size := public.py_get_opcode_size(test_opcode);
-            IF opcode_size != 2 THEN
-                RAISE EXCEPTION 'FAIL: Opcode % size is %, expected 2', test_opcode, opcode_size;
-            END IF;
+        opcode_size := public.py_get_opcode_size(test_opcode);
+        IF opcode_size != 2 THEN
+            RAISE EXCEPTION 'FAIL: Opcode % size is %, expected 2', test_opcode, opcode_size;
         END IF;
     END LOOP;
     

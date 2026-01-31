@@ -380,6 +380,16 @@ else
     exit 1
 fi
 
+# 31. POP_TOP Bytecode Integration
+echo "=== Phase 31: POP_TOP Bytecode Integration ==="
+if run_test "supabase/tests/31_pop_top_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ POP_TOP bytecode integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -420,8 +430,9 @@ echo "  ✅ 27: COMPARE_OP Slots (py_object_richcompare reflected op)"
 echo "  ✅ 28: COMPARE_OP Bytecode Integration (1<2→True, 1>2→False, 1==1→True, 1<'a'→TypeError)"
 echo "  ✅ 29: Jump (py_object_istrue) Slots"
 echo "  ✅ 30: Jump Bytecode Integration (JUMP_FORWARD, POP_JUMP_FORWARD_IF_FALSE)"
+echo "  ✅ 31: POP_TOP Bytecode Integration"
 echo ""
-echo "Total: 31 test suites passed ✨"
+echo "Total: 32 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

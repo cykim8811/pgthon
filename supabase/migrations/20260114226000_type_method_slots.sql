@@ -43,75 +43,20 @@
 -- ============================================================================
 
 -- ============================================================================
--- Schema: PySequenceMethods Structure
+-- Schema: PySequenceMethods / PyMappingMethods
 -- ============================================================================
-
--- py_sequence_methods (Implements CPython's PySequenceMethods)
--- This table represents the PySequenceMethods structure that contains
--- function pointers for sequence operations. In CPython, this is a C struct
--- with function pointers. In Elytra, we store PostgreSQL function identifiers (regproc).
---
--- Note: We only implement the minimal fields needed for len() initially.
--- Other fields (sq_concat, sq_repeat, sq_item, etc.) can be added later.
-create table public.py_sequence_methods (
-  id uuid primary key default gen_random_uuid(),
-  
-  -- sq_length: Function to get the length of a sequence
-  -- In CPython: lenfunc sq_length (typedef Py_ssize_t (*lenfunc)(PyObject *))
-  -- In Elytra: regproc stores the PostgreSQL function identifier
-  -- NULL if this sequence type does not support length
-  sq_length regproc
-);
-
--- ============================================================================
--- Schema: PyMappingMethods Structure
--- ============================================================================
-
--- py_mapping_methods (Implements CPython's PyMappingMethods)
--- This table represents the PyMappingMethods structure that contains
--- function pointers for mapping operations. In CPython, this is a C struct
--- with function pointers. In Elytra, we store PostgreSQL function identifiers (regproc).
---
--- Note: We only implement the minimal fields needed for len() initially.
--- Other fields (mp_subscript, mp_ass_subscript, etc.) can be added later.
-create table public.py_mapping_methods (
-  id uuid primary key default gen_random_uuid(),
-  
-  -- mp_length: Function to get the length of a mapping
-  -- In CPython: lenfunc mp_length (typedef Py_ssize_t (*lenfunc)(PyObject *))
-  -- In Elytra: regproc stores the PostgreSQL function identifier
-  -- NULL if this mapping type does not support length
-  mp_length regproc
-);
-
--- ============================================================================
--- Schema Modification: Add Method Slot Pointers to PyTypeObject
--- ============================================================================
-
--- Add method slot pointer fields to py_type_object table
--- These fields reference py_sequence_methods and py_mapping_methods tables,
--- exactly matching CPython's PyTypeObject->tp_as_sequence and ->tp_as_mapping pointers.
---
--- In CPython:
---   PySequenceMethods *tp_as_sequence;  // NULL if not a sequence
---   PyMappingMethods *tp_as_mapping;    // NULL if not a mapping
---
--- In Elytra:
---   uuid tp_as_sequence;  // NULL if not a sequence, else references py_sequence_methods.id
---   uuid tp_as_mapping;   // NULL if not a mapping, else references py_mapping_methods.id
-ALTER TABLE public.py_type_object 
-ADD COLUMN tp_as_sequence uuid references public.py_sequence_methods(id),
-ADD COLUMN tp_as_mapping uuid references public.py_mapping_methods(id);
+-- Tables py_sequence_methods and py_mapping_methods are created in
+-- 20260114220000_python_object_schema.sql. tp_as_sequence and tp_as_mapping
+-- are defined there on py_type_object. This migration populates slots and
+-- implements type-specific length and PyObject_Size.
 
 -- Remove the old flattening fields if they exist (from previous implementation)
--- Note: This will fail if the columns don't exist, which is fine - we'll handle it gracefully
 DO $$
 BEGIN
     ALTER TABLE public.py_type_object DROP COLUMN IF EXISTS tp_as_sequence_sq_length;
     ALTER TABLE public.py_type_object DROP COLUMN IF EXISTS tp_as_mapping_mp_length;
 EXCEPTION
     WHEN undefined_column THEN
-        -- Columns don't exist, which is fine
         NULL;
 END $$;
 
@@ -381,19 +326,3 @@ BEGIN
     SET tp_as_mapping = ID_DICT_MAPPING_METHODS
     WHERE ob_base = ID_DICT_TYPE;
 END $$;
-
--- Enable Row Level Security
-ALTER TABLE public.py_sequence_methods enable row level security;
-ALTER TABLE public.py_mapping_methods enable row level security;
-
--- Default Policies (Allow authenticated users to read everything for now)
--- TODO: These policies should be refined as the security model evolves.
-CREATE POLICY "Authenticated users can view py_sequence_methods" 
-  ON public.py_sequence_methods 
-  FOR SELECT 
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "Authenticated users can view py_mapping_methods" 
-  ON public.py_mapping_methods 
-  FOR SELECT 
-  USING (auth.role() = 'authenticated');

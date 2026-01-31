@@ -28,21 +28,9 @@
 -- ============================================================================
 -- Schema: PyNumberMethods (CPython tp_as_number)
 -- ============================================================================
-
--- py_number_methods (Implements CPython's PyNumberMethods)
--- In CPython, PyTypeObject has PyNumberMethods *tp_as_number; nb_absolute lives here.
-create table public.py_number_methods (
-  id uuid primary key default gen_random_uuid(),
-  -- nb_absolute: unaryfunc (PyObject*) -> PyObject*
-  nb_absolute regproc
-);
-
-alter table public.py_type_object
-  add column tp_as_number uuid references public.py_number_methods(id);
-
-alter table public.py_number_methods enable row level security;
-create policy "Authenticated users can view py_number_methods"
-  on public.py_number_methods for select using (auth.role() = 'authenticated');
+-- Table py_number_methods and py_type_object.tp_as_number are defined in
+-- 20260114220000_python_object_schema.sql. This migration populates nb_absolute
+-- and registers it for int/float.
 
 -- ============================================================================
 -- Type-specific nb_absolute (table existence only; no tp_name)
@@ -163,16 +151,4 @@ BEGIN
     UPDATE public.py_type_object SET tp_as_number = id_num_float WHERE ob_base = id_float;
 END $$;
 
--- ============================================================================
--- builtin abs: use PyNumber_Absolute path only (no tp_name branching)
--- ============================================================================
-
-CREATE OR REPLACE FUNCTION public.py_builtin_abs(obj_id uuid)
-RETURNS uuid AS $$
-BEGIN
-    RETURN public.py_object_absolute(obj_id);
-EXCEPTION
-    WHEN OTHERS THEN
-        RAISE;
-END;
-$$ LANGUAGE plpgsql;
+-- py_builtin_abs is defined in 20260114225000_builtin_functions.sql (calls py_object_absolute).

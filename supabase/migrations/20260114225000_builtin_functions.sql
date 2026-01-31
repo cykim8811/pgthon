@@ -74,96 +74,13 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
--- py_builtin_abs: Implements CPython's builtin_abs function
--- Returns the absolute value of a number (int or float)
--- This is equivalent to CPython's builtin_abs() in Python/bltinmodule.c
---
--- CPython Implementation:
---   static PyObject *builtin_abs(PyObject *module, PyObject *obj) {
---       return PyNumber_Absolute(obj);
---   }
---
--- This function follows the same pattern: check type and compute absolute value.
+-- py_builtin_abs: CPython builtin_abs → PyNumber_Absolute. Dispatches via py_object_absolute (defined in 235500).
 CREATE OR REPLACE FUNCTION public.py_builtin_abs(obj_id UUID)
 RETURNS UUID AS $$
-DECLARE
-    obj_type_id UUID;
-    obj_type_name TEXT;
-    result_id UUID;
-    int_value NUMERIC;
-    float_value DOUBLE PRECISION;
-    abs_value NUMERIC;
-    -- Builtin type IDs (from bootstrap)
-    ID_INT_TYPE UUID := '00000000-0000-4000-a000-000000000004';
-    ID_FLOAT_TYPE UUID := '00000000-0000-4000-a000-000000000009';
 BEGIN
-    -- Get object type
-    SELECT ob_type INTO obj_type_id
-    FROM public.py_object
-    WHERE id = obj_id;
-    
-    IF obj_type_id IS NULL THEN
-        RAISE EXCEPTION 'TypeError: abs() argument must be a number, not NoneType';
-    END IF;
-    
-    SELECT tp_name INTO obj_type_name
-    FROM public.py_type_object
-    WHERE ob_base = obj_type_id;
-    
-    IF obj_type_name IS NULL THEN
-        RAISE EXCEPTION 'TypeError: abs() argument must be a number';
-    END IF;
-    
-    -- Dispatch based on type
-    IF obj_type_name = 'int' THEN
-        -- Get int value
-        SELECT long_value INTO int_value
-        FROM public.py_long_object
-        WHERE ob_base = obj_id;
-        
-        IF int_value IS NULL THEN
-            RAISE EXCEPTION 'TypeError: abs() argument must be a number';
-        END IF;
-        
-        -- Compute absolute value
-        abs_value := ABS(int_value);
-        
-        -- Create result int object
-        result_id := gen_random_uuid();
-        INSERT INTO public.py_object (id, ob_type)
-        VALUES (result_id, ID_INT_TYPE);
-        INSERT INTO public.py_long_object (ob_base, long_value)
-        VALUES (result_id, abs_value);
-        
-    ELSIF obj_type_name = 'float' THEN
-        -- Get float value
-        SELECT ob_fval INTO float_value
-        FROM public.py_float_object
-        WHERE ob_base = obj_id;
-        
-        IF float_value IS NULL THEN
-            RAISE EXCEPTION 'TypeError: abs() argument must be a number';
-        END IF;
-        
-        -- Compute absolute value
-        abs_value := ABS(float_value);
-        
-        -- Create result float object
-        result_id := gen_random_uuid();
-        INSERT INTO public.py_object (id, ob_type)
-        VALUES (result_id, ID_FLOAT_TYPE);
-        INSERT INTO public.py_float_object (ob_base, ob_fval)
-        VALUES (result_id, abs_value);
-        
-    ELSE
-        RAISE EXCEPTION 'TypeError: bad operand type for abs(): ''%''', obj_type_name;
-    END IF;
-    
-    RETURN result_id;
-    
+    RETURN public.py_object_absolute(obj_id);
 EXCEPTION
     WHEN OTHERS THEN
-        -- Re-raise with context
         RAISE;
 END;
 $$ LANGUAGE plpgsql;

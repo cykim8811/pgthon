@@ -139,59 +139,60 @@ $$ LANGUAGE plpgsql;
 --   Objects/methodobject.c. It dispatches to the appropriate calling convention
 --   based on m_ml_flags.
 --
-CREATE OR REPLACE FUNCTION public.py_call_cfunction(func_obj_id UUID, args UUID[])
+-- py_call_cfunction: (func_obj_id, args, kwargs_id). METH_O/METH_NOARGS: kwargs_id IS NOT NULL => TypeError.
+CREATE OR REPLACE FUNCTION public.py_call_cfunction(
+    func_obj_id UUID, args UUID[], kwargs_id UUID DEFAULT NULL)
 RETURNS UUID AS $$
 DECLARE
     ml_meth regproc;
     ml_flags INTEGER;
     result_id UUID;
     arg_count INTEGER;
+    func_name TEXT;
+    ml_name_id UUID;
 BEGIN
-    -- Validate function object exists
     IF NOT EXISTS (SELECT 1 FROM public.py_cfunction_object WHERE ob_base = func_obj_id) THEN
         RAISE EXCEPTION 'py_call_cfunction: Function object with id % does not exist', func_obj_id;
     END IF;
-    
-    -- Get function metadata
-    SELECT m_ml_meth, m_ml_flags INTO ml_meth, ml_flags
+
+    SELECT m_ml_meth, m_ml_flags, m_ml_name INTO ml_meth, ml_flags, ml_name_id
     FROM public.py_cfunction_object
     WHERE ob_base = func_obj_id;
-    
+
     IF ml_meth IS NULL THEN
         RAISE EXCEPTION 'py_call_cfunction: Function implementation (m_ml_meth) not found for function %', func_obj_id;
     END IF;
-    
-    -- Get argument count (array_length returns NULL for empty arrays, so use COALESCE)
+
+    IF kwargs_id IS NOT NULL THEN
+        IF (ml_flags & 8) != 0 OR (ml_flags & 4) != 0 OR (ml_flags & 1) != 0 THEN
+            SELECT str_value INTO func_name
+            FROM public.py_unicode_object
+            WHERE ob_base = ml_name_id;
+            RAISE EXCEPTION 'TypeError: ''%''() takes no keyword arguments', COALESCE(func_name, 'builtin');
+        END IF;
+    END IF;
+
     arg_count := COALESCE(array_length(args, 1), 0);
-    
-    -- Dispatch based on calling convention (m_ml_flags)
-    -- CPython flags: METH_NOARGS=0x0004, METH_O=0x0008, METH_VARARGS=0x0001
-    IF (ml_flags & 8) != 0 THEN  -- METH_O: single argument
+
+    IF (ml_flags & 8) != 0 THEN  -- METH_O
         IF arg_count != 1 THEN
             RAISE EXCEPTION 'py_call_cfunction: METH_O function expects 1 argument, got %', COALESCE(arg_count, 0);
         END IF;
-        
-        -- Call function with single argument
         EXECUTE format('SELECT %I($1)', ml_meth::text) USING args[1] INTO result_id;
-        
-    ELSIF (ml_flags & 4) != 0 THEN  -- METH_NOARGS: no arguments
+
+    ELSIF (ml_flags & 4) != 0 THEN  -- METH_NOARGS
         IF arg_count != 0 THEN
             RAISE EXCEPTION 'py_call_cfunction: METH_NOARGS function expects 0 arguments, got %', arg_count;
         END IF;
-        
-        -- Call function with no arguments
         EXECUTE format('SELECT %I()', ml_meth::text) INTO result_id;
-        
-    ELSIF (ml_flags & 1) != 0 THEN  -- METH_VARARGS: variable arguments (tuple)
-        -- METH_VARARGS functions receive a tuple of arguments
-        -- For now, we'll support simple cases. Full implementation would require
-        -- unpacking the tuple and calling with appropriate number of arguments.
+
+    ELSIF (ml_flags & 1) != 0 THEN  -- METH_VARARGS
         RAISE EXCEPTION 'py_call_cfunction: METH_VARARGS calling convention not yet implemented';
-        
+
     ELSE
         RAISE EXCEPTION 'py_call_cfunction: Unsupported calling convention (m_ml_flags=%)', ml_flags;
     END IF;
-    
+
     RETURN result_id;
 END;
 $$ LANGUAGE plpgsql;
@@ -223,6 +224,7 @@ $$ LANGUAGE plpgsql;
 --   This opcode is defined in Python/ceval.c and corresponds to opcode 141.
 --   It implements function calls with positional arguments only.
 --
+-- py_opcode_CALL_FUNCTION: pops args and func, calls py_object_call(..., NULL), pushes result.
 CREATE OR REPLACE FUNCTION public.py_opcode_CALL_FUNCTION(frame_id UUID, arg_count INTEGER)
 RETURNS VOID AS $$
 DECLARE
@@ -231,33 +233,21 @@ DECLARE
     i INTEGER;
     result_id UUID;
 BEGIN
-    -- Validate frame exists
     IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
         RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
     END IF;
-    
-    -- Validate arg_count is non-negative
     IF arg_count < 0 THEN
         RAISE EXCEPTION 'CALL_FUNCTION: arg_count must be non-negative, got %', arg_count;
     END IF;
-    
-    -- 1. Pop arguments from stack (in reverse order)
-    -- CPython: Arguments are pushed left-to-right, so we pop right-to-left
+
     args := array[]::UUID[];
     FOR i IN 1..arg_count LOOP
         args := array_prepend(public.py_stack_pop(frame_id), args);
     END LOOP;
-    
-    -- 2. Pop function object from stack
     func_obj_id := public.py_stack_pop(frame_id);
-    
-    -- 3. Call the object using its tp_call slot
-    -- CPython: PyObject_Call() checks Py_TYPE(obj)->tp_call and calls it
-    -- This is the CPython-faithful way to check if an object is callable
-    -- and invoke it, rather than checking type name strings.
-    result_id := public.py_object_call(func_obj_id, args);
-    
-    -- 4. Push result onto stack
+
+    result_id := public.py_object_call(func_obj_id, args, NULL);
+
     PERFORM public.py_stack_push(frame_id, result_id);
 END;
 $$ LANGUAGE plpgsql;

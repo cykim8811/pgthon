@@ -16,12 +16,7 @@
 -- Singleton (bootstrap 20260114223000)
 -- NotImplemented: 00000000-0000-4000-b000-000000000012
 
--- ============================================================================
--- A: py_number_methods에 nb_subtract 컬럼 추가
--- ============================================================================
-
-ALTER TABLE public.py_number_methods
-  ADD COLUMN IF NOT EXISTS nb_subtract regproc;
+-- nb_subtract column is defined in 20260114220000_python_object_schema.sql.
 
 -- ============================================================================
 -- C: py_long_nb_subtract(left_id, right_id) — int - int

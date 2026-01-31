@@ -212,47 +212,4 @@ BEGIN
     WHERE ob_base = id_int;
 END $$;
 
--- ============================================================================
--- Dict API: use py_object_richcompare_eq for key equality (§7.5)
--- ============================================================================
-
-CREATE OR REPLACE FUNCTION public.py_dict_get_item(dict_id uuid, key_id uuid)
-RETURNS uuid AS $$
-DECLARE
-    h bigint;
-    val_id uuid;
-BEGIN
-    h := public.py_object_hash(key_id);
-    SELECT e.me_value INTO val_id
-    FROM public.py_dict_entry e
-    WHERE e.dict_id = py_dict_get_item.dict_id
-      AND e.me_hash = h
-      AND public.py_object_richcompare_eq(e.me_key, key_id)
-    LIMIT 1;
-    RETURN val_id;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION public.py_dict_set_item(
-    dict_id uuid, key_id uuid, value_id uuid)
-RETURNS void AS $$
-DECLARE
-    h bigint;
-    entry_id uuid;
-BEGIN
-    h := public.py_object_hash(key_id);
-    SELECT e.id INTO entry_id
-    FROM public.py_dict_entry e
-    WHERE e.dict_id = py_dict_set_item.dict_id
-      AND e.me_hash = h
-      AND public.py_object_richcompare_eq(e.me_key, key_id)
-    LIMIT 1;
-
-    IF entry_id IS NOT NULL THEN
-        UPDATE public.py_dict_entry SET me_value = value_id WHERE id = entry_id;
-    ELSE
-        INSERT INTO public.py_dict_entry (dict_id, me_key, me_value, me_hash)
-        VALUES (py_dict_set_item.dict_id, key_id, value_id, h);
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
+-- py_dict_get_item and py_dict_set_item (using py_object_richcompare_eq for key equality) are defined in 20260114235000_tp_hash_slot.sql.

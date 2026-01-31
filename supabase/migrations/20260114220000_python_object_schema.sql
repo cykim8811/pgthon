@@ -27,6 +27,26 @@ create table public.py_object (
   ob_type uuid -- Points to a type object (py_type_object)
 );
 
+-- Method slot tables (CPython: PySequenceMethods*, PyMappingMethods*, PyNumberMethods*)
+-- Created here so py_type_object can reference them. Populated in later migrations.
+create table public.py_sequence_methods (
+  id uuid primary key default gen_random_uuid(),
+  sq_length regproc,
+  sq_concat regproc,
+  sq_repeat regproc
+);
+create table public.py_mapping_methods (
+  id uuid primary key default gen_random_uuid(),
+  mp_length regproc
+);
+create table public.py_number_methods (
+  id uuid primary key default gen_random_uuid(),
+  nb_absolute regproc,
+  nb_add regproc,
+  nb_subtract regproc,
+  nb_multiply regproc
+);
+
 -- 2. py_type_object (Implements CPython's PyTypeObject: defines types)
 --    Type objects themselves are also PyObjects (shared-PK inheritance).
 --    This table extends py_object with type-specific metadata.
@@ -39,8 +59,10 @@ create table public.py_type_object (
   -- In CPython, each type object has its own __dict__ for storing type attributes.
   tp_call regproc,       -- CPython ternaryfunc tp_call; NULL = not callable. See 234000.
   tp_hash regproc,       -- CPython hashfunc tp_hash; NULL = unhashable. See 235000.
-  tp_richcompare regproc -- CPython richcmpfunc tp_richcompare; NULL = not implemented. See 236000.
-  -- tp_as_number: PyNumberMethods* (nb_absolute, nb_add, ...). Added in 235500 via py_number_methods.
+  tp_richcompare regproc, -- CPython richcmpfunc tp_richcompare; NULL = not implemented. See 236000.
+  tp_as_sequence uuid references public.py_sequence_methods(id),
+  tp_as_mapping uuid references public.py_mapping_methods(id),
+  tp_as_number uuid references public.py_number_methods(id)
 );
 
 -- Link PyObject to its type (ob_type is a PyTypeObject, whose identity is its PyObject id)
@@ -202,6 +224,9 @@ alter table public.py_tuple_object enable row level security;
 alter table public.py_list_object enable row level security;
 alter table public.py_dict_object enable row level security;
 alter table public.py_dict_entry enable row level security;
+alter table public.py_sequence_methods enable row level security;
+alter table public.py_mapping_methods enable row level security;
+alter table public.py_number_methods enable row level security;
 alter table public.py_instance_object enable row level security;
 alter table public.py_none_object enable row level security;
 alter table public.py_bool_object enable row level security;
@@ -220,6 +245,9 @@ create policy "Authenticated users can view py_tuple_object" on public.py_tuple_
 create policy "Authenticated users can view py_list_object" on public.py_list_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_dict_object" on public.py_dict_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_dict_entry" on public.py_dict_entry for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_sequence_methods" on public.py_sequence_methods for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_mapping_methods" on public.py_mapping_methods for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_number_methods" on public.py_number_methods for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_instance_object" on public.py_instance_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_none_object" on public.py_none_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_bool_object" on public.py_bool_object for select using (auth.role() = 'authenticated');

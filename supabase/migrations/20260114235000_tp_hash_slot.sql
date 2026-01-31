@@ -252,16 +252,7 @@ END $$;
 -- Dict Lookup Hash-Based (CPython PyDictKeyEntry.me_hash)
 -- ============================================================================
 -- Key hash narrows candidates, key equality confirms. Design: docs/DICT_LOOKUP_DESIGN.md
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name = 'py_dict_entry' AND column_name = 'me_hash'
-    ) THEN
-        ALTER TABLE public.py_dict_entry ADD COLUMN me_hash bigint;
-    END IF;
-END $$;
+-- me_hash column is defined on py_dict_entry in 20260114220000_python_object_schema.sql.
 
 UPDATE public.py_dict_entry e
 SET me_hash = public.py_object_hash(e.me_key)
@@ -317,6 +308,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Dict key equality uses py_object_richcompare_eq (defined in 236000). Reference valid after 236000 runs.
 CREATE OR REPLACE FUNCTION public.py_dict_get_item(dict_id UUID, key_id UUID)
 RETURNS UUID AS $$
 DECLARE
@@ -328,7 +320,7 @@ BEGIN
     FROM public.py_dict_entry e
     WHERE e.dict_id = py_dict_get_item.dict_id
       AND e.me_hash = h
-      AND public.py_object_equals_key(e.me_key, key_id)
+      AND public.py_object_richcompare_eq(e.me_key, key_id)
     LIMIT 1;
     RETURN val_id;
 END;
@@ -345,7 +337,7 @@ BEGIN
     FROM public.py_dict_entry e
     WHERE e.dict_id = py_dict_set_item.dict_id
       AND e.me_hash = h
-      AND public.py_object_equals_key(e.me_key, key_id)
+      AND public.py_object_richcompare_eq(e.me_key, key_id)
     LIMIT 1;
 
     IF entry_id IS NOT NULL THEN

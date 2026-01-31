@@ -16,19 +16,7 @@
 -- NotImplemented singleton (bootstrap)
 -- 00000000-0000-4000-b000-000000000012
 
--- ============================================================================
--- A: py_number_methods에 nb_multiply 컬럼 추가
--- ============================================================================
-
-ALTER TABLE public.py_number_methods
-  ADD COLUMN IF NOT EXISTS nb_multiply regproc;
-
--- ============================================================================
--- B: py_sequence_methods에 sq_repeat 컬럼 추가
--- ============================================================================
-
-ALTER TABLE public.py_sequence_methods
-  ADD COLUMN IF NOT EXISTS sq_repeat regproc;
+-- nb_multiply, sq_repeat columns are defined in 20260114220000_python_object_schema.sql.
 
 -- ============================================================================
 -- C: py_long_nb_multiply(left_id, right_id) — int * int

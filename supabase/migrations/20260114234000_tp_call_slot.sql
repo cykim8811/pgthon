@@ -35,73 +35,53 @@
 -- Function: py_object_call (Equivalent to PyObject_Call)
 -- ============================================================================
 
--- py_object_call: Call an object using its tp_call slot
---
--- Parameters:
---   obj_id: UUID of the object to call
---   args: Array of argument object IDs (UUID[])
---
--- Returns:
---   UUID: The PyObject ID returned by the call
---
--- Behavior:
---   This is equivalent to CPython's PyObject_Call(). It checks the object's
---   type's tp_call slot and calls it if available. If tp_call is NULL, raises
---   TypeError indicating the object is not callable.
---
---   In CPython:
---   - PyObject_Call checks Py_TYPE(obj)->tp_call
---   - If tp_call is not NULL, calls it: tp_call(obj, args, kwargs)
---   - If tp_call is NULL, raises TypeError
---
--- Usage:
---   result_id := py_object_call(func_obj_id, ARRAY[arg1_id, arg2_id]);
---
--- CPython Reference:
---   This function implements the core logic of PyObject_Call in Objects/call.c.
---
-CREATE OR REPLACE FUNCTION public.py_object_call(obj_id UUID, args UUID[])
+-- py_object_call: (obj_id, args, kwargs_id). tp_call convention: (obj_id UUID, args UUID[], kwargs_id UUID) RETURNS UUID.
+CREATE OR REPLACE FUNCTION public.py_object_call(
+    obj_id UUID, args UUID[], kwargs_id UUID DEFAULT NULL)
 RETURNS UUID AS $$
 DECLARE
     obj_type_id UUID;
     call_func regproc;
     result_id UUID;
     func_type_name TEXT;
+    call_nspname TEXT;
+    call_proname TEXT;
 BEGIN
-    -- Validate object exists
     IF NOT EXISTS (SELECT 1 FROM public.py_object WHERE id = obj_id) THEN
         RAISE EXCEPTION 'py_object_call: Object with id % does not exist', obj_id;
     END IF;
-    
-    -- Get object type
+
     SELECT ob_type INTO obj_type_id
     FROM public.py_object
     WHERE id = obj_id;
-    
+
     IF obj_type_id IS NULL THEN
         RAISE EXCEPTION 'py_object_call: Object with id % does not have a type', obj_id;
     END IF;
-    
-    -- Get tp_call slot from type object
+
     SELECT tp_call INTO call_func
     FROM public.py_type_object
     WHERE ob_base = obj_type_id;
-    
-    -- Check if object is callable (tp_call is not NULL)
+
     IF call_func IS NULL THEN
-        -- Get type name for error message
         SELECT tp_name INTO func_type_name
         FROM public.py_type_object
         WHERE ob_base = obj_type_id;
-        
         RAISE EXCEPTION 'TypeError: ''%'' object is not callable', COALESCE(func_type_name, 'unknown');
     END IF;
-    
-    -- Call the tp_call function
-    -- For now, we pass args as an array. In the future, we may need to support kwargs.
-    -- The function signature is: func(obj_id UUID, args UUID[]) RETURNS UUID
-    EXECUTE format('SELECT %I($1, $2)', call_func::text) USING obj_id, args INTO result_id;
-    
+
+    SELECT n.nspname, p.proname INTO call_nspname, call_proname
+    FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE p.oid = call_func::oid;
+
+    IF call_nspname IS NULL OR call_proname IS NULL THEN
+        RAISE EXCEPTION 'py_object_call: tp_call regproc % does not resolve to a function', call_func;
+    END IF;
+
+    EXECUTE format('SELECT %I.%I($1, $2, $3)', call_nspname, call_proname)
+    USING obj_id, args, COALESCE(kwargs_id, NULL) INTO result_id;
+
     RETURN result_id;
 END;
 $$ LANGUAGE plpgsql;

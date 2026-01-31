@@ -320,6 +320,26 @@ else
     exit 1
 fi
 
+# 25. BINARY_MULTIPLY Slots (nb_multiply, sq_repeat)
+echo "=== Phase 25: BINARY_MULTIPLY Slots ==="
+if run_test "supabase/tests/25_binary_multiply_slots.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ BINARY_MULTIPLY slots test failed. Cannot continue."
+    exit 1
+fi
+
+# 26. BINARY_MULTIPLY Bytecode Integration (2*3, 'a'*3, 2*'b', 'a'*'b'→TypeError)
+echo "=== Phase 26: BINARY_MULTIPLY Bytecode Integration ==="
+if run_test "supabase/tests/26_binary_multiply_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ BINARY_MULTIPLY bytecode integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -354,8 +374,10 @@ echo "  ✅ 21: BINARY_ADD Slots (nb_add, sq_concat, dispatch)"
 echo "  ✅ 22: BINARY_ADD Bytecode Integration (1+2, 'a'+'b', 1+'a'→TypeError)"
 echo "  ✅ 23: BINARY_SUBTRACT Slots (nb_subtract)"
 echo "  ✅ 24: BINARY_SUBTRACT Bytecode Integration (5-3→2, 1-'a'→TypeError)"
+echo "  ✅ 25: BINARY_MULTIPLY Slots (nb_multiply, sq_repeat)"
+echo "  ✅ 26: BINARY_MULTIPLY Bytecode Integration (2*3, 'a'*3, 2*'b', 'a'*'b'→TypeError)"
 echo ""
-echo "Total: 25 test suites passed ✨"
+echo "Total: 27 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

@@ -1,7 +1,0 @@
--- ============================================================================
--- Migration: BINARY_ADD Phase 5 — opcode 23 (BINARY_ADD) in py_eval_frame
--- Created: 2026-01-14 23:84:00
---
--- py_eval_frame is defined in 20260114232000_vm_eval_frame.sql (includes opcode 23).
--- Design: docs/BINARY_ADD_IMPLEMENTATION_PLAN.md
--- ============================================================================

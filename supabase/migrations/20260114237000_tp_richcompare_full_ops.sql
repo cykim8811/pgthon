@@ -1,6 +1,0 @@
--- ============================================================================
--- Migration: tp_richcompare Full Op Set (Py_LT .. Py_GE) for str and int
--- Created: 2026-01-14 23:70:00
---
--- py_unicode_richcompare and py_long_richcompare (full op set) are defined in 20260114236000_tp_richcompare_slot.sql.
--- ============================================================================

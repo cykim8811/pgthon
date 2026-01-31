@@ -1,7 +1,0 @@
--- ============================================================================
--- Migration: BINARY_MULTIPLY Phase 5 — opcode 20 (BINARY_MULTIPLY) in py_eval_frame
--- Created: 2026-01-14 23:94:00
---
--- py_eval_frame is defined in 20260114232000_vm_eval_frame.sql (includes opcode 20).
--- Design: docs/BINARY_MULTIPLY_IMPLEMENTATION_PLAN.md
--- ============================================================================

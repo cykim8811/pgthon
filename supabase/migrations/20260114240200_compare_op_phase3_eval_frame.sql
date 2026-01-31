@@ -1,7 +1,0 @@
--- ============================================================================
--- Migration: COMPARE_OP Phase 3 — opcode 107 (COMPARE_OP) in py_eval_frame
--- Created: 2026-01-14 24:02:00
---
--- py_eval_frame is defined in 20260114232000_vm_eval_frame.sql (includes opcode 107).
--- Design: docs/COMPARE_OP_IMPLEMENTATION_PLAN.md
--- ============================================================================

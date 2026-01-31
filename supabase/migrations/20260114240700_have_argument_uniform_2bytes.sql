@@ -1,7 +1,0 @@
--- ============================================================================
--- Migration: py_get_opcode_size — no-op (definition in 20260114230000_vm_core.sql)
--- Created: 2026-01-14 24:07:00
---
--- py_get_opcode_size is defined once in 20260114230000_vm_core.sql (Python 3.11
--- uniform 2-byte instruction). No redefinition here.
--- ============================================================================

@@ -1,7 +1,0 @@
--- ============================================================================
--- Migration: BINARY_SUBTRACT Phase 5 — opcode 24 (BINARY_SUBTRACT) in py_eval_frame
--- Created: 2026-01-14 23:89:00
---
--- py_eval_frame is defined in 20260114232000_vm_eval_frame.sql (includes opcode 24).
--- Design: docs/BINARY_SUBTRACT_IMPLEMENTATION_PLAN.md
--- ============================================================================

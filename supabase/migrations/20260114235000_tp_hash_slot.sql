@@ -22,8 +22,8 @@
 --
 -- This migration:
 --   1. Implements py_object_hash() function (equivalent to PyObject_Hash)
---   2. Implements type-specific hash functions (str, int)
---   3. Registers tp_hash for hashable builtin types
+--   2. Implements type-specific hash functions (str, int, bytes, float, bool, None, tuple)
+--   3. Registers tp_hash for all hashable builtin types
 --   4. Dict lookup hash-based: me_hash backfill/index, py_object_equals_key,
 --      py_dict_get_item, py_dict_set_item, LOAD_NAME/STORE_NAME (hash-based).
 --      Design: docs/DICT_LOOKUP_DESIGN.md
@@ -246,6 +246,109 @@ BEGIN
     -- This is already the default (NULL), so no explicit UPDATE needed.
     -- CPython behavior: mutable types are unhashable to prevent issues with
     -- hash-based collections (dicts, sets) when the object's value changes.
+END $$;
+
+-- ============================================================================
+-- Type-Specific Hash: bytes, float, bool, None, tuple (CPython hashable scope)
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.py_bytes_hash(obj_id uuid)
+RETURNS bigint AS $$
+DECLARE
+    bval bytea;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_bytes_object WHERE ob_base = obj_id) THEN
+        RAISE EXCEPTION 'TypeError: py_bytes_hash called on non-bytes object';
+    END IF;
+    SELECT bytes_value INTO bval FROM public.py_bytes_object WHERE ob_base = obj_id;
+    IF bval IS NULL OR length(bval) = 0 THEN
+        RETURN 0;
+    END IF;
+    RETURN hashtext(encode(bval, 'hex'))::bigint;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.py_float_hash(obj_id uuid)
+RETURNS bigint AS $$
+DECLARE
+    fval double precision;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_float_object WHERE ob_base = obj_id) THEN
+        RAISE EXCEPTION 'TypeError: py_float_hash called on non-float object';
+    END IF;
+    SELECT ob_fval INTO fval FROM public.py_float_object WHERE ob_base = obj_id;
+    RETURN hashtext(fval::text)::bigint;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.py_bool_hash(obj_id uuid)
+RETURNS bigint AS $$
+DECLARE
+    bval boolean;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_bool_object WHERE ob_base = obj_id) THEN
+        RAISE EXCEPTION 'TypeError: py_bool_hash called on non-bool object';
+    END IF;
+    SELECT bool_value INTO bval FROM public.py_bool_object WHERE ob_base = obj_id;
+    RETURN CASE WHEN bval THEN 1 ELSE 0 END;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.py_none_hash(obj_id uuid)
+RETURNS bigint AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_none_object WHERE ob_base = obj_id) THEN
+        RAISE EXCEPTION 'TypeError: py_none_hash called on non-None object';
+    END IF;
+    RETURN 0;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.py_tuple_hash(obj_id uuid)
+RETURNS bigint AS $$
+DECLARE
+    items uuid[];
+    n int;
+    i int;
+    h bigint;
+    total numeric := 0;
+    mult constant numeric := 1000003;
+    lim64 constant numeric := 18446744073709551616;
+    mid   constant numeric := 9223372036854775808;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_tuple_object WHERE ob_base = obj_id) THEN
+        RAISE EXCEPTION 'TypeError: py_tuple_hash called on non-tuple object';
+    END IF;
+    SELECT ob_item INTO items FROM public.py_tuple_object WHERE ob_base = obj_id;
+    n := coalesce(array_length(items, 1), 0);
+    IF n = 0 THEN
+        RETURN 0;
+    END IF;
+    FOR i IN 1..n LOOP
+        h := public.py_object_hash(items[i]);
+        total := (total * mult + h);
+    END LOOP;
+    total := mod(total + n, lim64);
+    IF total >= mid THEN
+        total := total - lim64;
+    END IF;
+    RETURN total::bigint;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+DECLARE
+    id_bytes  uuid := '00000000-0000-4000-a000-000000000012';
+    id_float  uuid := '00000000-0000-4000-a000-000000000009';
+    id_bool   uuid := '00000000-0000-4000-a000-000000000013';
+    id_none   uuid := '00000000-0000-4000-a000-000000000008';
+    id_tuple  uuid := '00000000-0000-4000-a000-000000000007';
+BEGIN
+    UPDATE public.py_type_object SET tp_hash = 'py_bytes_hash'::regproc  WHERE ob_base = id_bytes;
+    UPDATE public.py_type_object SET tp_hash = 'py_float_hash'::regproc  WHERE ob_base = id_float;
+    UPDATE public.py_type_object SET tp_hash = 'py_bool_hash'::regproc   WHERE ob_base = id_bool;
+    UPDATE public.py_type_object SET tp_hash = 'py_none_hash'::regproc   WHERE ob_base = id_none;
+    UPDATE public.py_type_object SET tp_hash = 'py_tuple_hash'::regproc  WHERE ob_base = id_tuple;
 END $$;
 
 -- ============================================================================

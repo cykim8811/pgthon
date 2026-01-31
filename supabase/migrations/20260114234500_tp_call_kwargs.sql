@@ -1,8 +1,0 @@
--- ============================================================================
--- Migration: tp_call kwargs (CPython ternaryfunc tp_call(obj, args, kwargs))
--- Created: 2026-01-14 23:45:00
---
--- py_call_cfunction, py_object_call, py_opcode_CALL_FUNCTION (with kwargs_id) are defined in
--- 20260114233000_vm_opcodes_basic.sql and 20260114234000_tp_call_slot.sql.
--- Design: docs/TP_CALL_KWARGS_DESIGN.md, docs/CHANGE_3_TP_CALL_KWARGS_PLAN.md
--- ============================================================================

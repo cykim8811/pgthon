@@ -203,6 +203,67 @@ BEGIN
     RAISE NOTICE '  ✓ POP_JUMP_FORWARD_IF_FALSE (1>2 False) returns 99';
     pass_count := pass_count + 1;
 
+    -- Test 4: POP_JUMP_FORWARD_IF_TRUE when True (1<2) -> jump, return 99
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 4: POP_JUMP_FORWARD_IF_TRUE when True (1<2) -> jump, return 99...';
+    test_count := test_count + 1;
+
+    co_consts_id := gen_random_uuid();
+    const0_id := gen_random_uuid();
+    const1_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (const0_id, ID_INT_TYPE);
+    INSERT INTO public.py_long_object (ob_base, long_value) VALUES (const0_id, 1);
+    INSERT INTO public.py_object (id, ob_type) VALUES (const1_id, ID_INT_TYPE);
+    INSERT INTO public.py_long_object (ob_base, long_value) VALUES (const1_id, 2);
+    result_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (result_id, ID_INT_TYPE);
+    INSERT INTO public.py_long_object (ob_base, long_value) VALUES (result_id, 99);
+
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_consts_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[const0_id, const1_id, result_id]);
+
+    co_code_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
+    -- LOAD_CONST 0,1 COMPARE_OP 0 (<) POP_JUMP_FORWARD_IF_TRUE 2 LOAD_CONST 0 RETURN_VALUE LOAD_CONST 2 RETURN_VALUE. 115=0x73.
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x640064016B0073026400530064025300'::bytea);
+
+    UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
+    UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
+
+    result_id := public.py_eval_frame(frame_id);
+    IF result_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: POP_JUMP_FORWARD_IF_TRUE (1<2 True) returned NULL';
+    END IF;
+    SELECT long_value INTO result_num FROM public.py_long_object WHERE ob_base = result_id;
+    IF result_num IS NULL OR result_num <> 99 THEN
+        RAISE EXCEPTION 'FAIL: 1<2 True should jump and return 99, got %', result_num;
+    END IF;
+    RAISE NOTICE '  ✓ POP_JUMP_FORWARD_IF_TRUE (1<2 True) returns 99';
+    pass_count := pass_count + 1;
+
+    -- Test 5: POP_JUMP_FORWARD_IF_TRUE when False (1>2) -> no jump, return 1
+    RAISE NOTICE '';
+    RAISE NOTICE 'Test 5: POP_JUMP_FORWARD_IF_TRUE when False (1>2) -> no jump, return 1...';
+    test_count := test_count + 1;
+
+    co_code_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x640064016B0473026400530064025300'::bytea);
+
+    UPDATE public.py_code_object SET co_code = co_code_id WHERE ob_base = code_obj_id;
+    UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
+
+    result_id := public.py_eval_frame(frame_id);
+    IF result_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: POP_JUMP_FORWARD_IF_TRUE (1>2 False) returned NULL';
+    END IF;
+    SELECT long_value INTO result_num FROM public.py_long_object WHERE ob_base = result_id;
+    IF result_num IS NULL OR result_num <> 1 THEN
+        RAISE EXCEPTION 'FAIL: 1>2 False should not jump and return 1, got %', result_num;
+    END IF;
+    RAISE NOTICE '  ✓ POP_JUMP_FORWARD_IF_TRUE (1>2 False) returns 1';
+    pass_count := pass_count + 1;
+
     RAISE NOTICE '';
     RAISE NOTICE '========================================';
     RAISE NOTICE 'Total: %  Passed: %', test_count, pass_count;

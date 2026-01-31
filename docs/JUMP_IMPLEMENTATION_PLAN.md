@@ -24,11 +24,12 @@ CPython의 JUMP_FORWARD·POP_JUMP_FORWARD_IF_FALSE 및 PyObject_IsTrue 동작에
 - **동작**: 다음 명령 위치 = 현재 명령 끝 + `delta_bytes` (delta_bytes = arg * 2).
 - **Elytra**: `next_i := i + 2 + arg * 2` (i = 현재 opcode 바이트 오프셋, 2 = 명령 크기).
 
-### 1.3 POP_JUMP_FORWARD_IF_FALSE (opcode 114, Python 3.11)
+### 1.3 POP_JUMP_FORWARD_IF_FALSE (opcode 114) / POP_JUMP_FORWARD_IF_TRUE (opcode 115, Python 3.11)
 
 - **jrel**: 상대 점프. TOS를 pop한 뒤, PyObject_IsTrue(TOS)가 False이면 점프.
-- **동작**: `tos = pop(); if not PyObject_IsTrue(tos): i := i + 2 + arg*2`.
-- **Elytra**: `py_object_istrue` 구현 후, pop → false면 `next_i := i + 2 + arg*2`.
+- **114 (IF_FALSE)**: `tos = pop(); if not PyObject_IsTrue(tos): i := i + 2 + arg*2`.
+- **115 (IF_TRUE)**: `tos = pop(); if PyObject_IsTrue(tos): i := i + 2 + arg*2`.
+- **Elytra**: 114는 pop → not istrue면 점프; 115는 pop → istrue면 점프 (240500).
 
 ---
 

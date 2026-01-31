@@ -23,6 +23,7 @@ DECLARE
     sq_slot regproc;
     val_num numeric;
     val_txt text;
+    exc_type_id uuid;
 BEGIN
     RAISE NOTICE '========================================';
     RAISE NOTICE 'BINARY_MULTIPLY Slots Test';
@@ -125,14 +126,16 @@ BEGIN
     str_b_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (str_b_id, ID_STR_TYPE);
     INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (str_b_id, 'b');
-    BEGIN
-        res_id := public.py_object_multiply(str_a_id, str_b_id);
-        RAISE EXCEPTION 'FAIL: str*str should raise TypeError, got %', res_id;
-    EXCEPTION
-        WHEN OTHERS THEN
-            IF SQLERRM NOT LIKE '%unsupported operand type(s) for *%' THEN RAISE; END IF;
-            IF SQLERRM NOT LIKE '%str%' THEN RAISE EXCEPTION 'FAIL: message should mention str: %', SQLERRM; END IF;
-    END;
+    PERFORM public.py_err_clear();
+    res_id := public.py_object_multiply(str_a_id, str_b_id);
+    IF res_id IS NOT NULL OR NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: str*str should raise TypeError, got res_id=%', res_id;
+    END IF;
+    SELECT g.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() g LIMIT 1;
+    IF exc_type_id IS DISTINCT FROM '00000000-0000-4000-a000-000000000022' THEN
+        RAISE EXCEPTION 'FAIL: str*str should set TypeError, got exc_type_id %', exc_type_id;
+    END IF;
+    PERFORM public.py_err_clear();
     RAISE NOTICE '  ✓ py_object_multiply(''a'', ''b'') raises TypeError';
     pass_count := pass_count + 1;
 

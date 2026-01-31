@@ -48,6 +48,7 @@ DECLARE
     
     -- Test variables
     loaded_obj_id UUID;
+    exc_type_id UUID;
     stack_size INTEGER;
     
     -- Helper variables
@@ -406,18 +407,18 @@ BEGIN
     SET ob_item = ARRAY[name1_str_id]
     WHERE ob_base = co_names_id;
     
-    -- Execute LOAD_NAME(0) - should raise NameError
-    BEGIN
-        PERFORM public.py_opcode_LOAD_NAME(frame_id, 0);
+    -- Execute LOAD_NAME(0) - should set Python NameError (py_err_set_name_error)
+    PERFORM public.py_err_clear();
+    PERFORM public.py_opcode_LOAD_NAME(frame_id, 0);
+    IF NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: LOAD_NAME did not raise NameError for undefined name';
-    EXCEPTION
-        WHEN OTHERS THEN
-            error_message := SQLERRM;
-            IF error_message NOT LIKE 'NameError: name ''y'' is not defined%' THEN
-                RAISE EXCEPTION 'FAIL: LOAD_NAME raised wrong exception: %', error_message;
-            END IF;
-    END;
-    
+    END IF;
+    SELECT g.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() g LIMIT 1;
+    IF exc_type_id IS DISTINCT FROM '00000000-0000-4000-a000-000000000024' THEN
+        RAISE EXCEPTION 'FAIL: LOAD_NAME should set NameError, got exc_type_id %', exc_type_id;
+    END IF;
+    PERFORM public.py_err_clear();
+
     RAISE NOTICE '  ✓ LOAD_NAME correctly raises NameError when name not found';
     pass_count := pass_count + 1;
     

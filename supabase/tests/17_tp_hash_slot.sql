@@ -56,7 +56,8 @@ DECLARE
     -- Error handling
     error_occurred BOOLEAN;
     error_message TEXT;
-    
+    exc_type_id UUID;
+
     -- Function existence check
     func_exists BOOLEAN;
 BEGIN
@@ -374,49 +375,35 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (test_list_id, ID_LIST_TYPE);
     INSERT INTO public.py_list_object (ob_base, ob_item) VALUES (test_list_id, ARRAY[]::UUID[]);
     
-    -- Try to hash list (should raise TypeError)
-    error_occurred := FALSE;
-    BEGIN
-        SELECT public.py_object_hash(test_list_id) INTO hash_value;
-        error_occurred := FALSE;
-    EXCEPTION
-        WHEN OTHERS THEN
-            error_occurred := TRUE;
-            error_message := SQLERRM;
-    END;
-    
-    IF NOT error_occurred THEN
+    -- py_object_hash(list) should set Python TypeError and return NULL
+    PERFORM public.py_err_clear();
+    SELECT public.py_object_hash(test_list_id) INTO hash_value;
+    IF hash_value IS NOT NULL OR NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: py_object_hash(list) should raise TypeError, but it succeeded';
     END IF;
-    
-    IF error_message NOT LIKE 'TypeError: unhashable type%' THEN
-        RAISE EXCEPTION 'FAIL: Expected "TypeError: unhashable type" error, but got: %', error_message;
+    SELECT g.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() g LIMIT 1;
+    IF exc_type_id IS DISTINCT FROM '00000000-0000-4000-a000-000000000022' THEN
+        RAISE EXCEPTION 'FAIL: py_object_hash(list) should set TypeError, got exc_type_id %', exc_type_id;
     END IF;
-    
+    PERFORM public.py_err_clear();
+
     -- Create test dict
     test_dict_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (test_dict_id, ID_DICT_TYPE);
     INSERT INTO public.py_dict_object (ob_base) VALUES (test_dict_id);
     
-    -- Try to hash dict (should raise TypeError)
-    error_occurred := FALSE;
-    BEGIN
-        SELECT public.py_object_hash(test_dict_id) INTO hash_value;
-        error_occurred := FALSE;
-    EXCEPTION
-        WHEN OTHERS THEN
-            error_occurred := TRUE;
-            error_message := SQLERRM;
-    END;
-    
-    IF NOT error_occurred THEN
+    -- py_object_hash(dict) should set Python TypeError and return NULL
+    PERFORM public.py_err_clear();
+    SELECT public.py_object_hash(test_dict_id) INTO hash_value;
+    IF hash_value IS NOT NULL OR NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: py_object_hash(dict) should raise TypeError, but it succeeded';
     END IF;
-    
-    IF error_message NOT LIKE 'TypeError: unhashable type%' THEN
-        RAISE EXCEPTION 'FAIL: Expected "TypeError: unhashable type" error, but got: %', error_message;
+    SELECT g.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() g LIMIT 1;
+    IF exc_type_id IS DISTINCT FROM '00000000-0000-4000-a000-000000000022' THEN
+        RAISE EXCEPTION 'FAIL: py_object_hash(dict) should set TypeError, got exc_type_id %', exc_type_id;
     END IF;
-    
+    PERFORM public.py_err_clear();
+
     RAISE NOTICE '  ✓ Unhashable type error handling works correctly';
     pass_count := pass_count + 1;
     

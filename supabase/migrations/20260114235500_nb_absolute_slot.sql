@@ -96,7 +96,8 @@ BEGIN
 
     SELECT ob_type INTO type_id FROM public.py_object WHERE id = obj_id;
     IF type_id IS NULL THEN
-        RAISE EXCEPTION 'TypeError: abs() argument must be a number, not NoneType';
+        PERFORM public.py_err_set_type_error('abs() argument must be a number, not NoneType');
+        RETURN NULL;
     END IF;
 
     -- Py_TYPE(obj)->tp_as_number
@@ -106,7 +107,8 @@ BEGIN
 
     IF num_methods_id IS NULL THEN
         SELECT tp_name INTO type_name FROM public.py_type_object WHERE ob_base = type_id;
-        RAISE EXCEPTION 'TypeError: bad operand type for abs(): ''%''', COALESCE(type_name, 'unknown');
+        PERFORM public.py_err_set_type_error('bad operand type for abs(): ''' || COALESCE(type_name, 'unknown') || '''');
+        RETURN NULL;
     END IF;
 
     -- tp_as_number->nb_absolute
@@ -116,14 +118,16 @@ BEGIN
 
     IF nb_abs IS NULL THEN
         SELECT tp_name INTO type_name FROM public.py_type_object WHERE ob_base = type_id;
-        RAISE EXCEPTION 'TypeError: bad operand type for abs(): ''%''', COALESCE(type_name, 'unknown');
+        PERFORM public.py_err_set_type_error('bad operand type for abs(): ''' || COALESCE(type_name, 'unknown') || '''');
+        RETURN NULL;
     END IF;
 
     EXECUTE format('SELECT %I($1)', nb_abs::text) USING obj_id INTO res;
 
     IF res = id_not_implemented THEN
         SELECT tp_name INTO type_name FROM public.py_type_object WHERE ob_base = type_id;
-        RAISE EXCEPTION 'TypeError: bad operand type for abs(): ''%''', COALESCE(type_name, 'unknown');
+        PERFORM public.py_err_set_type_error('bad operand type for abs(): ''' || COALESCE(type_name, 'unknown') || '''');
+        RETURN NULL;
     END IF;
 
     RETURN res;

@@ -46,6 +46,7 @@ DECLARE
     -- Error handling
     error_occurred BOOLEAN;
     error_message TEXT;
+    exc_type_id UUID;
     
     -- Temporary variables for nested blocks
     result_type_id UUID;
@@ -307,24 +308,18 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (test_int_id, ID_INT_TYPE);
     INSERT INTO public.py_long_object (ob_base, long_value) VALUES (test_int_id, 42);
     
-    -- Try to call len on int (should fail)
-    error_occurred := FALSE;
-    BEGIN
-        SELECT public.py_builtin_len(test_int_id) INTO result_id;
-    EXCEPTION
-        WHEN OTHERS THEN
-            error_occurred := TRUE;
-            error_message := SQLERRM;
-    END;
-    
-    IF NOT error_occurred THEN
-        RAISE EXCEPTION 'FAIL: len(42) should raise TypeError, but it did not';
+    -- len(42) should set Python TypeError (py_err_set_type_error), return NULL
+    PERFORM public.py_err_clear();
+    SELECT public.py_builtin_len(test_int_id) INTO result_id;
+    IF result_id IS NOT NULL OR NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: len(42) should set TypeError and return NULL, got result_id=%', result_id;
     END IF;
-    
-    IF error_message NOT LIKE '%TypeError%' AND error_message NOT LIKE '%has no len()%' THEN
-        RAISE EXCEPTION 'FAIL: len(42) raised error but message is incorrect: %', error_message;
+    SELECT g.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() g LIMIT 1;
+    IF exc_type_id IS DISTINCT FROM '00000000-0000-4000-a000-000000000022' THEN
+        RAISE EXCEPTION 'FAIL: len(42) should set TypeError, got exc_type_id %', exc_type_id;
     END IF;
-    
+    PERFORM public.py_err_clear();
+
     RAISE NOTICE '  ✓ len(42) correctly raises TypeError';
     pass_count := pass_count + 1;
 
@@ -592,25 +587,18 @@ BEGIN
     RAISE NOTICE 'Test 13: Testing PyObject_Size error handling...';
     test_count := test_count + 1;
     
-    -- Test that PyObject_Size raises TypeError for types without length
-    error_occurred := FALSE;
-    BEGIN
-        SELECT public.py_object_size(test_int_id) INTO result_value;
-        error_occurred := FALSE;
-    EXCEPTION
-        WHEN OTHERS THEN
-            error_occurred := TRUE;
-            error_message := SQLERRM;
-    END;
-    
-    IF NOT error_occurred THEN
-        RAISE EXCEPTION 'FAIL: PyObject_Size(42) should raise TypeError, but it did not';
+    -- PyObject_Size(42) should set Python TypeError and return NULL
+    PERFORM public.py_err_clear();
+    SELECT public.py_object_size(test_int_id) INTO result_value;
+    IF result_value IS NOT NULL OR NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: PyObject_Size(42) should set TypeError and return NULL, got result_value=%', result_value;
     END IF;
-    
-    IF error_message NOT LIKE '%TypeError%' AND error_message NOT LIKE '%has no len()%' THEN
-        RAISE EXCEPTION 'FAIL: PyObject_Size(42) raised error but message is incorrect: %', error_message;
+    SELECT g.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() g LIMIT 1;
+    IF exc_type_id IS DISTINCT FROM '00000000-0000-4000-a000-000000000022' THEN
+        RAISE EXCEPTION 'FAIL: PyObject_Size(42) should set TypeError, got exc_type_id %', exc_type_id;
     END IF;
-    
+    PERFORM public.py_err_clear();
+
     RAISE NOTICE '  ✓ PyObject_Size correctly raises TypeError for unsupported types';
     pass_count := pass_count + 1;
 
@@ -848,7 +836,7 @@ BEGIN
     RAISE NOTICE 'Test 20: Testing abs() raises TypeError for unsupported types...';
     test_count := test_count + 1;
     
-    -- Create test string (not a number)
+    -- Create test string (not a number); abs() should set Python TypeError and return NULL
     DECLARE
         test_str_id UUID;
         result_id UUID;
@@ -856,20 +844,19 @@ BEGIN
         test_str_id := gen_random_uuid();
         INSERT INTO public.py_object (id, ob_type) VALUES (test_str_id, ID_STR_TYPE);
         INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (test_str_id, 'hello');
-        
-        -- Call abs function - should raise TypeError
-        BEGIN
-            SELECT public.py_builtin_abs(test_str_id) INTO result_id;
+
+        PERFORM public.py_err_clear();
+        SELECT public.py_builtin_abs(test_str_id) INTO result_id;
+        IF result_id IS NOT NULL OR NOT public.py_err_occurred() THEN
             RAISE EXCEPTION 'FAIL: abs() did not raise TypeError for string';
-        EXCEPTION
-            WHEN OTHERS THEN
-                error_message := SQLERRM;
-                IF error_message NOT LIKE 'TypeError: bad operand type for abs(): ''str''%' THEN
-                    RAISE EXCEPTION 'FAIL: abs() raised wrong exception: %', error_message;
-                END IF;
-        END;
+        END IF;
+        SELECT g.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() g LIMIT 1;
+        IF exc_type_id IS DISTINCT FROM '00000000-0000-4000-a000-000000000022' THEN
+            RAISE EXCEPTION 'FAIL: abs() should set TypeError, got exc_type_id %', exc_type_id;
+        END IF;
+        PERFORM public.py_err_clear();
     END;
-    
+
     RAISE NOTICE '  ✓ abs() correctly raises TypeError for unsupported types';
     pass_count := pass_count + 1;
 

@@ -41,6 +41,7 @@ DECLARE
     const0_id uuid;
     const1_id uuid;
     result_id uuid;
+    exc_type_id uuid;
 BEGIN
     RAISE NOTICE '========================================';
     RAISE NOTICE 'COMPARE_OP Bytecode Integration Test';
@@ -225,15 +226,16 @@ BEGIN
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
 
-    BEGIN
-        result_id := public.py_eval_frame(frame_id);
-        RAISE EXCEPTION 'FAIL: 1<''a'' bytecode should raise TypeError, got %', result_id;
-    EXCEPTION
-        WHEN OTHERS THEN
-            IF SQLERRM NOT LIKE '%TypeError%' THEN
-                RAISE;
-            END IF;
-    END;
+    PERFORM public.py_err_clear();
+    result_id := public.py_eval_frame(frame_id);
+    IF result_id IS NOT NULL OR NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: 1<''a'' bytecode should raise TypeError, got result_id=%', result_id;
+    END IF;
+    SELECT g.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() g LIMIT 1;
+    IF exc_type_id IS DISTINCT FROM '00000000-0000-4000-a000-000000000022' THEN
+        RAISE EXCEPTION 'FAIL: 1<''a'' should set TypeError, got exc_type_id %', exc_type_id;
+    END IF;
+    PERFORM public.py_err_clear();
     RAISE NOTICE '  ✓ 1 < ''a'' raises TypeError';
     pass_count := pass_count + 1;
 

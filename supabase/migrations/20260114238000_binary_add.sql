@@ -91,12 +91,14 @@ DECLARE
     right_tp_name text;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_unicode_object WHERE ob_base = left_id) THEN
-        RAISE EXCEPTION 'TypeError: py_unicode_sq_concat left operand is not str';
+        PERFORM public.py_err_set_type_error('py_unicode_sq_concat left operand is not str');
+        RETURN NULL;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM public.py_unicode_object WHERE ob_base = right_id) THEN
         SELECT ob_type INTO right_type_id FROM public.py_object WHERE id = right_id;
         SELECT tp_name INTO right_tp_name FROM public.py_type_object WHERE ob_base = right_type_id;
-        RAISE EXCEPTION 'TypeError: can only concatenate str (not "%") to str', COALESCE(right_tp_name, 'None');
+        PERFORM public.py_err_set_type_error('can only concatenate str (not "' || COALESCE(right_tp_name, 'None') || '") to str');
+        RETURN NULL;
     END IF;
     SELECT COALESCE(str_value, '') INTO lv FROM public.py_unicode_object WHERE ob_base = left_id;
     SELECT COALESCE(str_value, '') INTO rv FROM public.py_unicode_object WHERE ob_base = right_id;
@@ -261,13 +263,16 @@ BEGIN
     IF res IS NOT NULL THEN
         RETURN res;
     END IF;
+    IF public.py_err_occurred() THEN
+        RETURN NULL;
+    END IF;
 
     SELECT ob_type INTO left_type_id  FROM public.py_object WHERE id = left_id;
     SELECT ob_type INTO right_type_id FROM public.py_object WHERE id = right_id;
     SELECT tp_name INTO left_tp_name  FROM public.py_type_object WHERE ob_base = left_type_id;
     SELECT tp_name INTO right_tp_name FROM public.py_type_object WHERE ob_base = right_type_id;
-    RAISE EXCEPTION 'TypeError: unsupported operand type(s) for +: ''%'' and ''%''',
-        COALESCE(left_tp_name, 'None'), COALESCE(right_tp_name, 'None');
+    PERFORM public.py_err_set_type_error('unsupported operand type(s) for +: ''' || COALESCE(left_tp_name, 'None') || ''' and ''' || COALESCE(right_tp_name, 'None') || '''');
+    RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -289,6 +294,9 @@ BEGIN
     right_id := public.py_stack_pop(frame_id);
     left_id  := public.py_stack_pop(frame_id);
     result_id := public.py_object_add(left_id, right_id);
+    IF result_id IS NULL AND public.py_err_occurred() THEN
+        RETURN;
+    END IF;
     PERFORM public.py_stack_push(frame_id, result_id);
 END;
 $$ LANGUAGE plpgsql;

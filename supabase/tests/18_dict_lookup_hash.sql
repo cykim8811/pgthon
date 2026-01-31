@@ -49,6 +49,7 @@ DECLARE
     error_message TEXT;
     func_exists BOOLEAN;
     n_entries INTEGER;
+    exc_type_id UUID;
 BEGIN
     RAISE NOTICE '========================================';
     RAISE NOTICE 'Dict Lookup Hash-Based Test';
@@ -309,20 +310,16 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (dict_id, ID_DICT_TYPE);
     INSERT INTO public.py_dict_object (ob_base) VALUES (dict_id);
 
-    error_occurred := FALSE;
-    BEGIN
-        PERFORM public.py_dict_set_item(dict_id, list_id, int1_id);
-    EXCEPTION WHEN OTHERS THEN
-        error_occurred := TRUE;
-        error_message := SQLERRM;
-    END;
-
-    IF NOT error_occurred THEN
-        RAISE EXCEPTION 'FAIL: py_dict_set_item(list_key, ...) should raise';
+    PERFORM public.py_err_clear();
+    PERFORM public.py_dict_set_item(dict_id, list_id, int1_id);
+    IF NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: py_dict_set_item(list_key, ...) should set TypeError';
     END IF;
-    IF error_message NOT LIKE 'TypeError: unhashable type%' THEN
-        RAISE EXCEPTION 'FAIL: expected TypeError unhashable, got: %', error_message;
+    SELECT g.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() g LIMIT 1;
+    IF exc_type_id IS DISTINCT FROM '00000000-0000-4000-a000-000000000022' THEN
+        RAISE EXCEPTION 'FAIL: py_dict_set_item unhashable should set TypeError, got exc_type_id %', exc_type_id;
     END IF;
+    PERFORM public.py_err_clear();
 
     RAISE NOTICE '  ✓ py_dict_set_item(unhashable key) raises TypeError';
     pass_count := pass_count + 1;
@@ -334,20 +331,16 @@ BEGIN
     RAISE NOTICE 'Test 12: py_dict_get_item with unhashable key raises TypeError...';
     test_count := test_count + 1;
 
-    error_occurred := FALSE;
-    BEGIN
-        SELECT public.py_dict_get_item(dict_id, list_id) INTO out_id;
-    EXCEPTION WHEN OTHERS THEN
-        error_occurred := TRUE;
-        error_message := SQLERRM;
-    END;
-
-    IF NOT error_occurred THEN
-        RAISE EXCEPTION 'FAIL: py_dict_get_item(..., list_key) should raise';
+    PERFORM public.py_err_clear();
+    SELECT public.py_dict_get_item(dict_id, list_id) INTO out_id;
+    IF NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: py_dict_get_item(..., list_key) should set TypeError';
     END IF;
-    IF error_message NOT LIKE 'TypeError: unhashable type%' THEN
-        RAISE EXCEPTION 'FAIL: expected TypeError unhashable, got: %', error_message;
+    SELECT g.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() g LIMIT 1;
+    IF exc_type_id IS DISTINCT FROM '00000000-0000-4000-a000-000000000022' THEN
+        RAISE EXCEPTION 'FAIL: py_dict_get_item unhashable should set TypeError, got exc_type_id %', exc_type_id;
     END IF;
+    PERFORM public.py_err_clear();
 
     RAISE NOTICE '  ✓ py_dict_get_item(unhashable key) raises TypeError';
     pass_count := pass_count + 1;

@@ -73,7 +73,8 @@ DECLARE
 BEGIN
     -- Validate object exists and is a string
     IF NOT EXISTS (SELECT 1 FROM public.py_unicode_object WHERE ob_base = obj_id) THEN
-        RAISE EXCEPTION 'TypeError: py_unicode_sq_length called on non-string object';
+        PERFORM public.py_err_set_type_error('py_unicode_sq_length called on non-string object');
+        RETURN NULL;
     END IF;
     
     -- Get string length
@@ -82,7 +83,8 @@ BEGIN
     WHERE ob_base = obj_id;
     
     IF length_value IS NULL THEN
-        RAISE EXCEPTION 'TypeError: object of type ''str'' has no len()';
+        PERFORM public.py_err_set_type_error('object of type ''str'' has no len()');
+        RETURN NULL;
     END IF;
     
     RETURN length_value;
@@ -98,7 +100,8 @@ DECLARE
 BEGIN
     -- Validate object exists and is a list
     IF NOT EXISTS (SELECT 1 FROM public.py_list_object WHERE ob_base = obj_id) THEN
-        RAISE EXCEPTION 'TypeError: py_list_sq_length called on non-list object';
+        PERFORM public.py_err_set_type_error('py_list_sq_length called on non-list object');
+        RETURN NULL;
     END IF;
     
     -- Get list length (array_length returns NULL for empty arrays)
@@ -124,7 +127,8 @@ DECLARE
 BEGIN
     -- Validate object exists and is a tuple
     IF NOT EXISTS (SELECT 1 FROM public.py_tuple_object WHERE ob_base = obj_id) THEN
-        RAISE EXCEPTION 'TypeError: py_tuple_sq_length called on non-tuple object';
+        PERFORM public.py_err_set_type_error('py_tuple_sq_length called on non-tuple object');
+        RETURN NULL;
     END IF;
     
     -- Get tuple length (array_length returns NULL for empty arrays)
@@ -150,7 +154,8 @@ DECLARE
 BEGIN
     -- Validate object exists and is a dict
     IF NOT EXISTS (SELECT 1 FROM public.py_dict_object WHERE ob_base = obj_id) THEN
-        RAISE EXCEPTION 'TypeError: py_dict_mp_length called on non-dict object';
+        PERFORM public.py_err_set_type_error('py_dict_mp_length called on non-dict object');
+        RETURN NULL;
     END IF;
     
     -- Count dictionary entries

@@ -26,6 +26,7 @@ DECLARE
     num_id uuid;
     nb_subtract_slot regproc;
     val_num numeric;
+    exc_type_id uuid;
 BEGIN
     RAISE NOTICE '========================================';
     RAISE NOTICE 'BINARY_SUBTRACT Slots Test';
@@ -98,18 +99,16 @@ BEGIN
     RAISE NOTICE '';
     RAISE NOTICE 'Test 5: py_object_subtract(int, str) raises TypeError...';
     test_count := test_count + 1;
-    BEGIN
-        res_id := public.py_object_subtract(int1_id, str_a_id);
-        RAISE EXCEPTION 'FAIL: py_object_subtract(int, str) should raise TypeError, got %', res_id;
-    EXCEPTION
-        WHEN OTHERS THEN
-            IF SQLERRM NOT LIKE '%unsupported operand type(s) for -%' THEN
-                RAISE;
-            END IF;
-            IF SQLERRM NOT LIKE '%int%' OR SQLERRM NOT LIKE '%str%' THEN
-                RAISE EXCEPTION 'FAIL: message should mention int and str: %', SQLERRM;
-            END IF;
-    END;
+    PERFORM public.py_err_clear();
+    res_id := public.py_object_subtract(int1_id, str_a_id);
+    IF res_id IS NOT NULL OR NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: py_object_subtract(int, str) should raise TypeError, got res_id=%', res_id;
+    END IF;
+    SELECT g.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() g LIMIT 1;
+    IF exc_type_id IS DISTINCT FROM '00000000-0000-4000-a000-000000000022' THEN
+        RAISE EXCEPTION 'FAIL: py_object_subtract(int, str) should set TypeError, got exc_type_id %', exc_type_id;
+    END IF;
+    PERFORM public.py_err_clear();
     RAISE NOTICE '  ✓ py_object_subtract(int, str) raises TypeError';
     pass_count := pass_count + 1;
 

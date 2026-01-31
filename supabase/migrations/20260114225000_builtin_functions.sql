@@ -52,7 +52,10 @@ BEGIN
     -- This function checks method slots (tp_as_sequence->sq_length or
     -- tp_as_mapping->mp_length) and calls the appropriate type-specific function.
     length_value := public.py_object_size(obj_id);
-    
+    IF length_value IS NULL AND public.py_err_occurred() THEN
+        RETURN NULL;
+    END IF;
+
     -- Create result int object
     -- Generate new UUID for result
     result_id := gen_random_uuid();

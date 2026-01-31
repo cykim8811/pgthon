@@ -89,14 +89,13 @@ BEGIN
     FROM public.py_type_object
     WHERE ob_base = obj_type_id;
     
-    -- Check if object is hashable (tp_hash is not NULL)
+    -- Unhashable: set Python TypeError and return NULL (CPython 고증)
     IF hash_func IS NULL THEN
-        -- Get type name for error message
         SELECT tp_name INTO type_name
         FROM public.py_type_object
         WHERE ob_base = obj_type_id;
-        
-        RAISE EXCEPTION 'TypeError: unhashable type: ''%''', COALESCE(type_name, 'unknown');
+        PERFORM public.py_err_set_type_error('unhashable type: ''' || COALESCE(type_name, 'unknown') || '''');
+        RETURN NULL;
     END IF;
     
     -- Call the tp_hash function
@@ -419,6 +418,9 @@ DECLARE
     val_id UUID;
 BEGIN
     h := public.py_object_hash(key_id);
+    IF h IS NULL AND public.py_err_occurred() THEN
+        RETURN NULL;
+    END IF;
     SELECT e.me_value INTO val_id
     FROM public.py_dict_entry e
     WHERE e.dict_id = py_dict_get_item.dict_id
@@ -436,6 +438,9 @@ DECLARE
     entry_id UUID;
 BEGIN
     h := public.py_object_hash(key_id);
+    IF h IS NULL AND public.py_err_occurred() THEN
+        RETURN;
+    END IF;
     SELECT e.id INTO entry_id
     FROM public.py_dict_entry e
     WHERE e.dict_id = py_dict_set_item.dict_id
@@ -547,6 +552,7 @@ BEGIN
         RETURN;
     END IF;
 
-    RAISE EXCEPTION 'NameError: name ''%'' is not defined', COALESCE(name_str, 'unknown');
+    PERFORM public.py_err_set_name_error('name ''' || COALESCE(name_str, 'unknown') || ''' is not defined');
+    RETURN;
 END;
 $$ LANGUAGE plpgsql;

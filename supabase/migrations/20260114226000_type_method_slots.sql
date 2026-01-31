@@ -214,7 +214,8 @@ BEGIN
     WHERE id = obj_id;
     
     IF obj_type_id IS NULL THEN
-        RAISE EXCEPTION 'TypeError: object of type ''NoneType'' has no len()';
+        PERFORM public.py_err_set_type_error('object of type ''NoneType'' has no len()');
+        RETURN NULL;
     END IF;
     
     -- Step 1: Check tp_as_sequence pointer (CPython: Py_TYPE(o)->tp_as_sequence)
@@ -234,6 +235,7 @@ BEGIN
         -- (CPython: m->sq_length(o))
         IF sq_length_func IS NOT NULL THEN
             EXECUTE format('SELECT %I($1)', sq_length_func) USING obj_id INTO length_value;
+            IF length_value IS NULL AND public.py_err_occurred() THEN RETURN NULL; END IF;
             RETURN length_value;
         END IF;
     END IF;
@@ -255,6 +257,7 @@ BEGIN
         -- (CPython: m->mp_length(o))
         IF mp_length_func IS NOT NULL THEN
             EXECUTE format('SELECT %I($1)', mp_length_func) USING obj_id INTO length_value;
+            IF length_value IS NULL AND public.py_err_occurred() THEN RETURN NULL; END IF;
             RETURN length_value;
         END IF;
     END IF;
@@ -268,7 +271,8 @@ BEGIN
         type_name := 'unknown';
     END IF;
     
-    RAISE EXCEPTION 'TypeError: object of type ''%'' has no len()', type_name;
+    PERFORM public.py_err_set_type_error('object of type ''' || type_name || ''' has no len()');
+    RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 

@@ -32,8 +32,4 @@ BINARY_ADD와 같은 “스키마 확장 → 타입별 함수 → 디스패치 �
 
 | 마이그레이션 | 포함 작업 | 설명 |
 |--------------|-----------|------|
-| `20260114238500_binary_subtract_phase1_schema_and_typed_fn.sql` | A, C | nb_subtract 컬럼, py_long_nb_subtract |
-| `20260114238600_binary_subtract_phase2_dispatch_and_slots.sql` | F, I | py_object_subtract_via_nb, int에 nb_subtract 등록 |
-| `20260114238700_binary_subtract_phase3_py_object_subtract.sql` | H | py_object_subtract |
-| `20260114238800_binary_subtract_phase4_opcode.sql` | J | py_opcode_BINARY_SUBTRACT |
-| `20260114238900_binary_subtract_phase5_eval_frame.sql` | K | py_eval_frame에 opcode 24 분기 추가 |
+| `20260114238500_binary_subtract.sql` | A–K 통합 | nb_subtract 컬럼·py_long_nb_subtract·py_object_subtract·py_opcode_BINARY_SUBTRACT·eval_frame opcode 24 분기 한 파일에 반영 |

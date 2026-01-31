@@ -7,7 +7,7 @@
 --   int/str 혼합 비교 시 양쪽 순서 모두 NotImplemented 반환 확인.
 --
 -- Usage:
---   Run after migration 20260114240000_compare_op_phase1_richcompare_reflected.sql.
+--   Run after migration 20260114240000_compare_op.sql.
 -- ============================================================================
 
 DO $$

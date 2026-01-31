@@ -9,7 +9,7 @@
 --   = \x64000164015300
 --
 -- Usage:
---   Run after migration 20260114240600_pop_top_phase1_opcode_and_eval_frame.sql.
+--   Run after migration 20260114240600_pop_top.sql.
 -- ============================================================================
 
 DO $$

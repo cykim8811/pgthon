@@ -52,7 +52,7 @@ CPython 3.6+ 기준:
 
 #### 2.1 메인 인터프리터 루프 (py_eval_frame)
 
-**구현 위치**: `supabase/migrations/20260114232000_vm_eval_frame.sql`
+**구현 위치**: `supabase/migrations/20260114232000_ceval_eval_frame.sql`
 
 **CPython 대응**: `PyEval_EvalFrameEx` / `_PyEval_EvalFrameDefault`
 
@@ -526,9 +526,9 @@ CPython 고증을 지키고, 임시방편 없이 **타입 슬롯(nb_add)** 로�
 ### 3. 배치(파일) 및 실행 순서
 
 - **스키마**: `20260114220000_python_object_schema.sql`의 `py_type_object` 정의에 `nb_add regproc` 한 줄 추가.
-- **함수·슬롯·opcode**: 새 마이그레이션 `20260114238000_nb_add_slot.sql`  
+- **함수·슬롯·opcode**: `20260114238000_binary_add.sql`  
   - `py_long_nb_add`, `py_unicode_nb_add`, `py_object_add` 정의, str/int에 nb_add 등록, `py_opcode_BINARY_ADD` 정의.
-- **eval_frame 연결**: 238000 **다음** 마이그레이션(예: `20260114239000_vm_eval_frame_binary_add.sql`)에서 `py_eval_frame`만 CREATE OR REPLACE로 수정해 CASE에 `WHEN 23 THEN PERFORM public.py_opcode_BINARY_ADD(frame_id);` 추가.  
+- **eval_frame 연결**: `20260114232000_ceval_eval_frame.sql`에서 `py_eval_frame`의 CASE에 `WHEN 23 THEN PERFORM public.py_opcode_BINARY_ADD(frame_id);` 포함 (238000과 함께 해당 파일에 반영).  
   - 스텁 없이 진행: 238000에서 이미 `py_opcode_BINARY_ADD`가 정의되므로, 그 다음에 eval_frame에서 23을 연결하면 된다. 232000 파일 자체는 수정하지 않고, “eval_frame 수정은 별도 마이그레이션에서만” 수행한다.
 
 ### 4. 임시방편 금지
@@ -549,11 +549,11 @@ CPython 고증을 지키고, 임시방편 없이 **타입 슬롯(nb_add)** 로�
 | 순서 | 작업 | 파일/위치 | 비고 |
 |------|------|-----------|------|
 | 1 | 스키마에 `nb_add regproc` 추가 | `20260114220000_python_object_schema.sql` 내 `create table py_type_object` | 기존 테이블 정의 직접 수정(README 규칙). tp_richcompare 다음 한 줄 추가. |
-| 2 | 타입별 nb_add 구현 | 새 마이그레이션 `20260114238000_nb_add_slot.sql` | `py_long_nb_add(left_id, right_id)`, `py_unicode_nb_add(left_id, right_id)`. int/str만 처리, 나머지는 NotImplemented id 반환. 타입 판별은 `py_long_object`/`py_unicode_object` 존재 여부로만. |
+| 2 | 타입별 nb_add 구현 | `20260114238000_binary_add.sql` | `py_long_nb_add(left_id, right_id)`, `py_unicode_nb_add(left_id, right_id)`. int/str만 처리, 나머지는 NotImplemented id 반환. 타입 판별은 `py_long_object`/`py_unicode_object` 존재 여부로만. |
 | 3 | 디스패치 `py_object_add` | 같은 238000 | left의 `ob_type` → `nb_add` 호출. NotImplemented면 right의 nb_add(b,a) 한 번 더. 둘 다 없거나 둘 다 NotImplemented면 `RAISE EXCEPTION 'TypeError: unsupported operand type(s) for +: ...'`. tp_name 분기 금지. |
 | 4 | 슬롯 등록 | 같은 238000 | str, int의 `nb_add`에 위 타입별 함수 등록. |
 | 5 | BINARY_ADD opcode | 같은 238000 | `py_opcode_BINARY_ADD(frame_id)`: right/left pop → `py_object_add(left, right)` → push. |
-| 6 | eval_frame에 opcode 23 연결 | 새 마이그레이션 `20260114239000_vm_eval_frame_binary_add.sql` (238000 다음) | `py_eval_frame`만 CREATE OR REPLACE, CASE에 `WHEN 23 THEN PERFORM public.py_opcode_BINARY_ADD(frame_id);` 추가. `py_get_opcode_size`는 기본 2바이트로 23 포함되어 있으므로 변경 없음. |
+| 6 | eval_frame에 opcode 23 연결 | `20260114232000_ceval_eval_frame.sql` (opcode 23 분기는 238000_binary_add와 함께 해당 파일에 반영) | `py_eval_frame`만 CREATE OR REPLACE, CASE에 `WHEN 23 THEN PERFORM public.py_opcode_BINARY_ADD(frame_id);` 추가. `py_get_opcode_size`는 기본 2바이트로 23 포함되어 있으므로 변경 없음. |
 | 7 | 테스트 | `supabase/tests/21_nb_add_slot.sql` (예), `run_tests.sh` | nb_add 슬롯·디스패치 단위, `1+2`/`"a"+"b"` 통합, `1+"a"` → TypeError. Phase 21 등록. |
 
 - **CPython 고증**: PyNumber_Add / nb_add(binaryfunc) · 왼쪽 시도 → NotImplemented 시 오른쪽 역방향 · 둘 다 실패 시 TypeError.

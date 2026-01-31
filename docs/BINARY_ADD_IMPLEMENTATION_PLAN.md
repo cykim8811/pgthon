@@ -125,16 +125,14 @@ CPython 고증에 맞게 nb_add + sq_concat 폴백으로 BINARY_ADD를 넣는다
 
 | 마이그레이션 | 포함 Phase | 포함 작업 | 설명 |
 |--------------|------------|-----------|------|
-| `20260114238000_binary_add_schema_and_slots.sql` | Phase 1 + Phase 2 + Phase 3 + Phase 4 | A, B, C, D, E, F, G, I, H, J | 스키마 확장, 타입별 함수, 디스패치, 슬롯 등록, BINARY_ADD opcode까지 한 번에 |
-| `20260114239000_vm_eval_frame_binary_add.sql` | Phase 5 | K | `py_eval_frame`에 opcode 23 분기만 추가 |
+| `20260114238000_binary_add.sql` | Phase 1~4 통합 | A–J | 스키마 확장, 타입별 함수, 디스패치, 슬롯 등록, BINARY_ADD opcode |
+| `20260114232000_ceval_eval_frame.sql` | Phase 5 | K | `py_eval_frame`에 opcode 23 분기 (해당 파일에 반영됨) |
 
 또는 의존성 단위로 더 쪼개려면:
 
 | 마이그레이션 | 포함 Phase | 포함 작업 |
 |--------------|------------|-----------|
-| `20260114238000_binary_add_schema_and_typed_fns.sql` | Phase 1 | A, B, C, D, E |
-| `20260114238100_binary_add_dispatch_and_opcode.sql` | Phase 2 + 3 + 4 | F, G, I, H, J |
-| `20260114238200_vm_eval_frame_binary_add.sql` | Phase 5 | K |
+| `20260114238000_binary_add.sql` | Phase 1~5 통합 | A–K | 스키마·타입별 함수·디스패치·opcode·eval_frame 분기 한 파일에 반영 |
 
 ---
 

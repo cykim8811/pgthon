@@ -89,7 +89,7 @@ CPython의 dict lookup을 hash 기반으로 구현하기 위한 설계·구현 �
    - **LOAD_NAME**: `f_locals` → `f_globals` → `f_builtins` 순으로 `py_dict_get_item(dict_id, name_str_id)` 호출. 먼저 찾은 비-NULL을 push, 모두 NULL이면 NameError.
    - **STORE_NAME**: `py_dict_set_item(f_locals_id, name_str_id, value_obj_id)` 한 번만 호출.
    - 그 외 `py_dict_entry`를 직접 조회·삽입하는 모든 위치를 위 API로 교체:
-     - `20260114233000_vm_opcodes_basic.sql` (LOAD_NAME / STORE_NAME)
+     - `20260114233000_ceval_opcodes_basic.sql` (LOAD_NAME / STORE_NAME)
      - `20260114225000_builtin_functions.sql` (builtin 등록 시 `py_dict_set_item` 사용)
      - `20260114226000_type_method_slots.sql` 등에서 dict를 “키로 찾는” 부분
      - 테스트에서 “dict에 넣고/찾는” 패턴은 가능하면 `py_dict_get_item` / `py_dict_set_item` 사용. 단, 테스트가 “엔트리 존재/값”을 검증할 때는 기존처럼 `py_dict_entry` 직조회도 유지 가능.
@@ -281,7 +281,7 @@ tp_richcompare 슬롯 마이그레이션(§7.1)에서는 이 객체 id를 부트
 | 구분 | 파일 | 내용 |
 |------|------|------|
 | 슬롯·타입별 함수·디스패치 | `supabase/migrations/20260114236000_tp_richcompare_slot.sql` | `tp_richcompare` 컬럼 추가, `py_unicode_richcompare`, `py_long_richcompare`(Py_EQ만), `py_object_richcompare`, `py_object_richcompare_eq` 정의 및 str/int에 슬롯 등록 |
-| str/int 전 op 지원 | `supabase/migrations/20260114237000_tp_richcompare_full_ops.sql` | `py_unicode_richcompare`·`py_long_richcompare`를 Py_LT/LE/EQ/NE/GT/GE 전부 구현하도록 교체 (CPython 고증: str 렉시코그래픽, int 수치) |
+| str/int 전 op 지원 | `supabase/migrations/20260114236000_tp_richcompare_slot.sql` | `py_unicode_richcompare`·`py_long_richcompare`를 Py_LT/LE/EQ/NE/GT/GE 전부 구현하도록 교체 (CPython 고증: str 렉시코그래픽, int 수치) |
 | True/False/NotImplemented | `supabase/migrations/20260114223000_python_bootstrap.sql` | 비교 결과용 싱글턴을 None과 동일하게 실제 객체로 생성 (`py_bool_object`·`py_not_implemented_object`). §7.2 참고. |
 | dict 키 비교 호출부 | `py_dict_get_item` / `py_dict_set_item` 이 정의된 마이그레이션 | 1단계: `py_object_equals_key` → 2단계: `py_object_richcompare_eq` 로 교체 |
 

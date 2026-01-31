@@ -48,7 +48,7 @@ CPython의 JUMP_FORWARD·POP_JUMP_FORWARD_IF_FALSE 및 PyObject_IsTrue 동작에
 
 ### Phase 1 — py_object_istrue
 
-**마이그레이션:** `20260114240300_jump_phase1_py_object_istrue.sql`
+**마이그레이션:** `20260114240300_py_object_istrue.sql`
 
 - `py_object_istrue(obj_id uuid) RETURNS boolean`:
   - 싱글톤 ID: True → true, False/None/NotImplemented → false.
@@ -63,7 +63,7 @@ CPython의 JUMP_FORWARD·POP_JUMP_FORWARD_IF_FALSE 및 PyObject_IsTrue 동작에
 
 ### Phase 2 — opcode 핸들러 및 eval_frame
 
-**마이그레이션:** `20260114240400_jump_phase2_opcode_and_eval_frame.sql`
+**마이그레이션:** `20260114240400_jump_opcodes.sql`
 
 - `py_opcode_POP_JUMP_FORWARD_IF_FALSE(frame_id uuid, delta_words integer) RETURNS integer`:
   - `tos := py_stack_pop(frame_id)`.

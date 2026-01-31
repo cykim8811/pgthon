@@ -1,14 +1,13 @@
 -- ============================================================================
--- Migration: POP_TOP Phase 1 — opcode 1, py_get_opcode_size, py_eval_frame
--- Created: 2026-01-14 24:06:00
+-- POP_TOP (opcode 1) — ceval opcode handler
+-- 20260114240600_pop_top.sql
 --
--- Purpose:
---   CPython POP_TOP (opcode 1): pop one value from stack and discard.
---   - py_opcode_POP_TOP(frame_id): py_stack_pop(frame_id), result discarded.
---   - py_eval_frame: WHEN 1 THEN PERFORM py_opcode_POP_TOP(frame_id).
+-- CPython POP_TOP: pop one value from stack and discard.
+-- - py_opcode_POP_TOP(frame_id): py_stack_pop(frame_id), result discarded.
+-- - py_eval_frame: WHEN 1 THEN PERFORM py_opcode_POP_TOP(frame_id).
 --
--- py_get_opcode_size: definition lives in 20260114230000_vm_core.sql (Python 3.11 uniform 2-byte).
---
+-- py_get_opcode_size: 20260114230000_ceval_core.sql (uniform 2-byte).
+-- py_eval_frame: 20260114232000_ceval_eval_frame.sql (includes opcode 1).
 -- Design: docs/POP_TOP_IMPLEMENTATION_PLAN.md
 -- ============================================================================
 
@@ -23,4 +22,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- py_eval_frame is defined in 20260114232000_vm_eval_frame.sql (includes opcode 1 POP_TOP).
+-- py_eval_frame is defined in 20260114232000_ceval_eval_frame.sql (includes opcode 1 POP_TOP).

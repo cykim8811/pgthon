@@ -32,8 +32,4 @@ n은 다른 피연산자를 PyNumber_AsSsize_t로 변환한 값. str*int, int*st
 
 | 마이그레이션 | 포함 작업 | 설명 |
 |--------------|-----------|------|
-| `20260114239000_binary_multiply_phase1_*.sql` | A, B, C, E | nb_multiply, sq_repeat 컬럼, py_long_nb_multiply, py_unicode_sq_repeat |
-| `20260114239100_binary_multiply_phase2_*.sql` | F, G, I | py_object_multiply_via_nb, py_sequence_repeat, 슬롯 등록 |
-| `20260114239200_binary_multiply_phase3_*.sql` | H | py_object_multiply |
-| `20260114239300_binary_multiply_phase4_*.sql` | J | py_opcode_BINARY_MULTIPLY |
-| `20260114239400_binary_multiply_phase5_*.sql` | K | py_eval_frame opcode 20 분기 |
+| `20260114239000_binary_multiply.sql` | A–K 통합 | nb_multiply·sq_repeat 컬럼·타입별 함수·디스패치·py_opcode_BINARY_MULTIPLY·eval_frame opcode 20 분기 한 파일에 반영 |

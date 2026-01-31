@@ -6,7 +6,7 @@
 --   동작하는지 검증. 싱글톤·int·str·float·list·tuple·dict·기본값.
 --
 -- Usage:
---   Run after migration 20260114240300_jump_phase1_py_object_istrue.sql.
+--   Run after migration 20260114240300_py_object_istrue.sql.
 -- ============================================================================
 
 DO $$

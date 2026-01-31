@@ -11,11 +11,9 @@
 
 | 순서 | 파일 | 역할 |
 |------|------|------|
-| 1 | `20260114230000_vm_core.sql` | 최초 정의 (NOP=1바이트, 나머지 2바이트) |
-| 2 | `20260114240600_pop_top_phase1_opcode_and_eval_frame.sql` | POP_TOP(1), NOP(9) → 1바이트로 추가 |
-| 3 | `20260114240700_have_argument_uniform_2bytes.sql` | 전부 2바이트로 재정의 (3.11 고증) |
+| 1 | `20260114230000_ceval_core.sql` | 최초 정의 (현재: Python 3.11 uniform 2-byte) |
 
-**정리:** 한 함수 정의가 3개 파일에 나뉘어 있고, “최종 형태”는 마지막 파일에만 있음. 지향에 맞추려면 정의는 한 곳(예: vm_core 또는 pop_top 쪽 하나)에만 두고 그 파일을 직접 수정하는 방식이어야 함.
+**정리:** 한 함수 정의가 3개 파일에 나뉘어 있고, “최종 형태”는 마지막 파일에만 있음. 지향에 맞추려면 정의는 한 곳(예: ceval_core)에만 두고 그 파일을 직접 수정하는 방식이어야 함.
 
 ---
 
@@ -23,16 +21,9 @@
 
 | 순서 | 파일 | 추가/변경 내용 |
 |------|------|----------------|
-| 1 | `20260114232000_vm_eval_frame.sql` | 최초 정의 (LOAD_CONST, STORE_NAME, LOAD_NAME, RETURN_VALUE 등) |
-| 2 | `20260114238400_binary_add_phase5_eval_frame.sql` | opcode 23 (BINARY_ADD) 분기 |
-| 3 | `20260114238900_binary_subtract_phase5_eval_frame.sql` | opcode 24 (BINARY_SUBTRACT) 분기 |
-| 4 | `20260114239400_binary_multiply_phase5_eval_frame.sql` | opcode 20 (BINARY_MULTIPLY) 분기 |
-| 5 | `20260114240200_compare_op_phase3_eval_frame.sql` | opcode 107 (COMPARE_OP) 분기 |
-| 6 | `20260114240400_jump_phase2_opcode_and_eval_frame.sql` | opcode 110, 114, next_i 로직 |
-| 7 | `20260114240500_jump_phase3_pop_jump_forward_if_true.sql` | opcode 115 (POP_JUMP_FORWARD_IF_TRUE) 분기 |
-| 8 | `20260114240600_pop_top_phase1_opcode_and_eval_frame.sql` | opcode 1 (POP_TOP) 분기 |
+| 1 | `20260114232000_ceval_eval_frame.sql` | **py_eval_frame** 전체 정의 (LOAD_CONST, STORE_NAME, LOAD_NAME, BINARY_ADD/SUBTRACT/MULTIPLY, COMPARE_OP, JUMP_*, POP_TOP, RETURN_VALUE 등 모든 opcode 분기) |
 
-**정리:** 한 함수가 8개 파일에서 CREATE OR REPLACE로 이어서 “확장”되고 있음. 지향에 맞추려면 `py_eval_frame`의 최종 본문은 한 파일(예: vm_eval_frame 또는 하나의 eval_frame 전용 파일)에만 두고, opcode 분기 추가 시 그 파일을 직접 수정하는 방식이어야 함.
+**정리:** 한 함수가 8개 파일에서 CREATE OR REPLACE로 이어서 “확장”되고 있음. 지향에 맞추려면 `py_eval_frame`의 최종 본문은 한 파일(예: ceval_eval_frame)에만 두고, opcode 분기 추가 시 그 파일을 직접 수정하는 방식이어야 함.
 
 ---
 
@@ -41,7 +32,7 @@
 | 순서 | 파일 | 역할 |
 |------|------|------|
 | 1 | `20260114236000_tp_richcompare_slot.sql` | 최초 정의 (디스패치 + 타입별 호출) |
-| 2 | `20260114240000_compare_op_phase1_richcompare_reflected.sql` | reflected op 로직 추가 (NotImplemented 시 반대 타입 시도) |
+| 2 | `20260114240000_compare_op.sql` | reflected op 로직 추가 (NotImplemented 시 반대 타입 시도) |
 
 **정리:** richcompare “정의”가 36000과 40000 두 곳에 나뉘어 있음. 반영 로직 추가는 36000 쪽 정의를 직접 수정하는 편이 지향에 맞음.
 
@@ -52,7 +43,7 @@
 | 순서 | 파일 | 역할 |
 |------|------|------|
 | 1 | `20260114236000_tp_richcompare_slot.sql` | 최초 정의 (Py_LT 등 일부 op) |
-| 2 | `20260114237000_tp_richcompare_full_ops.sql` | 전 구간 비교 op 지원으로 재정의 |
+| 2 | ~~237000_tp_richcompare_full_ops~~ | 제거됨. 236000 한 곳에서 전 구간 op 지원.
 
 **정리:** 타입별 richcompare 구현이 36000 → 37000에서 덮어쓰기로 “확장”됨. 지향에 맞추려면 36000(또는 37000) 한 곳에서만 정의하고 그 파일을 직접 수정하는 방식이어야 함.
 
@@ -62,8 +53,8 @@
 
 | 순서 | 파일 | 역할 |
 |------|------|------|
-| 1 | `20260114233000_vm_opcodes_basic.sql` | 최초 정의 (args만, kwargs 없음) |
-| 2 | `20260114234500_tp_call_kwargs.sql` | kwargs_id 추가, METH_O/METH_NOARGS에서 kwargs 거절 등으로 재정의 |
+| 1 | `20260114233000_ceval_opcodes_basic.sql` | 최초 정의 (현재: args 위주, kwargs 처리 포함 여부는 해당 파일 참고) |
+| ~~2~~ | ~~tp_call_kwargs~~ | 별도 파일은 제거·병합됨. |
 
 **정리:** 호출 규약 확장이 새 migration으로 덮어쓰기. 지향에 맞추려면 33000(또는 34500) 한 곳 정의를 직접 수정하는 방식이어야 함.
 
@@ -73,10 +64,9 @@
 
 | 순서 | 파일 | 역할 |
 |------|------|------|
-| 1 | `20260114233000_vm_opcodes_basic.sql` | 최초 정의 (py_object_call 2인자) |
-| 2 | `20260114234500_tp_call_kwargs.sql` | py_object_call(..., NULL) 등 kwargs 전달 형태로 재정의 |
+| 1 | `20260114233000_ceval_opcodes_basic.sql` | **py_opcode_CALL_FUNCTION** 정의 (py_object_call 호출 형태는 해당 파일 참고) |
 
-**정리:** CALL_FUNCTION 정의가 33000 → 34500에서 덮어쓰기. 한 파일에서 정의하고 그 파일을 직접 수정하는 편이 지향에 맞음.
+**정리:** CALL_FUNCTION 정의는 `233000_ceval_opcodes_basic` 한 파일에 둠.
 
 ---
 
@@ -85,9 +75,9 @@
 | 순서 | 파일 | 역할 |
 |------|------|------|
 | 1 | `20260114234000_tp_call_slot.sql` | 최초 정의 (obj_id, args 2인자) |
-| 2 | `20260114234500_tp_call_kwargs.sql` | kwargs_id 추가, tp_call 3인자 호출로 재정의 |
+| ~~2~~ | ~~234500_tp_call_kwargs~~ | 제거·병합됨. 234000에서 call 규약 정의.
 
-**정리:** call 규약 확장이 새 migration으로 덮어쓰기. 34000(또는 34500) 한 곳 정의를 직접 수정하는 방식이 지향에 맞음.
+**정리:** `py_object_call` 정의는 `234000_tp_call_slot` 한 곳에 둠.
 
 ---
 
@@ -132,9 +122,9 @@
 | 파일 | 내용 |
 |------|------|
 | `20260114235500_nb_absolute_slot.sql` | CREATE TABLE py_number_methods (nb_absolute 등) |
-| `20260114238000_binary_add_phase1_schema_and_typed_fns.sql` | ADD COLUMN IF NOT EXISTS nb_add |
-| `20260114238500_binary_subtract_phase1_schema_and_typed_fn.sql` | ADD COLUMN IF NOT EXISTS nb_subtract |
-| `20260114239000_binary_multiply_phase1_schema_and_typed_fns.sql` | ADD COLUMN IF NOT EXISTS nb_multiply, sq_repeat 관련 |
+| `20260114238000_binary_add.sql` | ADD COLUMN IF NOT EXISTS nb_add |
+| `20260114238500_binary_subtract.sql` | ADD COLUMN IF NOT EXISTS nb_subtract |
+| `20260114239000_binary_multiply.sql` | ADD COLUMN IF NOT EXISTS nb_multiply, sq_repeat 관련 |
 
 **정리:** number method 스키마가 35500에서 생성된 뒤, 38000·38500·39000에서 ALTER로 컬럼이 추가됨. 지향에 맞추려면 py_number_methods 정의를 한 파일에 모으고, 컬럼 추가 시 그 파일을 직접 수정하는 편이 맞음.
 
@@ -145,8 +135,8 @@
 | 파일 | 내용 |
 |------|------|
 | `20260114226000_type_method_slots.sql` | CREATE TABLE py_sequence_methods (sq_length 등) |
-| `20260114238000_binary_add_phase1_schema_and_typed_fns.sql` | ADD COLUMN IF NOT EXISTS sq_concat |
-| `20260114239000_binary_multiply_phase1_schema_and_typed_fns.sql` | ADD COLUMN IF NOT EXISTS sq_repeat |
+| `20260114238000_binary_add.sql` | ADD COLUMN IF NOT EXISTS sq_concat |
+| `20260114239000_binary_multiply.sql` | ADD COLUMN IF NOT EXISTS sq_repeat |
 
 **정리:** sequence method 스키마가 260000에서 생성된 뒤, 38000·39000에서 ALTER로 컬럼 추가. 지향에 맞추려면 한 파일에서 정의하고 그 파일을 직접 수정하는 방식이어야 함.
 

@@ -1,10 +1,9 @@
 -- ============================================================================
--- Migration: Jump Phase 1 — py_object_istrue (PyObject_IsTrue)
--- Created: 2026-01-14 24:03:00
+-- PyObject_IsTrue — truth value for JUMP_* opcodes
+-- 20260114240300_py_object_istrue.sql
 --
--- Purpose:
---   CPython PyObject_IsTrue: truth testing for POP_JUMP_IF_FALSE 등.
---   __bool__/__len__ 슬롯 없이, 싱글톤·테이블 존재로만 판별. tp_name 분기 금지.
+-- CPython PyObject_IsTrue: used by POP_JUMP_IF_FALSE/TRUE etc.
+-- __bool__/__len__ 슬롯 없이, 싱글톤·테이블 존재로만 판별. tp_name 분기 금지.
 --
 -- Design: docs/JUMP_IMPLEMENTATION_PLAN.md
 -- ============================================================================

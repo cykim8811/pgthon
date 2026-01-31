@@ -33,7 +33,7 @@ CPython의 POP_TOP(opcode 1) 동작에 맞게, 임시방편 없이 구현한다.
 
 ### Phase 1 — opcode 핸들러 및 eval_frame·opcode_size
 
-**마이그레이션:** `20260114240600_pop_top_phase1_opcode_and_eval_frame.sql`
+**마이그레이션:** `20260114240600_pop_top.sql`
 
 1. **py_opcode_POP_TOP(frame_id uuid) RETURNS void**
    - frame 존재 검사 후 `PERFORM py_stack_pop(frame_id);` (반환값 무시).

@@ -45,7 +45,7 @@ CPython의 `PyObject_RichCompare` 및 COMPARE_OP(opcode 107) 동작에 맞게, *
 
 ### Phase 1 — py_object_richcompare (reflected op)
 
-**마이그레이션:** `20260114240000_compare_op_phase1_richcompare_reflected.sql`
+**마이그레이션:** `20260114240000_compare_op.sql`
 
 - `py_object_richcompare(self_id, other_id, op)` 재정의:
   1. `self_id`의 타입으로 `tp_richcompare(self_id, other_id, op)` 호출.
@@ -57,7 +57,7 @@ CPython의 `PyObject_RichCompare` 및 COMPARE_OP(opcode 107) 동작에 맞게, *
 
 ### Phase 2 — py_opcode_COMPARE_OP
 
-**마이그레이션:** `20260114240100_compare_op_phase2_opcode.sql`
+**마이그레이션:** `20260114240000_compare_op.sql` (phase2 opcode도 동일 파일에 통합)
 
 - `py_opcode_COMPARE_OP(frame_id uuid, compare_op integer) RETURNS void`:
   - 스택에서 `right_id := stack_pop`, `left_id := stack_pop`.
@@ -67,10 +67,10 @@ CPython의 `PyObject_RichCompare` 및 COMPARE_OP(opcode 107) 동작에 맞게, *
 
 ### Phase 3 — py_eval_frame 분기
 
-**마이그레이션:** `20260114240200_compare_op_phase3_eval_frame.sql`
+**마이그레이션:** `20260114232000_ceval_eval_frame.sql`
 
-- `py_eval_frame`의 CASE에 `WHEN 107 THEN PERFORM py_opcode_COMPARE_OP(frame_id, arg);` 추가.
-- `py_get_opcode_size(107)`는 기본 2바이트로 두면 됨(이미 미지정 opcode는 2 반환).
+- `py_eval_frame`의 CASE에 `WHEN 107 THEN PERFORM py_opcode_COMPARE_OP(frame_id, arg);` 는 이미 `ceval_eval_frame`에 포함됨.
+- `py_get_opcode_size(107)`는 기본 2바이트(ceval_core).
 
 ---
 

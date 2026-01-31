@@ -10,6 +10,8 @@
 --   1. a=1; b=2; return a  →  1
 --   2. a=1; b=2; return a+b  →  3
 --   3. x='a'; y='b'; return x+y  →  "ab"
+--   4. a=1; b=2; return (a < b)  →  True  (COMPARE_OP + names)
+--   5. a=1; b=2; if a < b: return a+b else return 0  →  3  (compare + POP_JUMP_IF_FALSE + return)
 --
 -- Usage:
 --   Run after migrations. If any assertion fails, an exception is raised.
@@ -48,6 +50,8 @@ DECLARE
     result_id UUID;
     result_num NUMERIC;
     result_txt TEXT;
+    const_zero_id UUID;
+    ID_TRUE_OBJ UUID := '00000000-0000-4000-b000-000000000010';
 BEGIN
     RAISE NOTICE '========================================';
     RAISE NOTICE 'VM Full Pipeline Integration Test';
@@ -190,6 +194,56 @@ BEGIN
         RAISE EXCEPTION 'FAIL: full pipeline (x=''a'';y=''b'';return x+y) expected "ab", got %', COALESCE(result_txt, 'NULL');
     END IF;
     RAISE NOTICE '  ✓ Full pipeline (x=''a''; y=''b''; return x+y) → "ab"';
+
+    -- Test 4: a=1; b=2; return (a < b)  →  True  (names + COMPARE_OP + RETURN_VALUE)
+    co_consts_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_consts_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[const0_id, const1_id]);
+    co_names_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_names_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_names_id, ARRAY[name_a_id, name_b_id]);
+    co_code_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
+    -- LOAD_CONST 0 STORE_NAME 0 LOAD_CONST 1 STORE_NAME 1 LOAD_NAME 0 LOAD_NAME 1 COMPARE_OP 0 (<) RETURN_VALUE
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x64005a0064015a01650065016b005300'::bytea);
+    UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_names = co_names_id WHERE ob_base = code_obj_id;
+    UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
+
+    result_id := public.py_eval_frame(frame_id);
+    IF result_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: full pipeline (a=1;b=2;return a<b) returned NULL';
+    END IF;
+    IF result_id IS DISTINCT FROM ID_TRUE_OBJ THEN
+        RAISE EXCEPTION 'FAIL: full pipeline (a=1;b=2;return a<b) expected True, got %', result_id;
+    END IF;
+    RAISE NOTICE '  ✓ Full pipeline (a=1; b=2; return (a < b)) → True';
+
+    -- Test 5: a=1; b=2; if a < b: return a+b else return 0  →  3  (compare + POP_JUMP_IF_FALSE + BINARY_ADD / LOAD_CONST 0)
+    const_zero_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (const_zero_id, ID_INT_TYPE);
+    INSERT INTO public.py_long_object (ob_base, long_value) VALUES (const_zero_id, 0);
+    co_consts_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_consts_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[const0_id, const1_id, const_zero_id]);
+    co_names_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_names_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_names_id, ARRAY[name_a_id, name_b_id]);
+    co_code_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
+    -- a=1 b=2 LOAD_NAME a LOAD_NAME b COMPARE_OP < POP_JUMP_IF_FALSE 4 (->24) LOAD_NAME a LOAD_NAME b BINARY_ADD RETURN_VALUE LOAD_CONST 2(0) RETURN_VALUE
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x64005a0064015a01650065016b007204650065011700530064025300'::bytea);
+    UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_names = co_names_id WHERE ob_base = code_obj_id;
+    UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
+
+    result_id := public.py_eval_frame(frame_id);
+    IF result_id IS NULL THEN
+        RAISE EXCEPTION 'FAIL: full pipeline (if a<b return a+b else return 0) returned NULL';
+    END IF;
+    SELECT long_value INTO result_num FROM public.py_long_object WHERE ob_base = result_id;
+    IF result_num IS NULL OR result_num <> 3 THEN
+        RAISE EXCEPTION 'FAIL: full pipeline (if a<b return a+b else 0) expected 3, got %', result_num;
+    END IF;
+    RAISE NOTICE '  ✓ Full pipeline (a=1; b=2; if a < b: return a+b else return 0) → 3';
 
     RAISE NOTICE '';
     RAISE NOTICE '========================================';

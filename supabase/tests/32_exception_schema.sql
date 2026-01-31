@@ -19,6 +19,7 @@ DECLARE
   ID_VALUE_ERROR    uuid := '00000000-0000-4000-a000-000000000023';
   ID_NAME_ERROR    uuid := '00000000-0000-4000-a000-000000000024';
   ID_TRACEBACK_TYPE uuid := '00000000-0000-4000-a000-000000000025';
+  ID_RUNTIME_ERROR  uuid := '00000000-0000-4000-a000-000000000026';
   EXCEPTION_STATE_ID uuid := '00000000-0000-4000-e000-000000000001';
   n integer;
   t uuid;
@@ -48,7 +49,10 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.py_type_object WHERE ob_base = ID_TRACEBACK_TYPE AND tp_name = 'traceback') THEN
     RAISE EXCEPTION '✓ 32.2 FAIL: traceback type not found';
   END IF;
-  RAISE NOTICE '✓ 32.2 Exception types (BaseException, Exception, TypeError, ValueError, NameError, traceback) exist';
+  IF NOT EXISTS (SELECT 1 FROM public.py_type_object WHERE ob_base = ID_RUNTIME_ERROR AND tp_name = 'RuntimeError') THEN
+    RAISE EXCEPTION '✓ 32.2 FAIL: RuntimeError type not found';
+  END IF;
+  RAISE NOTICE '✓ 32.2 Exception types (BaseException, Exception, TypeError, ValueError, NameError, traceback, RuntimeError) exist';
 
   -- 3. py_code_object has co_exceptiontable
   IF NOT EXISTS (

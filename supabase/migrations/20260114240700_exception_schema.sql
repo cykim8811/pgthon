@@ -72,6 +72,7 @@ DECLARE
   ID_VALUE_ERROR_TYPE    uuid := '00000000-0000-4000-a000-000000000023';
   ID_NAME_ERROR_TYPE     uuid := '00000000-0000-4000-a000-000000000024';
   ID_TRACEBACK_TYPE      uuid := '00000000-0000-4000-a000-000000000025';
+  ID_RUNTIME_ERROR_TYPE  uuid := '00000000-0000-4000-a000-000000000026';
   -- tp_dict for each exception type + traceback type
   ID_DICT_BASE_EXCEPTION uuid := gen_random_uuid();
   ID_DICT_EXCEPTION      uuid := gen_random_uuid();
@@ -79,6 +80,7 @@ DECLARE
   ID_DICT_VALUE_ERROR    uuid := gen_random_uuid();
   ID_DICT_NAME_ERROR     uuid := gen_random_uuid();
   ID_DICT_TRACEBACK      uuid := gen_random_uuid();
+  ID_DICT_RUNTIME_ERROR  uuid := gen_random_uuid();
   -- tp_bases tuples: (object,), (BaseException,), (Exception,)
   ID_TUPLE_BASES_BASE_EXCEPTION uuid := gen_random_uuid();
   ID_TUPLE_BASES_EXCEPTION      uuid := gen_random_uuid();
@@ -96,12 +98,14 @@ BEGIN
     (ID_VALUE_ERROR_TYPE,   NULL),
     (ID_NAME_ERROR_TYPE,    NULL),
     (ID_TRACEBACK_TYPE,     NULL),
+    (ID_RUNTIME_ERROR_TYPE, NULL),
     (ID_DICT_BASE_EXCEPTION, NULL),
     (ID_DICT_EXCEPTION,      NULL),
     (ID_DICT_TYPE_ERROR,     NULL),
     (ID_DICT_VALUE_ERROR,    NULL),
     (ID_DICT_NAME_ERROR,     NULL),
     (ID_DICT_TRACEBACK,      NULL),
+    (ID_DICT_RUNTIME_ERROR,  NULL),
     (ID_TUPLE_BASES_BASE_EXCEPTION, NULL),
     (ID_TUPLE_BASES_EXCEPTION,      NULL);
 
@@ -112,17 +116,18 @@ BEGIN
     (ID_TYPE_ERROR_TYPE,    'TypeError'),
     (ID_VALUE_ERROR_TYPE,   'ValueError'),
     (ID_NAME_ERROR_TYPE,    'NameError'),
-    (ID_TRACEBACK_TYPE,     'traceback');
+    (ID_TRACEBACK_TYPE,     'traceback'),
+    (ID_RUNTIME_ERROR_TYPE, 'RuntimeError');
 
   -- Phase 3: ob_type = type
   UPDATE public.py_object SET ob_type = ID_TYPE_TYPE
-  WHERE id IN (ID_BASE_EXCEPTION_TYPE, ID_EXCEPTION_TYPE, ID_TYPE_ERROR_TYPE, ID_VALUE_ERROR_TYPE, ID_NAME_ERROR_TYPE, ID_TRACEBACK_TYPE);
+  WHERE id IN (ID_BASE_EXCEPTION_TYPE, ID_EXCEPTION_TYPE, ID_TYPE_ERROR_TYPE, ID_VALUE_ERROR_TYPE, ID_NAME_ERROR_TYPE, ID_TRACEBACK_TYPE, ID_RUNTIME_ERROR_TYPE);
 
   UPDATE public.py_object SET ob_type = ID_TUPLE_TYPE
   WHERE id IN (ID_TUPLE_BASES_BASE_EXCEPTION, ID_TUPLE_BASES_EXCEPTION);
 
   UPDATE public.py_object SET ob_type = (SELECT ob_base FROM public.py_type_object WHERE tp_name = 'dict' LIMIT 1)
-  WHERE id IN (ID_DICT_BASE_EXCEPTION, ID_DICT_EXCEPTION, ID_DICT_TYPE_ERROR, ID_DICT_VALUE_ERROR, ID_DICT_NAME_ERROR, ID_DICT_TRACEBACK);
+  WHERE id IN (ID_DICT_BASE_EXCEPTION, ID_DICT_EXCEPTION, ID_DICT_TYPE_ERROR, ID_DICT_VALUE_ERROR, ID_DICT_NAME_ERROR, ID_DICT_TRACEBACK, ID_DICT_RUNTIME_ERROR);
 
   -- Phase 4: tp_bases tuples (tuple contents)
   INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES
@@ -136,7 +141,8 @@ BEGIN
     (ID_DICT_TYPE_ERROR),
     (ID_DICT_VALUE_ERROR),
     (ID_DICT_NAME_ERROR),
-    (ID_DICT_TRACEBACK);
+    (ID_DICT_TRACEBACK),
+    (ID_DICT_RUNTIME_ERROR);
 
   -- Phase 6: tp_bases and tp_dict on type objects (BaseException extends object -> use ID_TUPLE_BASES_BASE_EXCEPTION)
   UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_BASE_EXCEPTION, tp_dict = ID_DICT_BASE_EXCEPTION WHERE ob_base = ID_BASE_EXCEPTION_TYPE;
@@ -145,6 +151,7 @@ BEGIN
   UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_EXCEPTION, tp_dict = ID_DICT_VALUE_ERROR WHERE ob_base = ID_VALUE_ERROR_TYPE;
   UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_EXCEPTION, tp_dict = ID_DICT_NAME_ERROR WHERE ob_base = ID_NAME_ERROR_TYPE;
   UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_BASE_EXCEPTION, tp_dict = ID_DICT_TRACEBACK WHERE ob_base = ID_TRACEBACK_TYPE;
+  UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_EXCEPTION, tp_dict = ID_DICT_RUNTIME_ERROR WHERE ob_base = ID_RUNTIME_ERROR_TYPE;
 END $$;
 
 -- RLS

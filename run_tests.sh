@@ -340,6 +340,26 @@ else
     exit 1
 fi
 
+# 27. COMPARE_OP Slots (py_object_richcompare reflected op)
+echo "=== Phase 27: COMPARE_OP Slots ==="
+if run_test "supabase/tests/27_compare_op_slots.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ COMPARE_OP slots test failed. Cannot continue."
+    exit 1
+fi
+
+# 28. COMPARE_OP Bytecode Integration (1<2→True, 1>2→False, 1==1→True, 1<'a'→TypeError)
+echo "=== Phase 28: COMPARE_OP Bytecode Integration ==="
+if run_test "supabase/tests/28_compare_op_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ COMPARE_OP bytecode integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -376,8 +396,10 @@ echo "  ✅ 23: BINARY_SUBTRACT Slots (nb_subtract)"
 echo "  ✅ 24: BINARY_SUBTRACT Bytecode Integration (5-3→2, 1-'a'→TypeError)"
 echo "  ✅ 25: BINARY_MULTIPLY Slots (nb_multiply, sq_repeat)"
 echo "  ✅ 26: BINARY_MULTIPLY Bytecode Integration (2*3, 'a'*3, 2*'b', 'a'*'b'→TypeError)"
+echo "  ✅ 27: COMPARE_OP Slots (py_object_richcompare reflected op)"
+echo "  ✅ 28: COMPARE_OP Bytecode Integration (1<2→True, 1>2→False, 1==1→True, 1<'a'→TypeError)"
 echo ""
-echo "Total: 27 test suites passed ✨"
+echo "Total: 29 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

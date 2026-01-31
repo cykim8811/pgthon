@@ -448,10 +448,12 @@ $$ LANGUAGE plpgsql;
 2. `JUMP_FORWARD`: 순방향 점프
 3. `SETUP_LOOP`: 루프 블록 설정
 
-### Phase 5: 예외 처리
-1. Exception 객체
-2. `RAISE_VARARGS`: 예외 발생
-3. `SETUP_EXCEPT`: 예외 처리 블록
+### Phase 5: 예외 처리 (Python 3.11)
+1. **Exception 객체** — BaseException 계층, 예외 타입·인스턴스 (args, traceback, cause/context 확장 가능)
+2. **RAISE_VARARGS** (opcode 130) — argc 0=re-raise, 1=raise TOS, 2=raise from
+3. **Exception table** (`co_exceptiontable`) — 3.11 방식. SETUP_EXCEPT/SETUP_FINALLY 없음. (start, end, target, depth)로 unwinding
+4. **예외 상태** — `py_exception_state` (exc_type, exc_value, exc_traceback). RERAISE, POP_EXCEPT, PUSH_EXC_INFO, CHECK_EXC_MATCH
+→ 상세 설계: **docs/EXCEPTION_HANDLING_DESIGN.md**
 
 ## 설계 원칙
 
@@ -493,9 +495,8 @@ $$ LANGUAGE plpgsql;
 - **해결책**: 최적화는 나중에, 먼저 정확한 구현
 
 ### 4. Exception Handling
-- Frame의 block stack 필요할 수 있음
-- 현재 스키마에는 없음
-- **해결책**: 필요시 `f_blockstack` 추가
+- **3.11**: try/except는 **exception table** (`co_exceptiontable`)로 처리. block stack 없음.
+- **예외 상태**: `py_exception_state` 테이블 (exc_type, exc_value, exc_traceback). 설계: **docs/EXCEPTION_HANDLING_DESIGN.md**
 
 ---
 

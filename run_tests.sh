@@ -390,6 +390,16 @@ else
     exit 1
 fi
 
+# 32. Exception Schema & Helpers (CPython 3.11)
+echo "=== Phase 32: Exception Schema & Helpers ==="
+if run_test "supabase/tests/32_exception_schema.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Exception schema & helpers test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -431,8 +441,9 @@ echo "  ✅ 28: COMPARE_OP Bytecode Integration (1<2→True, 1>2→False, 1==1�
 echo "  ✅ 29: PyObject_IsTrue Slots"
 echo "  ✅ 30: Jump Bytecode Integration (JUMP_FORWARD, POP_JUMP_FORWARD_IF_FALSE)"
 echo "  ✅ 31: POP_TOP Bytecode Integration"
+echo "  ✅ 32: Exception Schema & Helpers (CPython 3.11)"
 echo ""
-echo "Total: 32 test suites passed ✨"
+echo "Total: 33 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

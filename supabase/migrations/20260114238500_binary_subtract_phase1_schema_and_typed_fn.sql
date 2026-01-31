@@ -1,15 +1,13 @@
 -- ============================================================================
--- Migration: BINARY_SUBTRACT Phase 1 — 스키마 확장 + 타입별 nb_subtract (의존성 없음)
+-- Migration: BINARY_SUBTRACT (nb_subtract, PyNumber_Subtract, opcode 24)
 -- Created: 2026-01-14 23:85:00
 --
 -- Purpose:
---   BINARY_SUBTRACT 구현의 Phase 1. nb_subtract 컬럼 추가 및 int - int 전용 함수.
---   - A: py_number_methods에 nb_subtract 컬럼 추가
---   - C: py_long_nb_subtract(left_id, right_id) — int - int만, 그 외 NotImplemented
+--   BINARY_SUBTRACT: py_long_nb_subtract, py_object_subtract_via_nb, slot registration,
+--   py_object_subtract (PyNumber_Subtract), py_opcode_BINARY_SUBTRACT (opcode 24).
+--   nb_subtract column is in 20260114220000_python_object_schema.sql.
 --
--- CPython: PyNumber_Subtract → nb_subtract (binaryfunc) 만 사용. sq_* 폴백 없음.
--- 타입 판별은 py_long_object 존재 여부만 사용. tp_name 분기 없음.
---
+-- CPython: PyNumber_Subtract → nb_subtract (binaryfunc) only. No sq_* fallback.
 -- Design: docs/BINARY_SUBTRACT_IMPLEMENTATION_PLAN.md
 -- ============================================================================
 
@@ -45,5 +43,136 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (result_id, id_int_type);
     INSERT INTO public.py_long_object (ob_base, long_value) VALUES (result_id, lv - rv);
     RETURN result_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- Dispatch: py_object_subtract_via_nb; slot registration
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.py_object_subtract_via_nb(left_id uuid, right_id uuid)
+RETURNS uuid AS $$
+DECLARE
+    id_not_implemented uuid := '00000000-0000-4000-b000-000000000012';
+    left_type_id uuid;
+    right_type_id uuid;
+    num_id uuid;
+    nb_subtract_slot regproc;
+    res uuid;
+    call_nspname text;
+    call_proname text;
+BEGIN
+    SELECT ob_type INTO left_type_id FROM public.py_object WHERE id = left_id;
+    IF left_type_id IS NULL THEN
+        RETURN id_not_implemented;
+    END IF;
+
+    SELECT tp_as_number INTO num_id FROM public.py_type_object WHERE ob_base = left_type_id;
+    IF num_id IS NULL THEN
+        RETURN id_not_implemented;
+    END IF;
+
+    SELECT nb_subtract INTO nb_subtract_slot FROM public.py_number_methods WHERE id = num_id;
+    IF nb_subtract_slot IS NULL THEN
+        RETURN id_not_implemented;
+    END IF;
+
+    SELECT n.nspname, p.proname INTO call_nspname, call_proname
+    FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE p.oid = nb_subtract_slot::oid;
+
+    IF call_nspname IS NOT NULL AND call_proname IS NOT NULL THEN
+        EXECUTE format('SELECT %I.%I($1, $2)', call_nspname, call_proname) USING left_id, right_id INTO res;
+        IF res IS NOT NULL AND res <> id_not_implemented THEN
+            RETURN res;
+        END IF;
+    END IF;
+
+    SELECT ob_type INTO right_type_id FROM public.py_object WHERE id = right_id;
+    IF right_type_id IS NULL OR right_type_id = left_type_id THEN
+        RETURN id_not_implemented;
+    END IF;
+
+    SELECT tp_as_number INTO num_id FROM public.py_type_object WHERE ob_base = right_type_id;
+    IF num_id IS NULL THEN
+        RETURN id_not_implemented;
+    END IF;
+
+    SELECT nb_subtract INTO nb_subtract_slot FROM public.py_number_methods WHERE id = num_id;
+    IF nb_subtract_slot IS NULL THEN
+        RETURN id_not_implemented;
+    END IF;
+
+    SELECT n.nspname, p.proname INTO call_nspname, call_proname
+    FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE p.oid = nb_subtract_slot::oid;
+
+    IF call_nspname IS NULL OR call_proname IS NULL THEN
+        RETURN id_not_implemented;
+    END IF;
+
+    EXECUTE format('SELECT %I.%I($1, $2)', call_nspname, call_proname) USING right_id, left_id INTO res;
+    RETURN COALESCE(res, id_not_implemented);
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+DECLARE
+    id_int uuid := '00000000-0000-4000-a000-000000000004';
+BEGIN
+    UPDATE public.py_number_methods
+    SET nb_subtract = 'py_long_nb_subtract'::regproc
+    WHERE id = (SELECT tp_as_number FROM public.py_type_object WHERE ob_base = id_int);
+END $$;
+
+-- ============================================================================
+-- py_object_subtract (PyNumber_Subtract): nb_subtract only, else TypeError
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.py_object_subtract(left_id uuid, right_id uuid)
+RETURNS uuid AS $$
+DECLARE
+    id_not_implemented uuid := '00000000-0000-4000-b000-000000000012';
+    res uuid;
+    left_type_id uuid;
+    right_type_id uuid;
+    left_tp_name text;
+    right_tp_name text;
+BEGIN
+    res := public.py_object_subtract_via_nb(left_id, right_id);
+    IF res IS NOT NULL AND res <> id_not_implemented THEN
+        RETURN res;
+    END IF;
+
+    SELECT ob_type INTO left_type_id  FROM public.py_object WHERE id = left_id;
+    SELECT ob_type INTO right_type_id FROM public.py_object WHERE id = right_id;
+    SELECT tp_name INTO left_tp_name  FROM public.py_type_object WHERE ob_base = left_type_id;
+    SELECT tp_name INTO right_tp_name FROM public.py_type_object WHERE ob_base = right_type_id;
+    RAISE EXCEPTION 'TypeError: unsupported operand type(s) for -: ''%'' and ''%''',
+        COALESCE(left_tp_name, 'None'), COALESCE(right_tp_name, 'None');
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- py_opcode_BINARY_SUBTRACT (opcode 24): pop right, left → py_object_subtract(left, right) → push
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.py_opcode_BINARY_SUBTRACT(frame_id uuid)
+RETURNS void AS $$
+DECLARE
+    right_id uuid;
+    left_id  uuid;
+    result_id uuid;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
+        RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
+    END IF;
+
+    right_id := public.py_stack_pop(frame_id);
+    left_id  := public.py_stack_pop(frame_id);
+    result_id := public.py_object_subtract(left_id, right_id);
+    PERFORM public.py_stack_push(frame_id, result_id);
 END;
 $$ LANGUAGE plpgsql;

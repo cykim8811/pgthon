@@ -38,8 +38,10 @@
 **고증 결론:**  
 - **수정하는 것이 맞다.**  
 - 부트스트랩에 이미 tuple 타입 고정 UUID가 있다(`20260114223000_python_bootstrap.sql`의 `ID_TUPLE_TYPE := '00000000-0000-4000-a000-000000000007'`).  
-- **권장:** `py_tuple_from_3` / `py_tuple_from_1` 등에서 `tp_name = 'tuple'` 조회를 제거하고, tuple 타입 UUID 상수(`'00000000-0000-4000-a000-000000000007'`)를 사용하도록 변경.  
-- 효과: tp_name 문자열에 대한 의존 제거, CPython의 “타입 객체를 상수로 참조”하는 방식과 맞춤.
+
+**조치 완료:**  
+- `py_tuple_from_1`(224300), `py_tuple_from_3`(241000)에서 `tp_name = 'tuple'` 조회를 제거하고, `id_tuple_type constant uuid := '00000000-0000-4000-a000-000000000007'` 상수를 사용하도록 변경함.  
+- tp_name 문자열 의존 제거, CPython의 “타입 객체를 상수로 참조”하는 방식과 맞춤.
 
 ---
 
@@ -49,6 +51,6 @@
 |------|----------------|------|----------|
 | 슬롯 내부 TypeError를 RAISE EXCEPTION | TypeError는 PyErr_* 한 경로 | **수정 완료** (tp_hash 슬롯 8곳) | — |
 | py_object_equals_key (tp_name 분기) | 키 동등성은 RichCompareBool만 사용 | **제거 완료** | — |
-| tuple 타입 tp_name 조회 | PyTuple_Type 상수 참조 | **수정:** 부트스트랩 tuple UUID 상수 사용 | 중간 (의존성·고증) |
+| tuple 타입 tp_name 조회 | PyTuple_Type 상수 참조 | **수정 완료** (py_tuple_from_1, py_tuple_from_3) | — |
 
 이 문서는 “검토해볼만한 부분”에 대한 **고증 기준 정리**만 담는다. 실제 수정은 별도 작업으로 진행하면 된다.

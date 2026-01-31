@@ -31,20 +31,17 @@ $$;
 
 -- ----------------------------------------------------------------------------
 -- py_tuple_from_1: create tuple (elem) for exception args
+-- CPython 고증: tuple 타입은 PyTuple_Type 상수 참조. 부트스트랩 tuple 타입 UUID 사용.
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.py_tuple_from_1(p_elem uuid)
 RETURNS uuid
 LANGUAGE plpgsql
 AS $$
 DECLARE
-  tuple_type_id uuid;
+  id_tuple_type constant uuid := '00000000-0000-4000-a000-000000000007';
   new_id uuid := gen_random_uuid();
 BEGIN
-  SELECT ob_base INTO tuple_type_id FROM public.py_type_object WHERE tp_name = 'tuple' LIMIT 1;
-  IF tuple_type_id IS NULL THEN
-    RAISE EXCEPTION 'tuple type not found';
-  END IF;
-  INSERT INTO public.py_object (id, ob_type) VALUES (new_id, tuple_type_id);
+  INSERT INTO public.py_object (id, ob_type) VALUES (new_id, id_tuple_type);
   INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (new_id, ARRAY[p_elem]);
   RETURN new_id;
 END;

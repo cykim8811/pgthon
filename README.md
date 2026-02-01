@@ -96,4 +96,5 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
 - **docs/[MIGRATIONS_AS_CPYTHON_CODE.md](docs/MIGRATIONS_AS_CPYTHON_CODE.md)**: 마이그레이션을 CPython 코드 구조에 대응한 매핑.
 - **docs/[TP_CALL_KWARGS_DESIGN.md](docs/TP_CALL_KWARGS_DESIGN.md)**: tp_call·kwargs: 3인자 규약, CALL_FUNCTION_KW, METH_KEYWORDS 구현 완료.
 - **docs/[FLOAT_IMPLEMENTATION_DESIGN.md](docs/FLOAT_IMPLEMENTATION_DESIGN.md)**: float 타입 nb_add/nb_subtract/nb_multiply·tp_hash·tp_richcompare 설계·구현 완료.
-- **docs/[BYTES_OPERATIONS_DESIGN.md](docs/BYTES_OPERATIONS_DESIGN.md)**: bytes 타입 sq_length/sq_concat/sq_repeat·tp_richcompare 설계 (CPython 고증·임시구현 없음, 작업 의존관계·실행 순서 포함).
+- **docs/[BYTES_OPERATIONS_DESIGN.md](docs/BYTES_OPERATIONS_DESIGN.md)**: bytes 타입 sq_length/sq_concat/sq_repeat·tp_richcompare 설계·구현 완료 (CPython 고증·임시구현 없음).
+- **docs/[BUILD_TUPLE_LIST_DESIGN.md](docs/BUILD_TUPLE_LIST_DESIGN.md)**: BUILD_TUPLE(102)·BUILD_LIST(103) opcode 설계 (CPython 고증·임시구현 없음, 작업 의존관계·실행 순서 포함).

@@ -480,6 +480,16 @@ else
     exit 1
 fi
 
+# 41. BUILD_TUPLE / BUILD_LIST bytecode integration
+echo "=== Phase 41: BUILD_TUPLE / BUILD_LIST Integration ==="
+if run_test "supabase/tests/41_build_tuple_list_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ BUILD_TUPLE/BUILD_LIST integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -530,8 +540,9 @@ echo "  ✅ 37: METH_KEYWORDS Integration (first_kwarg accepts kwargs)"
 echo "  ✅ 38: EXTENDED_ARG Integration (opcode 144 extended operand)"
 echo "  ✅ 39: float Slots Integration (nb_add/subtract/multiply, tp_hash, tp_richcompare)"
 echo "  ✅ 40: bytes Slots Integration (sq_length, sq_concat, sq_repeat, tp_richcompare)"
+echo "  ✅ 41: BUILD_TUPLE / BUILD_LIST Bytecode Integration"
 echo ""
-echo "Total: 40 test suites passed ✨"
+echo "Total: 41 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

@@ -554,5 +554,6 @@ $$ LANGUAGE plpgsql;
 
 - **CALL_FUNCTION_KW / kwargs**: 구현 완료. 설계 **docs/TP_CALL_KWARGS_DESIGN.md**, **docs/KWARGS_IMPLEMENTATION_PLAN.md**.
 - **EXTENDED_ARG**: 구현 완료. opcode 144 prefix 누적 → effective_arg = (extended << 8) | arg.
-- float/bytes 타입, 예외 `__cause__`/`__context__` 등은 설계·마이그레이션에서 "향후 확장"으로 명시됨.
+- **float 타입**: 설계 **docs/FLOAT_IMPLEMENTATION_DESIGN.md**. 스키마·부트스트랩·nb_absolute는 이미 있음. nb_add/nb_subtract/nb_multiply·tp_hash·tp_richcompare 구현·슬롯 등록만 추가.
+- bytes 타입 연산·예외 `__cause__`/`__context__` 등은 "향후 확장"으로 명시됨.
 

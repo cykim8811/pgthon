@@ -460,6 +460,16 @@ else
     exit 1
 fi
 
+# 39. float slots integration (nb_add, nb_subtract, nb_multiply, tp_hash, tp_richcompare)
+echo "=== Phase 39: float Slots Integration ==="
+if run_test "supabase/tests/39_float_slots_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ float slots integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -508,8 +518,9 @@ echo "  ✅ 35: tp_call kwargs rejection (len()/abs() take no keyword arguments)
 echo "  ✅ 36: CALL_FUNCTION_KW Integration (keyword args from bytecode)"
 echo "  ✅ 37: METH_KEYWORDS Integration (first_kwarg accepts kwargs)"
 echo "  ✅ 38: EXTENDED_ARG Integration (opcode 144 extended operand)"
+echo "  ✅ 39: float Slots Integration (nb_add/subtract/multiply, tp_hash, tp_richcompare)"
 echo ""
-echo "Total: 38 test suites passed ✨"
+echo "Total: 39 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

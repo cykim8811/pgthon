@@ -108,6 +108,56 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================================
+-- py_float_richcompare(self_id, other_id, op) — float vs float, float vs int (CPython coercion)
+--    self는 float(디스패치에서 float일 때만 호출). other가 float면 ob_fval 비교; other가 int면 long_value를 double로 변환 후 비교.
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.py_float_richcompare(
+    self_id uuid, other_id uuid, op integer)
+RETURNS uuid AS $$
+DECLARE
+    sid uuid := '00000000-0000-4000-b000-000000000012';
+    tid uuid := '00000000-0000-4000-b000-000000000010';
+    fid uuid := '00000000-0000-4000-b000-000000000011';
+    sval double precision;
+    oval double precision;
+    oval_long numeric;
+    cmp boolean;
+BEGIN
+    IF op NOT IN (0, 1, 2, 3, 4, 5) THEN
+        RETURN sid;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.py_float_object WHERE ob_base = self_id) THEN
+        RETURN sid;
+    END IF;
+    SELECT ob_fval INTO sval FROM public.py_float_object WHERE ob_base = self_id;
+    IF EXISTS (SELECT 1 FROM public.py_float_object WHERE ob_base = other_id) THEN
+        SELECT ob_fval INTO oval FROM public.py_float_object WHERE ob_base = other_id;
+    ELSIF EXISTS (SELECT 1 FROM public.py_long_object WHERE ob_base = other_id) THEN
+        SELECT long_value INTO oval_long FROM public.py_long_object WHERE ob_base = other_id;
+        oval := oval_long::double precision;
+    ELSE
+        RETURN sid;
+    END IF;
+
+    CASE op
+        WHEN 0 THEN cmp := (sval < oval);   -- Py_LT
+        WHEN 1 THEN cmp := (sval <= oval);  -- Py_LE
+        WHEN 2 THEN RETURN CASE WHEN sval IS NOT DISTINCT FROM oval THEN tid ELSE fid END;  -- Py_EQ
+        WHEN 3 THEN cmp := (sval IS DISTINCT FROM oval);  -- Py_NE
+        WHEN 4 THEN cmp := (sval > oval);   -- Py_GT
+        WHEN 5 THEN cmp := (sval >= oval);  -- Py_GE
+        ELSE RETURN sid;
+    END CASE;
+
+    IF op IN (0, 1, 3, 4, 5) THEN
+        RETURN CASE WHEN cmp THEN tid ELSE fid END;
+    END IF;
+    RETURN sid;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
 -- Dispatch and dict-key equality helper
 -- ============================================================================
 
@@ -195,13 +245,14 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================================
--- Register tp_richcompare for str and int
+-- Register tp_richcompare for str, int, float
 -- ============================================================================
 
 DO $$
 DECLARE
     id_str uuid := '00000000-0000-4000-a000-000000000003';
     id_int uuid := '00000000-0000-4000-a000-000000000004';
+    id_float uuid := '00000000-0000-4000-a000-000000000009';
 BEGIN
     UPDATE public.py_type_object
     SET tp_richcompare = 'py_unicode_richcompare'::regproc
@@ -209,6 +260,9 @@ BEGIN
     UPDATE public.py_type_object
     SET tp_richcompare = 'py_long_richcompare'::regproc
     WHERE ob_base = id_int;
+    UPDATE public.py_type_object
+    SET tp_richcompare = 'py_float_richcompare'::regproc
+    WHERE ob_base = id_float;
 END $$;
 
 -- py_dict_get_item and py_dict_set_item (using py_object_richcompare_eq for key equality) are defined in 20260114235000_tp_hash_slot.sql.

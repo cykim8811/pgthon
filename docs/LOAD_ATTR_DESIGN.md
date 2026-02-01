@@ -23,7 +23,8 @@ CPython의 **LOAD_ATTR** opcode 및 **PyObject_GetAttr**에 해당하는 속성 
 - **순서**: CPython은 `type(obj).__getattribute__(obj, name)` → 실패 시 `type(obj).__getattr__(obj, name)`.
 - **일반 경로**: 인스턴스 `__dict__` → 타입 및 MRO의 `tp_dict`에서 name 조회 → 발견 시 **디스크립터**: `__get__` 있으면 `descriptor.__get__(obj, type)` 호출 후 그 결과 반환.
 - **Elytra Phase 1 범위**:
-  - **타입 쪽만**: `type(obj).tp_dict`에서 name으로 조회. (인스턴스 `__dict__`·MRO 순회는 Phase 2 이후.)
+  - **타입 쪽만**: `type(obj).tp_dict`에서 name으로 조회. (인스턴스 `__dict__`·타입 순회는 Phase 2 이후.)
+  - **Phase 2 타입 순회**: 전체 MRO(C3) 대신 **단순 tp_bases 순회**만 사용하는 **의도적 축소**. (§7 참고.)
   - **디스크립터**: 조회 결과가 `__get__`를 가지면(해당 타입의 `tp_dict["__get__"]` 존재) `__get__(obj, type)` 호출, 아니면 조회값 그대로 반환.
   - **타입 판별**: `tp_dict`·`py_dict_get_item`·테이블 존재만 사용. `tp_name` 문자열 비교 금지.
 
@@ -67,6 +68,7 @@ CPython의 **LOAD_ATTR** opcode 및 **PyObject_GetAttr**에 해당하는 속성 
 
 ### 3.2 py_object_getattr(obj_id uuid, name_str_id uuid) RETURNS uuid
 
+- **Phase 1** (현재 구현): 아래 1–5. **Phase 2** 확장: §7 참고 — 인스턴스 __dict__ 먼저, 그 다음 lookup_in_type_and_bases(type_id, obj_id, name_str_id) 호출.
 - **1)** `obj_id`의 `ob_type` → type_id. type_id에 해당하는 `py_type_object` 행이 없으면 에러.
 - **2)** type_id의 `tp_dict` → dict_id. NULL이면 AttributeError 설정 후 NULL 반환.
 - **3)** `py_dict_get_item(dict_id, name_str_id)` → attr_id. NULL이면 AttributeError 설정 후 NULL 반환.
@@ -170,15 +172,102 @@ G ──┘
 
 ---
 
-## 7. Phase 2 (본 설계 외, 참고)
+## 7. Phase 2 설계 (인스턴스 __dict__ + 단순 tp_bases 순회)
 
-- **인스턴스 __dict__**: 객체별 속성 저장. 스키마에 `py_object` 확장 또는 별도 테이블 필요.
-- **MRO 순회**: `tp_bases` 따라 부모 타입의 `tp_dict` 순서대로 조회.
-- **STORE_ATTR / DELETE_ATTR**: 속성 쓰기·삭제 opcode.
+Phase 2는 **py_object_getattr**를 확장해 (1) 인스턴스 `__dict__` 먼저 조회, (2) 그 다음 타입·bases에서 조회하도록 한다. CPython 고증을 지키되, MRO는 **단순 tp_bases 순회**(의도적 축소)만 사용한다. 임시 구현(tp_name 분기, 타입 이름 비교)은 사용하지 않는다.
+
+### 7.1 CPython과의 대응·축소
+
+- **CPython**: `object.__getattribute__`는 (1) MRO에서 data descriptor, (2) 인스턴스 `__dict__`, (3) MRO에서 나머지, (4) `__getattr__` 순서다.
+- **Elytra Phase 2**: (1) 인스턴스 `__dict__`, (2) 타입 + **단순 tp_bases 순회**로 `tp_dict` 조회, 발견 시 디스크립터 `__get__` 호출. Data descriptor / non-data 구분 및 `__getattr__`는 Phase 2 범위 밖(의도적 축소).
+
+### 7.2 스키마 (기존만 사용)
+
+- **인스턴스 __dict__**: 기존 **py_instance_object(ob_base, in_dict)** 사용. `in_dict`는 해당 인스턴스의 속성 dict 객체 id. `in_dict`가 NULL이면 인스턴스 __dict__ 없음. 새 테이블·컬럼 없음.
+- **타입·bases**: 기존 **py_type_object.tp_bases**, **tp_dict**만 사용. **tp_mro**·C3 선형화는 도입하지 않음.
+
+### 7.3 조회 순서 (알고리즘)
+
+1. **인스턴스 __dict__**  
+   - `obj_id`에 대해 `py_instance_object` 행이 있고 `in_dict`가 NOT NULL이면, `attr_id := py_dict_get_item(in_dict, name_str_id)`.  
+   - NOT NULL이면 **그대로 반환** (인스턴스 __dict__ 값은 디스크립터 호출 없음).
+
+2. **타입 + bases (단순 tp_bases 순회)**  
+   - `type_id := ob_type(obj_id)`.  
+   - **lookup_in_type_and_bases(type_id, obj_id, name_str_id)** 호출 (아래 7.4).  
+   - 반환값이 NOT NULL이면 그대로 반환, NULL이면 3으로.
+
+3. **실패**  
+   - `py_err_set_attribute_error(...)` 후 NULL 반환.
+
+### 7.4 lookup_in_type_and_bases(type_id, obj_id, name_str_id) — 단순 tp_bases DFS
+
+- **입력**: type_id(조회할 타입), obj_id(속성 접근 대상 객체), name_str_id(속성 이름 str id).  
+- **동작** (재귀, tp_name 분기 없음):
+  1. `type_id`에 해당하는 `py_type_object` 행이 없으면 NULL 반환.
+  2. `dict_id := tp_dict(type_id)`. NULL이면 4로.
+  3. `attr_id := py_dict_get_item(dict_id, name_str_id)`. NOT NULL이면: 디스크립터 처리(attr 타입에 `__get__` 있으면 `__get__(attr, obj, type_id)` 호출, 없으면 attr_id 반환). 반환.
+  4. `tp_bases` 튜플 조회. NULL이거나 빈 튜플이면 NULL 반환.
+  5. **tp_bases 튜플 순서대로** 각 base type_id에 대해: `result := lookup_in_type_and_bases(base_id, obj_id, name_str_id)`. NOT NULL이면 result 반환.
+  6. NULL 반환.
+
+- **의도적 축소**: 전체 MRO(C3)가 아니라 **현재 타입 → tp_bases[0] → tp_bases[1] → …** 에 대해 **재귀적으로** 같은 로직 적용(DFS). 즉, “직접 부모”의 tp_dict를 먼저 보고, 없으면 그 부모의 tp_bases로 내려감. **tp_mro** 컬럼·C3 선형화는 사용하지 않음.
+
+### 7.5 디스크립터
+
+- 타입·bases에서 **tp_dict**로 찾은 값에 대해서만 기존과 동일: 해당 값의 타입 `tp_dict`에 `"__get__"`이 있으면 `py_object_call(__get__id, [attr_id, obj_id, type_id], NULL)` 호출 후 그 결과 반환.  
+- 인스턴스 __dict__에서 찾은 값은 **디스크립터 호출하지 않음** (그대로 반환).
+
+### 7.6 임시방편 금지 (Phase 2)
+
+- 타입·객체 판별: **테이블 존재( py_instance_object, py_type_object)·ob_type·tp_dict·tp_bases·py_dict_get_item**만 사용. `tp_name` 비교 금지.
+- `"__get__"`: **py_str_from_text('__get__')** 또는 상수 str id만 사용.
+- AttributeError: 전용 setter만 사용.
+
+### 7.7 STORE_ATTR / DELETE_ATTR
+
+- 속성 쓰기·삭제 opcode는 별도 설계. Phase 2 LOAD_ATTR는 “인스턴스 __dict__가 이미 있으면 읽기”만 담당; 인스턴스 __dict__ 생성·갱신은 STORE_ATTR 등에서 다룸.
 
 ---
 
-## 8. 가장 먼저 실행할 작업 요약
+## 8. Phase 2 작업 분해·의존 관계·실행 순서
+
+### 8.1 작업 ID (세부)
+
+| ID | 작업 | 산출물 |
+|----|------|--------|
+| **P2-1** | 설계 문서 Phase 2 확정 | §7·§8 반영 (본 문서) |
+| **P2-2a** | lookup_in_type_and_bases(type_id, obj_id, name_str_id) 함수 추가 | 235000 수정 |
+| **P2-2b** | py_object_getattr 확장: 인스턴스 __dict__ 단계 + 타입 단계를 lookup_in_type_and_bases 호출로 교체 | 235000 수정 |
+| **P2-3** | Phase 2 통합 테스트: 인스턴스 __dict__ 조회, bases 순회, 미존재 시 AttributeError | supabase/tests/, run_tests.sh |
+
+### 8.2 의존 관계
+
+```
+P2-1 (설계 확정)
+  └─→ P2-2a (lookup_in_type_and_bases 구현)
+        └─→ P2-2b (py_object_getattr가 P2-2a 호출하도록 수정)
+              └─→ P2-3 (통합 테스트)
+```
+
+- **P2-2a**: Phase 1의 tp_dict·디스크립터 로직만 재사용. type_id 하나에 대해 tp_dict 조회 + tp_bases 순회 재귀. `py_dict_get_item`, `py_str_from_text('__get__')`, `py_object_call` 사용.
+- **P2-2b**: `py_object_getattr` 내부에서 (1) py_instance_object·in_dict 조회 후 py_dict_get_item, (2) 없으면 lookup_in_type_and_bases(type_id, obj_id, name_str_id), (3) 없으면 py_err_set_attribute_error 후 NULL.
+- **P2-3**: P2-2b 반영 후 실행. 인스턴스 __dict__만 있는 경우, 타입+bases만 있는 경우, 둘 다·둘 다 없는 경우, bases 순서 검증 등.
+
+### 8.3 실행 순서 (가장 먼저 할 일부터)
+
+| 순서 | 작업 | 선행 | 비고 |
+|------|------|------|------|
+| **1** | **P2-1** 설계 문서 Phase 2 확정 | 없음 | §7·§8 작성·반영 (본 문서) |
+| **2** | **P2-2a** lookup_in_type_and_bases 추가 | P2-1 | 235000에 재귀 함수 추가 |
+| **3** | **P2-2b** py_object_getattr Phase 2 확장 | P2-2a | 235000: 인스턴스 __dict__ + lookup_in_type_and_bases 호출 |
+| **4** | **P2-3** Phase 2 통합 테스트 | P2-2b | 테스트 파일 추가, run_tests.sh Phase 43 등록 |
+
+- **마이그레이션**: 새 파일 생성 없이 **기존 235000**만 수정 (py_object_getattr·py_opcode_LOAD_ATTR 정의 위치).
+
+---
+
+## 9. Phase 1 가장 먼저 실행할 작업 요약
 
 | 순서 | 작업 ID | 할 일 |
 |------|---------|--------|
@@ -195,7 +284,7 @@ G ──┘
 
 ---
 
-## 9. 요약
+## 10. 요약
 
 | 단계 | 내용 | 산출물 |
 |------|------|--------|

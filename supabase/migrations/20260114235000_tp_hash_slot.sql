@@ -422,19 +422,104 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================================
--- py_object_getattr: Get attribute by name (Phase 1: type(obj).tp_dict only)
--- CPython: PyObject_GetAttr; design: docs/LOAD_ATTR_DESIGN.md
--- Uses tp_dict, py_dict_get_item, py_object_call only; no tp_name comparison.
+-- lookup_in_type_and_bases: Phase 2 — type + tp_bases DFS (no MRO/C3)
+-- Design: docs/LOAD_ATTR_DESIGN.md §7.4. No tp_name comparison.
 -- ============================================================================
-CREATE OR REPLACE FUNCTION public.py_object_getattr(obj_id UUID, name_str_id UUID)
-RETURNS UUID AS $$
+CREATE OR REPLACE FUNCTION public.lookup_in_type_and_bases(
+    type_id UUID,
+    obj_id UUID,
+    name_str_id UUID
+) RETURNS UUID AS $$
 DECLARE
-    type_id UUID;
     dict_id UUID;
     attr_id UUID;
     attr_type_id UUID;
     get_str_id UUID;
     get_id UUID;
+    result_id UUID;
+    bases_tuple_id UUID;
+    base_items UUID[];
+    n_bases INT;
+    i INT;
+    base_id UUID;
+BEGIN
+    -- 1. type_id must be a py_type_object row
+    IF NOT EXISTS (SELECT 1 FROM public.py_type_object WHERE ob_base = type_id) THEN
+        RETURN NULL;
+    END IF;
+
+    -- 2. tp_dict
+    SELECT tp_dict INTO dict_id FROM public.py_type_object WHERE ob_base = type_id;
+    IF dict_id IS NOT NULL THEN
+        -- 3. Look up name in type's tp_dict
+        attr_id := public.py_dict_get_item(dict_id, name_str_id);
+        IF attr_id IS NOT NULL THEN
+            -- Descriptor: if attr's type has __get__, call __get__(attr, obj, type)
+            SELECT ob_type INTO attr_type_id FROM public.py_object WHERE id = attr_id;
+            IF attr_type_id IS NOT NULL THEN
+                get_str_id := public.py_str_from_text('__get__');
+                IF get_str_id IS NULL AND public.py_err_occurred() THEN
+                    RETURN NULL;
+                END IF;
+                SELECT tp_dict INTO dict_id FROM public.py_type_object WHERE ob_base = attr_type_id;
+                IF dict_id IS NOT NULL THEN
+                    get_id := public.py_dict_get_item(dict_id, get_str_id);
+                    IF get_id IS NOT NULL THEN
+                        result_id := public.py_object_call(get_id, ARRAY[attr_id, obj_id, type_id], NULL);
+                        IF result_id IS NULL AND public.py_err_occurred() THEN
+                            RETURN NULL;
+                        END IF;
+                        RETURN result_id;
+                    END IF;
+                END IF;
+            END IF;
+            RETURN attr_id;
+        END IF;
+    END IF;
+
+    -- 4. tp_bases
+    SELECT tp_bases INTO bases_tuple_id FROM public.py_type_object WHERE ob_base = type_id;
+    IF bases_tuple_id IS NULL THEN
+        RETURN NULL;
+    END IF;
+    SELECT ob_item INTO base_items FROM public.py_tuple_object WHERE ob_base = bases_tuple_id;
+    IF base_items IS NULL THEN
+        RETURN NULL;
+    END IF;
+    n_bases := array_length(base_items, 1);
+    IF n_bases IS NULL OR n_bases < 1 THEN
+        RETURN NULL;
+    END IF;
+
+    -- 5. Recurse over each base in order
+    FOR i IN 1..n_bases LOOP
+        base_id := base_items[i];
+        result_id := public.lookup_in_type_and_bases(base_id, obj_id, name_str_id);
+        IF result_id IS NOT NULL THEN
+            RETURN result_id;
+        END IF;
+        -- If recursive call set an exception, propagate
+        IF public.py_err_occurred() THEN
+            RETURN NULL;
+        END IF;
+    END LOOP;
+
+    -- 6. Not found
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- py_object_getattr: Get attribute by name (Phase 2: instance __dict__ then type+bases)
+-- CPython: PyObject_GetAttr; design: docs/LOAD_ATTR_DESIGN.md §7.3.
+-- Uses py_instance_object.in_dict, lookup_in_type_and_bases; no tp_name comparison.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.py_object_getattr(obj_id UUID, name_str_id UUID)
+RETURNS UUID AS $$
+DECLARE
+    type_id UUID;
+    in_dict_id UUID;
+    attr_id UUID;
     result_id UUID;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_object WHERE id = obj_id) THEN
@@ -452,41 +537,29 @@ BEGIN
         RETURN NULL;
     END IF;
 
-    SELECT tp_dict INTO dict_id FROM public.py_type_object WHERE ob_base = type_id;
-    IF dict_id IS NULL THEN
-        PERFORM public.py_err_set_attribute_error('type has no tp_dict');
+    -- 1. Instance __dict__: if obj is instance and in_dict present, look up there first
+    SELECT i.in_dict INTO in_dict_id
+    FROM public.py_instance_object i
+    WHERE i.ob_base = obj_id;
+    IF in_dict_id IS NOT NULL THEN
+        attr_id := public.py_dict_get_item(in_dict_id, name_str_id);
+        IF attr_id IS NOT NULL THEN
+            RETURN attr_id;
+        END IF;
+    END IF;
+
+    -- 2. Type + bases (lookup_in_type_and_bases)
+    result_id := public.lookup_in_type_and_bases(type_id, obj_id, name_str_id);
+    IF result_id IS NOT NULL THEN
+        RETURN result_id;
+    END IF;
+    IF public.py_err_occurred() THEN
         RETURN NULL;
     END IF;
 
-    attr_id := public.py_dict_get_item(dict_id, name_str_id);
-    IF attr_id IS NULL THEN
-        PERFORM public.py_err_set_attribute_error('attribute not found in type tp_dict');
-        RETURN NULL;
-    END IF;
-
-    -- Descriptor: if attr's type has __get__, call __get__(attr, obj, type)
-    SELECT ob_type INTO attr_type_id FROM public.py_object WHERE id = attr_id;
-    IF attr_type_id IS NULL THEN
-        RETURN attr_id;
-    END IF;
-    get_str_id := public.py_str_from_text('__get__');
-    IF get_str_id IS NULL AND public.py_err_occurred() THEN
-        RETURN NULL;
-    END IF;
-    SELECT tp_dict INTO dict_id FROM public.py_type_object WHERE ob_base = attr_type_id;
-    IF dict_id IS NULL THEN
-        RETURN attr_id;
-    END IF;
-    get_id := public.py_dict_get_item(dict_id, get_str_id);
-    IF get_id IS NULL THEN
-        RETURN attr_id;
-    END IF;
-
-    result_id := public.py_object_call(get_id, ARRAY[attr_id, obj_id, type_id], NULL);
-    IF result_id IS NULL AND public.py_err_occurred() THEN
-        RETURN NULL;
-    END IF;
-    RETURN result_id;
+    -- 3. Not found
+    PERFORM public.py_err_set_attribute_error('object has no attribute');
+    RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 

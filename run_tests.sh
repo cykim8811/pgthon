@@ -500,6 +500,16 @@ else
     exit 1
 fi
 
+# 43. LOAD_ATTR Phase 2 (instance __dict__, type+bases, not found → AttributeError)
+echo "=== Phase 43: LOAD_ATTR Phase 2 Integration ==="
+if run_test "supabase/tests/43_load_attr_phase2_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ LOAD_ATTR Phase 2 integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -552,8 +562,9 @@ echo "  ✅ 39: float Slots Integration (nb_add/subtract/multiply, tp_hash, tp_r
 echo "  ✅ 40: bytes Slots Integration (sq_length, sq_concat, sq_repeat, tp_richcompare)"
 echo "  ✅ 41: BUILD_TUPLE / BUILD_LIST Bytecode Integration"
 echo "  ✅ 42: LOAD_ATTR Bytecode Integration (tp_dict lookup, AttributeError)"
+echo "  ✅ 43: LOAD_ATTR Phase 2 (instance __dict__, type+bases, AttributeError)"
 echo ""
-echo "Total: 42 test suites passed ✨"
+echo "Total: 43 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

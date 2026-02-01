@@ -94,4 +94,4 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
 - **docs/[DICT_LOOKUP_DESIGN.md](docs/DICT_LOOKUP_DESIGN.md)**: dict lookup hash·동등성 설계.
 - **docs/[EXCEPTION_HANDLING_DESIGN.md](docs/EXCEPTION_HANDLING_DESIGN.md)**: 예외 처리 설계 (CPython 3.11 고증).
 - **docs/[MIGRATIONS_AS_CPYTHON_CODE.md](docs/MIGRATIONS_AS_CPYTHON_CODE.md)**: 마이그레이션을 CPython 코드 구조에 대응한 매핑.
-- **docs/[TP_CALL_KWARGS_DESIGN.md](docs/TP_CALL_KWARGS_DESIGN.md)**: tp_call·kwargs 확장 설계 (미구현).
+- **docs/[TP_CALL_KWARGS_DESIGN.md](docs/TP_CALL_KWARGS_DESIGN.md)**: tp_call·kwargs: 3인자 규약, CALL_FUNCTION_KW, METH_KEYWORDS 구현 완료.

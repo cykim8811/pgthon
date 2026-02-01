@@ -420,6 +420,46 @@ else
     exit 1
 fi
 
+# 35. tp_call kwargs rejection (CPython fidelity: len()/abs() take no keyword arguments)
+echo "=== Phase 35: tp_call kwargs rejection ==="
+if run_test "supabase/tests/35_tp_call_kwargs_reject.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ tp_call kwargs rejection test failed. Cannot continue."
+    exit 1
+fi
+
+# 36. CALL_FUNCTION_KW opcode integration (keyword args from bytecode → TypeError for len/abs)
+echo "=== Phase 36: CALL_FUNCTION_KW Integration ==="
+if run_test "supabase/tests/36_call_function_kw_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ CALL_FUNCTION_KW integration test failed. Cannot continue."
+    exit 1
+fi
+
+# 37. METH_KEYWORDS builtin integration (first_kwarg accepts kwargs)
+echo "=== Phase 37: METH_KEYWORDS Integration ==="
+if run_test "supabase/tests/37_meth_keywords_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ METH_KEYWORDS integration test failed. Cannot continue."
+    exit 1
+fi
+
+# 38. EXTENDED_ARG bytecode integration (opcode 144 prefix → extended operand)
+echo "=== Phase 38: EXTENDED_ARG Integration ==="
+if run_test "supabase/tests/38_extended_arg_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ EXTENDED_ARG integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -463,8 +503,13 @@ echo "  ✅ 30: Jump Bytecode Integration (JUMP_FORWARD, POP_JUMP_FORWARD_IF_FAL
 echo "  ✅ 31: POP_TOP Bytecode Integration"
 echo "  ✅ 32: Exception Schema & Helpers (CPython 3.11)"
 echo "  ✅ 33: Exception Table Parsing (co_exceptiontable)"
+echo "  ✅ 34: Try/Except Integration (exception table → handler → return)"
+echo "  ✅ 35: tp_call kwargs rejection (len()/abs() take no keyword arguments)"
+echo "  ✅ 36: CALL_FUNCTION_KW Integration (keyword args from bytecode)"
+echo "  ✅ 37: METH_KEYWORDS Integration (first_kwarg accepts kwargs)"
+echo "  ✅ 38: EXTENDED_ARG Integration (opcode 144 extended operand)"
 echo ""
-echo "Total: 34 test suites passed ✨"
+echo "Total: 38 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

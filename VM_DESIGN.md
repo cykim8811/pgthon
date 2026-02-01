@@ -484,10 +484,9 @@ $$ LANGUAGE plpgsql;
 - CPython: bytes 객체 (PyBytesObject)
 - PostgreSQL: `bytea` 타입 사용 (NULL 바이트 포함 가능)
 
-### 2. Opcode 확장 (EXTENDED_ARG)
-- 일부 opcode는 3바이트 operand 사용
-- Opcode별로 operand 크기 다름
-- **해결책**: opcode 테이블 또는 함수로 operand 크기 관리
+### 2. Opcode 확장 (EXTENDED_ARG) — 구현 완료
+- EXTENDED_ARG(144): 다음 opcode의 operand를 (extended << 8) | arg 로 확장. 연쇄 가능.
+- py_eval_frame 3곳(232000, 241000, 241100)에서 prefix 누적 후 디스패치. f_lasti·점프·예외 테이블은 논리적 instruction 시작(start_i) 기준.
 
 ### 3. 성능
 - PL/pgSQL은 C보다 느림
@@ -553,6 +552,7 @@ $$ LANGUAGE plpgsql;
 
 ## 다음 단계 (참고)
 
-- **CALL_FUNCTION_KW / kwargs**: 설계는 **docs/TP_CALL_KWARGS_DESIGN.md** 참고. 미구현.
-- **EXTENDED_ARG**, float/bytes 타입, 예외 `__cause__`/`__context__` 등은 설계·마이그레이션에서 "향후 확장"으로 명시됨.
+- **CALL_FUNCTION_KW / kwargs**: 구현 완료. 설계 **docs/TP_CALL_KWARGS_DESIGN.md**, **docs/KWARGS_IMPLEMENTATION_PLAN.md**.
+- **EXTENDED_ARG**: 구현 완료. opcode 144 prefix 누적 → effective_arg = (extended << 8) | arg.
+- float/bytes 타입, 예외 `__cause__`/`__context__` 등은 설계·마이그레이션에서 "향후 확장"으로 명시됨.
 

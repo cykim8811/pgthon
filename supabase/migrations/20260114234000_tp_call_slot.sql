@@ -35,7 +35,8 @@
 -- Function: py_object_call (Equivalent to PyObject_Call)
 -- ============================================================================
 
--- py_object_call: (obj_id, args, kwargs_id). tp_call convention: (obj_id UUID, args UUID[], kwargs_id UUID) RETURNS UUID.
+-- py_object_call: (obj_id, args, kwargs_id). tp_call convention: all tp_call implementations
+-- use (obj_id UUID, args UUID[], kwargs_id UUID) RETURNS UUID; kwargs_id NULL = no keyword args.
 CREATE OR REPLACE FUNCTION public.py_object_call(
     obj_id UUID, args UUID[], kwargs_id UUID DEFAULT NULL)
 RETURNS UUID AS $$
@@ -101,8 +102,8 @@ DECLARE
 BEGIN
     -- Register tp_call for builtin_function_or_method type
     -- This makes all builtin functions callable via the tp_call slot.
-    -- py_call_cfunction has the correct signature (obj_id UUID, args UUID[])
-    -- which matches what py_object_call expects for tp_call functions.
+-- py_call_cfunction has the correct signature (obj_id UUID, args UUID[], kwargs_id UUID)
+-- which matches what py_object_call expects for tp_call functions (3-arg convention).
     UPDATE public.py_type_object
     SET tp_call = 'py_call_cfunction'::regproc
     WHERE ob_base = ID_BUILTIN_FUNCTION_OR_METHOD_TYPE;

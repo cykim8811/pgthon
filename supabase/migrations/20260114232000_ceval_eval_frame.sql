@@ -74,6 +74,8 @@ DECLARE
     should_return BOOLEAN := FALSE;
     bytecode_length INTEGER;
     next_i INTEGER := NULL;
+    start_i INTEGER;
+    extended INTEGER;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
         RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
@@ -98,8 +100,20 @@ BEGIN
 
     WHILE i < bytecode_length LOOP
         next_i := NULL;
+        start_i := i;
         opcode := get_byte(bytecode, i);
         arg := get_byte(bytecode, i + 1);
+        extended := 0;
+        WHILE opcode = 144 LOOP
+            extended := (extended << 8) | arg;
+            i := i + 2;
+            IF i + 1 >= bytecode_length THEN
+                RAISE EXCEPTION 'EXTENDED_ARG at end of bytecode at offset %', i;
+            END IF;
+            opcode := get_byte(bytecode, i);
+            arg := get_byte(bytecode, i + 1);
+        END LOOP;
+        arg := (extended << 8) | arg;
 
         CASE opcode
             WHEN 1 THEN
@@ -110,6 +124,8 @@ BEGIN
                 PERFORM public.py_opcode_LOAD_NAME(frame_id, arg);
             WHEN 141 THEN
                 PERFORM public.py_opcode_CALL_FUNCTION(frame_id, arg);
+            WHEN 142 THEN
+                PERFORM public.py_opcode_CALL_FUNCTION_KW(frame_id, arg);
             WHEN 90 THEN
                 PERFORM public.py_opcode_STORE_NAME(frame_id, arg);
             WHEN 23 THEN
@@ -121,29 +137,29 @@ BEGIN
             WHEN 107 THEN
                 PERFORM public.py_opcode_COMPARE_OP(frame_id, arg);
             WHEN 110 THEN
-                next_i := i + 2 + arg * 2;
+                next_i := start_i + 2 + arg * 2;
             WHEN 114 THEN
-                next_i := public.py_opcode_POP_JUMP_FORWARD_IF_FALSE(frame_id, i, arg);
+                next_i := public.py_opcode_POP_JUMP_FORWARD_IF_FALSE(frame_id, start_i, arg);
             WHEN 115 THEN
-                next_i := public.py_opcode_POP_JUMP_FORWARD_IF_TRUE(frame_id, i, arg);
+                next_i := public.py_opcode_POP_JUMP_FORWARD_IF_TRUE(frame_id, start_i, arg);
             WHEN 83 THEN
                 return_value := public.py_stack_pop(frame_id);
                 should_return := TRUE;
-                UPDATE public.py_frame_object SET f_lasti = i WHERE ob_base = frame_id;
+                UPDATE public.py_frame_object SET f_lasti = start_i WHERE ob_base = frame_id;
                 EXIT;
             ELSE
                 RAISE EXCEPTION 'Unknown opcode: % at byte offset %', opcode, i;
         END CASE;
 
         IF opcode != 83 THEN
-            UPDATE public.py_frame_object SET f_lasti = i WHERE ob_base = frame_id;
+            UPDATE public.py_frame_object SET f_lasti = start_i WHERE ob_base = frame_id;
         END IF;
 
-        instruction_size := public.py_get_opcode_size(opcode);
+        instruction_size := i - start_i + 2;
         IF next_i IS NOT NULL THEN
             i := next_i;
         ELSE
-            i := i + instruction_size;
+            i := start_i + instruction_size;
         END IF;
     END LOOP;
 

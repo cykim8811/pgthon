@@ -61,6 +61,7 @@ DO $$
 DECLARE
   ID_OBJECT_TYPE uuid := '00000000-0000-4000-a000-000000000001';
   ID_TYPE_TYPE   uuid := '00000000-0000-4000-a000-000000000002';
+  ID_DICT_TYPE   uuid := '00000000-0000-4000-a000-000000000006';  -- builtin dict type (bootstrap 223000)
   ID_TUPLE_TYPE  uuid := '00000000-0000-4000-a000-000000000007';
   ID_TUPLE_BASES_OBJECT uuid := (select u.ob_base from public.py_type_object t join public.py_tuple_object u on u.ob_base = t.tp_bases where t.ob_base = ID_OBJECT_TYPE limit 1);
   ID_BASE_EXCEPTION_TYPE uuid := '00000000-0000-4000-a000-000000000020';
@@ -117,7 +118,7 @@ BEGIN
   UPDATE public.py_object SET ob_type = ID_TUPLE_TYPE
   WHERE id IN (ID_TUPLE_BASES_BASE_EXCEPTION, ID_TUPLE_BASES_EXCEPTION);
 
-  UPDATE public.py_object SET ob_type = (SELECT ob_base FROM public.py_type_object WHERE tp_name = 'dict' LIMIT 1)
+  UPDATE public.py_object SET ob_type = ID_DICT_TYPE
   WHERE id IN (ID_DICT_BASE_EXCEPTION, ID_DICT_EXCEPTION, ID_DICT_TYPE_ERROR, ID_DICT_VALUE_ERROR, ID_DICT_NAME_ERROR, ID_DICT_TRACEBACK, ID_DICT_RUNTIME_ERROR);
 
   INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES

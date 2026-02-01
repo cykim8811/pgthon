@@ -448,12 +448,12 @@ $$ LANGUAGE plpgsql;
 2. `JUMP_FORWARD`: 순방향 점프
 3. `SETUP_LOOP`: 루프 블록 설정
 
-### Phase 5: 예외 처리 (Python 3.11)
-1. **Exception 객체** — BaseException 계층, 예외 타입·인스턴스 (args, traceback, cause/context 확장 가능)
+### Phase 5: 예외 처리 (Python 3.11) — 구현 완료
+1. **Exception 객체** — BaseException 계층, 예외 타입·인스턴스 (args, traceback; cause/context 확장 가능)
 2. **RAISE_VARARGS** (opcode 130) — argc 0=re-raise, 1=raise TOS, 2=raise from
-3. **Exception table** (`co_exceptiontable`) — 3.11 방식. SETUP_EXCEPT/SETUP_FINALLY 없음. (start, end, target, depth)로 unwinding
+3. **Exception table** (`co_exceptiontable`) — 3.11 방식. (start, end, target, depth)로 unwinding
 4. **예외 상태** — `py_exception_state` (exc_type, exc_value, exc_traceback). RERAISE, POP_EXCEPT, PUSH_EXC_INFO, CHECK_EXC_MATCH
-→ 상세 설계: **docs/EXCEPTION_HANDLING_DESIGN.md**
+→ 설계: **docs/EXCEPTION_HANDLING_DESIGN.md**. 구현: `224100`–`224300`(스키마·헬퍼·세터), `240700`–`241100`(exception table·디스패치·세터 확장).
 
 ## 설계 원칙
 
@@ -500,19 +500,7 @@ $$ LANGUAGE plpgsql;
 
 ---
 
-## BINARY_ADD 구현 계획 (nb_add 슬롯)
-
-CPython 고증을 지키고, 임시방편 없이 **타입 슬롯(nb_add)** 로만 이항 덧셈을 처리하는 진행 계획이다.
-
-### 1. CPython 쪽
-
-- **PyNumber_Add(o1, o2)**: `o1 + o2`를 수행하는 C API. 반환: 새 참조 또는 NULL(에러).
-- **nb_add**: `PyNumberMethods` 안의 `binaryfunc` 슬롯. 시그니처 `(PyObject *a, PyObject *b) -> PyObject*`.  
-  - 왼쪽 타입의 nb_add(a, b) 먼저 시도 → `NotImplemented`면 오른쪽 타입의 nb_add(b, a) 시도(역방향).  
-  - 둘 다 없거나 둘 다 NotImplemented면 TypeError.
-- **타입별**: int는 수치 덧셈, str은 concatenation. int+str → int의 nb_add가 NotImplemented 반환 후 str의 nb_add(str, int)도 NotImplemented → TypeError.
-
-### 2. Elytra에서 할 일(순서)
+## BINARY_ADD / 이항 연산 (구현 완료)
 
 | 단계 | 내용 |
 |------|------|
@@ -563,10 +551,8 @@ CPython 고증을 지키고, 임시방편 없이 **타입 슬롯(nb_add)** 로�
 
 ---
 
-## 다음 단계
+## 다음 단계 (참고)
 
-1. **BINARY_ADD (nb_add 슬롯)**  
-   위 “BINARY_ADD 구현 계획”대로 스키마 수정 → 238000에서 함수·슬롯·opcode → 다음 마이그레이션에서 eval_frame에 23 연결 → 테스트 추가.
-2. **간단한 표현식 실행**  
-   `1 + 2`, `"a" + "b"`가 한 프레임 실행으로 기대값이 나오는지 통합 테스트.
-3. (이후) 제어 흐름 opcode, 예외 처리 등은 VM_DESIGN Phase 4·5 참고.
+- **CALL_FUNCTION_KW / kwargs**: 설계는 **docs/TP_CALL_KWARGS_DESIGN.md** 참고. 미구현.
+- **EXTENDED_ARG**, float/bytes 타입, 예외 `__cause__`/`__context__` 등은 설계·마이그레이션에서 "향후 확장"으로 명시됨.
+

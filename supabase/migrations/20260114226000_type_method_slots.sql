@@ -145,6 +145,87 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- py_bytes_sq_length: Calculate length of a bytes object
+-- Implements CPython's PyBytes_GET_SIZE() behavior. Table existence only; no tp_name.
+CREATE OR REPLACE FUNCTION public.py_bytes_sq_length(obj_id UUID)
+RETURNS NUMERIC AS $$
+DECLARE
+    length_value NUMERIC;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_bytes_object WHERE ob_base = obj_id) THEN
+        PERFORM public.py_err_set_type_error('py_bytes_sq_length called on non-bytes object');
+        RETURN NULL;
+    END IF;
+    SELECT length(bytes_value) INTO length_value
+    FROM public.py_bytes_object
+    WHERE ob_base = obj_id;
+    IF length_value IS NULL THEN
+        length_value := 0;
+    END IF;
+    RETURN length_value;
+END;
+$$ LANGUAGE plpgsql;
+
+-- py_bytes_sq_concat: bytes + bytes (CPython sq_concat). left/right both bytes; else TypeError.
+CREATE OR REPLACE FUNCTION public.py_bytes_sq_concat(left_id uuid, right_id uuid)
+RETURNS uuid AS $$
+DECLARE
+    result_id uuid;
+    lv bytea;
+    rv bytea;
+    id_bytes_type uuid := '00000000-0000-4000-a000-000000000012';
+    right_type_id uuid;
+    right_tp_name text;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_bytes_object WHERE ob_base = left_id) THEN
+        PERFORM public.py_err_set_type_error('py_bytes_sq_concat left operand is not bytes');
+        RETURN NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.py_bytes_object WHERE ob_base = right_id) THEN
+        SELECT ob_type INTO right_type_id FROM public.py_object WHERE id = right_id;
+        SELECT tp_name INTO right_tp_name FROM public.py_type_object WHERE ob_base = right_type_id;
+        PERFORM public.py_err_set_type_error('can only concatenate bytes (not "' || COALESCE(right_tp_name, 'None') || '") to bytes');
+        RETURN NULL;
+    END IF;
+    SELECT bytes_value INTO lv FROM public.py_bytes_object WHERE ob_base = left_id;
+    SELECT bytes_value INTO rv FROM public.py_bytes_object WHERE ob_base = right_id;
+    result_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (result_id, id_bytes_type);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (result_id, lv || rv);
+    RETURN result_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- py_bytes_sq_repeat: bytes * n (CPython sq_repeat). seq is bytes; n <= 0 → empty bytes.
+CREATE OR REPLACE FUNCTION public.py_bytes_sq_repeat(seq_id uuid, n integer)
+RETURNS uuid AS $$
+DECLARE
+    result_id uuid;
+    bval bytea;
+    repeated bytea;
+    i integer;
+    id_bytes_type uuid := '00000000-0000-4000-a000-000000000012';
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_bytes_object WHERE ob_base = seq_id) THEN
+        PERFORM public.py_err_set_type_error('py_bytes_sq_repeat operand is not bytes');
+        RETURN NULL;
+    END IF;
+    SELECT bytes_value INTO bval FROM public.py_bytes_object WHERE ob_base = seq_id;
+    IF n <= 0 THEN
+        repeated := E'\\x'::bytea;
+    ELSE
+        repeated := E'\\x'::bytea;
+        FOR i IN 1..n LOOP
+            repeated := repeated || bval;
+        END LOOP;
+    END IF;
+    result_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (result_id, id_bytes_type);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (result_id, repeated);
+    RETURN result_id;
+END;
+$$ LANGUAGE plpgsql;
+
 -- py_dict_mp_length: Calculate length of a dict object
 -- Implements CPython's PyDict_GET_SIZE() behavior
 CREATE OR REPLACE FUNCTION public.py_dict_mp_length(obj_id UUID)
@@ -287,11 +368,13 @@ DECLARE
     ID_LIST_TYPE UUID := '00000000-0000-4000-a000-000000000005';
     ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
     ID_TUPLE_TYPE UUID := '00000000-0000-4000-a000-000000000007';
+    ID_BYTES_TYPE UUID := '00000000-0000-4000-a000-000000000012';
     
     -- Method objects IDs
     ID_STR_SEQUENCE_METHODS UUID := gen_random_uuid();
     ID_LIST_SEQUENCE_METHODS UUID := gen_random_uuid();
     ID_TUPLE_SEQUENCE_METHODS UUID := gen_random_uuid();
+    ID_BYTES_SEQUENCE_METHODS UUID := gen_random_uuid();
     ID_DICT_MAPPING_METHODS UUID := gen_random_uuid();
 BEGIN
     -- Create sequence methods object for str type
@@ -324,6 +407,14 @@ BEGIN
     UPDATE public.py_type_object 
     SET tp_as_sequence = ID_TUPLE_SEQUENCE_METHODS
     WHERE ob_base = ID_TUPLE_TYPE;
+    
+    -- Create sequence methods object for bytes type (sq_length, sq_concat, sq_repeat)
+    INSERT INTO public.py_sequence_methods (id, sq_length, sq_concat, sq_repeat)
+    VALUES (ID_BYTES_SEQUENCE_METHODS, 'py_bytes_sq_length'::regproc, 'py_bytes_sq_concat'::regproc, 'py_bytes_sq_repeat'::regproc);
+    
+    UPDATE public.py_type_object 
+    SET tp_as_sequence = ID_BYTES_SEQUENCE_METHODS
+    WHERE ob_base = ID_BYTES_TYPE;
     
     -- Create mapping methods object for dict type
     -- This represents PyDict_Type.tp_as_mapping in CPython

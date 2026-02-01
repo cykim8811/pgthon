@@ -158,6 +158,51 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================================
+-- py_bytes_richcompare(self_id, other_id, op) — bytes vs bytes only (lexicographic)
+--    self는 bytes(디스패치에서 bytes일 때만 호출). other가 bytes가 아니면 NotImplemented.
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.py_bytes_richcompare(
+    self_id uuid, other_id uuid, op integer)
+RETURNS uuid AS $$
+DECLARE
+    sid uuid := '00000000-0000-4000-b000-000000000012';
+    tid uuid := '00000000-0000-4000-b000-000000000010';
+    fid uuid := '00000000-0000-4000-b000-000000000011';
+    sval bytea;
+    oval bytea;
+    cmp boolean;
+BEGIN
+    IF op NOT IN (0, 1, 2, 3, 4, 5) THEN
+        RETURN sid;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.py_bytes_object WHERE ob_base = self_id) THEN
+        RETURN sid;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.py_bytes_object WHERE ob_base = other_id) THEN
+        RETURN sid;
+    END IF;
+    SELECT bytes_value INTO sval FROM public.py_bytes_object WHERE ob_base = self_id;
+    SELECT bytes_value INTO oval FROM public.py_bytes_object WHERE ob_base = other_id;
+
+    CASE op
+        WHEN 0 THEN cmp := (sval < oval);   -- Py_LT
+        WHEN 1 THEN cmp := (sval <= oval);   -- Py_LE
+        WHEN 2 THEN RETURN CASE WHEN sval IS NOT DISTINCT FROM oval THEN tid ELSE fid END;  -- Py_EQ
+        WHEN 3 THEN cmp := (sval IS DISTINCT FROM oval);  -- Py_NE
+        WHEN 4 THEN cmp := (sval > oval);   -- Py_GT
+        WHEN 5 THEN cmp := (sval >= oval);  -- Py_GE
+        ELSE RETURN sid;
+    END CASE;
+
+    IF op IN (0, 1, 3, 4, 5) THEN
+        RETURN CASE WHEN cmp THEN tid ELSE fid END;
+    END IF;
+    RETURN sid;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
 -- Dispatch and dict-key equality helper
 -- ============================================================================
 
@@ -253,6 +298,7 @@ DECLARE
     id_str uuid := '00000000-0000-4000-a000-000000000003';
     id_int uuid := '00000000-0000-4000-a000-000000000004';
     id_float uuid := '00000000-0000-4000-a000-000000000009';
+    id_bytes uuid := '00000000-0000-4000-a000-000000000012';
 BEGIN
     UPDATE public.py_type_object
     SET tp_richcompare = 'py_unicode_richcompare'::regproc
@@ -263,6 +309,9 @@ BEGIN
     UPDATE public.py_type_object
     SET tp_richcompare = 'py_float_richcompare'::regproc
     WHERE ob_base = id_float;
+    UPDATE public.py_type_object
+    SET tp_richcompare = 'py_bytes_richcompare'::regproc
+    WHERE ob_base = id_bytes;
 END $$;
 
 -- py_dict_get_item and py_dict_set_item (using py_object_richcompare_eq for key equality) are defined in 20260114235000_tp_hash_slot.sql.

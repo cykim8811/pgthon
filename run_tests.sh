@@ -470,6 +470,16 @@ else
     exit 1
 fi
 
+# 40. bytes slots integration (sq_length, sq_concat, sq_repeat, tp_richcompare)
+echo "=== Phase 40: bytes Slots Integration ==="
+if run_test "supabase/tests/40_bytes_slots_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ bytes slots integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -519,8 +529,9 @@ echo "  ✅ 36: CALL_FUNCTION_KW Integration (keyword args from bytecode)"
 echo "  ✅ 37: METH_KEYWORDS Integration (first_kwarg accepts kwargs)"
 echo "  ✅ 38: EXTENDED_ARG Integration (opcode 144 extended operand)"
 echo "  ✅ 39: float Slots Integration (nb_add/subtract/multiply, tp_hash, tp_richcompare)"
+echo "  ✅ 40: bytes Slots Integration (sq_length, sq_concat, sq_repeat, tp_richcompare)"
 echo ""
-echo "Total: 39 test suites passed ✨"
+echo "Total: 40 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

@@ -556,6 +556,7 @@ $$ LANGUAGE plpgsql;
 - **EXTENDED_ARG**: 구현 완료. opcode 144 prefix 누적 → effective_arg = (extended << 8) | arg.
 - **float 타입**: 구현 완료. 설계 **docs/FLOAT_IMPLEMENTATION_DESIGN.md**.
 - **bytes 타입 연산**: 구현 완료. 설계 **docs/BYTES_OPERATIONS_DESIGN.md**. sq_length/sq_concat/sq_repeat·tp_richcompare 구현·슬롯 등록·통합 테스트(Phase 40).
-- **BUILD_TUPLE / BUILD_LIST**: 설계 **docs/BUILD_TUPLE_LIST_DESIGN.md**. opcode 102/103, 스택에서 count개 pop → tuple/list 객체 생성·push.
+- **BUILD_TUPLE / BUILD_LIST**: 구현 완료. 설계 **docs/BUILD_TUPLE_LIST_DESIGN.md**. opcode 102/103, 통합 테스트 Phase 41.
+- **LOAD_ATTR**: 설계 **docs/LOAD_ATTR_DESIGN.md**. opcode 106, PyObject_GetAttr, type(obj).tp_dict 조회·디스크립터 __get__·AttributeError.
 - 예외 `__cause__`/`__context__` 등은 "향후 확장"으로 명시됨.
 

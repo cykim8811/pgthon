@@ -88,41 +88,17 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
--- py_builtin_first_kwarg: METH_KEYWORDS builtin for testing keyword argument dispatch.
--- Returns the first value from the kwargs dict (any entry), or None if empty.
--- Signature (func_obj_id UUID, args UUID[], kwargs_id UUID) for tp_call 3-arg convention.
-CREATE OR REPLACE FUNCTION public.py_builtin_first_kwarg(
-    func_obj_id UUID, args UUID[], kwargs_id UUID)
-RETURNS UUID AS $$
-DECLARE
-    result_id UUID;
-    ID_NONE_OBJ UUID := '00000000-0000-4000-b000-000000000001';
-BEGIN
-    IF kwargs_id IS NULL THEN
-        RETURN ID_NONE_OBJ;
-    END IF;
-    SELECT me_value INTO result_id
-    FROM public.py_dict_entry
-    WHERE dict_id = kwargs_id
-    LIMIT 1;
-    RETURN COALESCE(result_id, ID_NONE_OBJ);
-END;
-$$ LANGUAGE plpgsql;
-
 DO $$
 DECLARE
     -- Builtin Function IDs (fixed UUIDs)
     ID_LEN_FUNCTION UUID := '00000000-0000-4000-b000-000000000003';
     ID_ABS_FUNCTION UUID := '00000000-0000-4000-b000-000000000004';
-    ID_FIRST_KWARG_FUNCTION UUID := '00000000-0000-4000-b000-000000000005';
     
     -- String objects for function names and docstrings
     ID_STR_LEN_NAME UUID := gen_random_uuid();
     ID_STR_LEN_DOC UUID := gen_random_uuid();
     ID_STR_ABS_NAME UUID := gen_random_uuid();
     ID_STR_ABS_DOC UUID := gen_random_uuid();
-    ID_STR_FIRST_KWARG_NAME UUID := gen_random_uuid();
-    ID_STR_FIRST_KWARG_DOC UUID := gen_random_uuid();
     
     -- Reference to __builtins__ module (from bootstrap)
     ID_BUILTINS_MODULE UUID := '00000000-0000-4000-b000-000000000002';
@@ -149,18 +125,14 @@ BEGIN
     (ID_STR_LEN_NAME, ID_STR_TYPE),
     (ID_STR_LEN_DOC, ID_STR_TYPE),
     (ID_STR_ABS_NAME, ID_STR_TYPE),
-    (ID_STR_ABS_DOC, ID_STR_TYPE),
-    (ID_STR_FIRST_KWARG_NAME, ID_STR_TYPE),
-    (ID_STR_FIRST_KWARG_DOC, ID_STR_TYPE);
+    (ID_STR_ABS_DOC, ID_STR_TYPE);
     
     -- Create string objects
     INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES
     (ID_STR_LEN_NAME, 'len'),
     (ID_STR_LEN_DOC, 'Return the number of items in a container.'),
     (ID_STR_ABS_NAME, 'abs'),
-    (ID_STR_ABS_DOC, 'Return the absolute value of a number.'),
-    (ID_STR_FIRST_KWARG_NAME, 'first_kwarg'),
-    (ID_STR_FIRST_KWARG_DOC, 'Return the first value from kwargs (METH_KEYWORDS test).');
+    (ID_STR_ABS_DOC, 'Return the absolute value of a number.');
 
     -------------------------------------------------------
     -- Phase 2: Create len builtin function
@@ -203,23 +175,6 @@ BEGIN
         ID_BUILTINS_MODULE,         -- m_module: __builtins__ module
         'py_builtin_abs'::regproc   -- m_ml_meth: PostgreSQL function identifier (validates function exists)
     );
-
-    -------------------------------------------------------
-    -- Phase 3b: Create first_kwarg builtin (METH_KEYWORDS)
-    -------------------------------------------------------
-    INSERT INTO public.py_object (id, ob_type)
-    VALUES (ID_FIRST_KWARG_FUNCTION, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE);
-
-    INSERT INTO public.py_cfunction_object (ob_base, m_ml_name, m_ml_flags, m_ml_doc, m_self, m_module, m_ml_meth)
-    VALUES (
-        ID_FIRST_KWARG_FUNCTION,
-        ID_STR_FIRST_KWARG_NAME,   -- m_ml_name: "first_kwarg"
-        2,                          -- m_ml_flags: METH_KEYWORDS (accepts kwargs)
-        ID_STR_FIRST_KWARG_DOC,     -- m_ml_doc
-        NULL,
-        ID_BUILTINS_MODULE,
-        'py_builtin_first_kwarg'::regproc  -- (func_obj_id, args, kwargs_id) RETURNS UUID
-    );
     
     -------------------------------------------------------
     -- Phase 4: Register builtin functions in __builtins__ module's __dict__
@@ -227,7 +182,6 @@ BEGIN
     -- In CPython, builtin functions are stored in the module's __dict__ with their name as the key.
     INSERT INTO public.py_dict_entry (dict_id, me_key, me_value) VALUES
     (builtins_dict_id, ID_STR_LEN_NAME, ID_LEN_FUNCTION),
-    (builtins_dict_id, ID_STR_ABS_NAME, ID_ABS_FUNCTION),
-    (builtins_dict_id, ID_STR_FIRST_KWARG_NAME, ID_FIRST_KWARG_FUNCTION);
+    (builtins_dict_id, ID_STR_ABS_NAME, ID_ABS_FUNCTION);
 
 END $$;

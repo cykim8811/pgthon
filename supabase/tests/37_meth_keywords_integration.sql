@@ -4,10 +4,30 @@
 -- Purpose:
 --   Verifies that builtins with METH_KEYWORDS accept kwargs via
 --   py_object_call(..., kwargs_id) and that py_call_cfunction dispatches
---   to ml_meth(func_obj_id, args, kwargs_id). Tests first_kwarg builtin.
+--   to ml_meth(func_obj_id, args, kwargs_id). Uses first_kwarg (test-only
+--   callable) created in this file.
 --
 -- Design: docs/KWARGS_IMPLEMENTATION_PLAN.md Phase 3
 -- ============================================================================
+
+-- Test-only: METH_KEYWORDS callable for this test. Not a CPython builtin.
+CREATE OR REPLACE FUNCTION public.py_builtin_first_kwarg(
+    func_obj_id UUID, args UUID[], kwargs_id UUID)
+RETURNS UUID AS $$
+DECLARE
+    result_id UUID;
+    ID_NONE_OBJ UUID := '00000000-0000-4000-b000-000000000001';
+BEGIN
+    IF kwargs_id IS NULL THEN
+        RETURN ID_NONE_OBJ;
+    END IF;
+    SELECT me_value INTO result_id
+    FROM public.py_dict_entry
+    WHERE dict_id = kwargs_id
+    LIMIT 1;
+    RETURN COALESCE(result_id, ID_NONE_OBJ);
+END;
+$$ LANGUAGE plpgsql;
 
 DO $$
 DECLARE
@@ -16,10 +36,12 @@ DECLARE
     ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
     ID_NONE_OBJ UUID := '00000000-0000-4000-b000-000000000001';
     ID_BUILTINS_MODULE UUID := '00000000-0000-4000-b000-000000000002';
+    ID_BUILTIN_FUNCTION_OR_METHOD_TYPE UUID := '00000000-0000-4000-a000-000000000010';
 
     builtins_dict_id UUID;
     first_kwarg_str_id UUID;
     first_kwarg_func_id UUID;
+    first_kwarg_doc_id UUID;
     kwargs_dict_id UUID;
     key_x_id UUID;
     value_42_id UUID;
@@ -36,15 +58,23 @@ BEGIN
         RAISE EXCEPTION 'FAIL: __builtins__ dict not found';
     END IF;
 
-    SELECT ob_base INTO first_kwarg_str_id FROM public.py_unicode_object WHERE str_value = 'first_kwarg' LIMIT 1;
-    IF first_kwarg_str_id IS NULL THEN
-        RAISE EXCEPTION 'FAIL: ''first_kwarg'' string not found';
-    END IF;
-
-    first_kwarg_func_id := public.py_dict_get_item(builtins_dict_id, first_kwarg_str_id);
-    IF first_kwarg_func_id IS NULL THEN
-        RAISE EXCEPTION 'FAIL: first_kwarg not found in __builtins__';
-    END IF;
+    -- Create first_kwarg callable (test-only) and register in __builtins__
+    first_kwarg_str_id := public.py_str_from_text('first_kwarg');
+    first_kwarg_doc_id := public.py_str_from_text('METH_KEYWORDS test');
+    first_kwarg_func_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type)
+    VALUES (first_kwarg_func_id, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE);
+    INSERT INTO public.py_cfunction_object (ob_base, m_ml_name, m_ml_flags, m_ml_doc, m_self, m_module, m_ml_meth)
+    VALUES (
+        first_kwarg_func_id,
+        first_kwarg_str_id,
+        2,
+        first_kwarg_doc_id,
+        NULL,
+        ID_BUILTINS_MODULE,
+        'py_builtin_first_kwarg'::regproc
+    );
+    PERFORM public.py_dict_set_item(builtins_dict_id, first_kwarg_str_id, first_kwarg_func_id);
 
     -- Test 1: first_kwarg(kwargs={'x': 42}) returns 42 (first value from kwargs)
     key_x_id := gen_random_uuid();

@@ -421,6 +421,75 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- ============================================================================
+-- py_object_getattr: Get attribute by name (Phase 1: type(obj).tp_dict only)
+-- CPython: PyObject_GetAttr; design: docs/LOAD_ATTR_DESIGN.md
+-- Uses tp_dict, py_dict_get_item, py_object_call only; no tp_name comparison.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.py_object_getattr(obj_id UUID, name_str_id UUID)
+RETURNS UUID AS $$
+DECLARE
+    type_id UUID;
+    dict_id UUID;
+    attr_id UUID;
+    attr_type_id UUID;
+    get_str_id UUID;
+    get_id UUID;
+    result_id UUID;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_object WHERE id = obj_id) THEN
+        PERFORM public.py_err_set_attribute_error('object has no attribute');
+        RETURN NULL;
+    END IF;
+
+    SELECT ob_type INTO type_id FROM public.py_object WHERE id = obj_id;
+    IF type_id IS NULL THEN
+        PERFORM public.py_err_set_attribute_error('object has no type');
+        RETURN NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.py_type_object WHERE ob_base = type_id) THEN
+        PERFORM public.py_err_set_attribute_error('object type has no tp_dict');
+        RETURN NULL;
+    END IF;
+
+    SELECT tp_dict INTO dict_id FROM public.py_type_object WHERE ob_base = type_id;
+    IF dict_id IS NULL THEN
+        PERFORM public.py_err_set_attribute_error('type has no tp_dict');
+        RETURN NULL;
+    END IF;
+
+    attr_id := public.py_dict_get_item(dict_id, name_str_id);
+    IF attr_id IS NULL THEN
+        PERFORM public.py_err_set_attribute_error('attribute not found in type tp_dict');
+        RETURN NULL;
+    END IF;
+
+    -- Descriptor: if attr's type has __get__, call __get__(attr, obj, type)
+    SELECT ob_type INTO attr_type_id FROM public.py_object WHERE id = attr_id;
+    IF attr_type_id IS NULL THEN
+        RETURN attr_id;
+    END IF;
+    get_str_id := public.py_str_from_text('__get__');
+    IF get_str_id IS NULL AND public.py_err_occurred() THEN
+        RETURN NULL;
+    END IF;
+    SELECT tp_dict INTO dict_id FROM public.py_type_object WHERE ob_base = attr_type_id;
+    IF dict_id IS NULL THEN
+        RETURN attr_id;
+    END IF;
+    get_id := public.py_dict_get_item(dict_id, get_str_id);
+    IF get_id IS NULL THEN
+        RETURN attr_id;
+    END IF;
+
+    result_id := public.py_object_call(get_id, ARRAY[attr_id, obj_id, type_id], NULL);
+    IF result_id IS NULL AND public.py_err_occurred() THEN
+        RETURN NULL;
+    END IF;
+    RETURN result_id;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION public.py_opcode_STORE_NAME(frame_id UUID, name_index INTEGER)
 RETURNS VOID AS $$
 DECLARE
@@ -518,5 +587,50 @@ BEGIN
 
     PERFORM public.py_err_set_name_error('name ''' || COALESCE(name_str, 'unknown') || ''' is not defined');
     RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- LOAD_ATTR Opcode (CPython 106). Depends on py_object_getattr (this file).
+-- ============================================================================
+-- LOAD_ATTR(name_index): TOS = obj; replace TOS with getattr(obj, co_names[name_index]).
+-- Design: docs/LOAD_ATTR_DESIGN.md
+--
+CREATE OR REPLACE FUNCTION public.py_opcode_LOAD_ATTR(frame_id UUID, name_index INTEGER)
+RETURNS VOID AS $$
+DECLARE
+    code_obj_id UUID;
+    co_names_id UUID;
+    name_str_id UUID;
+    obj_id UUID;
+    result_id UUID;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
+        RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
+    END IF;
+    IF name_index < 0 THEN
+        RAISE EXCEPTION 'LOAD_ATTR: name_index must be non-negative, got %', name_index;
+    END IF;
+
+    SELECT f_code INTO code_obj_id FROM public.py_frame_object WHERE ob_base = frame_id;
+    IF code_obj_id IS NULL THEN
+        RAISE EXCEPTION 'LOAD_ATTR: Frame with id % does not have a code object', frame_id;
+    END IF;
+    SELECT co_names INTO co_names_id FROM public.py_code_object WHERE ob_base = code_obj_id;
+    IF co_names_id IS NULL THEN
+        RAISE EXCEPTION 'LOAD_ATTR: Code object with id % does not have co_names', code_obj_id;
+    END IF;
+    SELECT ob_item[name_index + 1] INTO name_str_id
+    FROM public.py_tuple_object WHERE ob_base = co_names_id;
+    IF name_str_id IS NULL THEN
+        RAISE EXCEPTION 'LOAD_ATTR: Index % out of range for co_names tuple', name_index;
+    END IF;
+
+    obj_id := public.py_stack_pop(frame_id);
+    result_id := public.py_object_getattr(obj_id, name_str_id);
+    IF result_id IS NULL AND public.py_err_occurred() THEN
+        RETURN;
+    END IF;
+    PERFORM public.py_stack_push(frame_id, result_id);
 END;
 $$ LANGUAGE plpgsql;

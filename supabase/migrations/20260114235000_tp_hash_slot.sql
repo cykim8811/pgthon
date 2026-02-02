@@ -573,6 +573,7 @@ CREATE OR REPLACE FUNCTION public.py_object_getattr(obj_id UUID, name_str_id UUI
 RETURNS UUID AS $$
 DECLARE
     type_id UUID;
+    search_type_id UUID;
     in_dict_id UUID;
     attr_id UUID;
     result_id UUID;
@@ -592,6 +593,13 @@ BEGIN
         RETURN NULL;
     END IF;
 
+    -- Search base: if obj is a type (has py_type_object row), search in obj's tp_dict; else in type(obj)'s tp_dict. Design: docs/GETATTR_TYPE_OBJECT_PLAN.md.
+    IF EXISTS (SELECT 1 FROM public.py_type_object WHERE ob_base = obj_id) THEN
+        search_type_id := obj_id;
+    ELSE
+        search_type_id := type_id;
+    END IF;
+
     -- 1. Instance __dict__: if obj is instance and in_dict present, look up there first
     SELECT i.in_dict INTO in_dict_id
     FROM public.py_instance_object i
@@ -604,7 +612,7 @@ BEGIN
     END IF;
 
     -- 2. Type + bases (lookup_in_type_and_bases)
-    result_id := public.lookup_in_type_and_bases(type_id, obj_id, name_str_id);
+    result_id := public.lookup_in_type_and_bases(search_type_id, obj_id, name_str_id);
     IF result_id IS NOT NULL THEN
         RETURN result_id;
     END IF;

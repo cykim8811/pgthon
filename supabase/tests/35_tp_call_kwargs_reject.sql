@@ -40,34 +40,50 @@ BEGIN
     len_func_id := ID_LEN_FUNCTION;
     abs_func_id := ID_ABS_FUNCTION;
 
-    -- Test 1: len() with kwargs must raise TypeError: len() takes no keyword arguments
-    BEGIN
-        result_id := public.py_object_call(len_func_id, ARRAY[arg_id], kwargs_dict_id);
-        RAISE EXCEPTION 'FAIL: py_object_call(len, args, kwargs) should have raised TypeError';
-    EXCEPTION WHEN OTHERS THEN
-        GET STACKED DIAGNOSTICS error_message = MESSAGE_TEXT;
-        IF error_message NOT LIKE '%len() takes no keyword arguments%' THEN
-            RAISE EXCEPTION 'FAIL: expected message containing "len() takes no keyword arguments", got: %', error_message;
-        END IF;
-        IF error_message LIKE '%''len''%' THEN
-            RAISE EXCEPTION 'FAIL: function name must not be quoted (CPython: len() not ''len''()), got: %', error_message;
-        END IF;
-    END;
+    -- Test 1: len() with kwargs → Python TypeError (py_err_set_type_error), NULL 반환. CPython: "len() takes no keyword arguments"
+    PERFORM public.py_err_clear();
+    result_id := public.py_object_call(len_func_id, ARRAY[arg_id], kwargs_dict_id);
+    IF result_id IS NOT NULL THEN
+        RAISE EXCEPTION 'FAIL: py_object_call(len, args, kwargs) should return NULL';
+    END IF;
+    IF NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: py_object_call(len, args, kwargs) should set Python exception';
+    END IF;
+    SELECT u.str_value INTO error_message
+    FROM public.py_exception_state e
+    JOIN public.py_base_exception_object b ON b.ob_base = e.exc_value_id
+    JOIN public.py_tuple_object t ON t.ob_base = b.ob_args
+    JOIN public.py_unicode_object u ON u.ob_base = t.ob_item[1]
+    WHERE e.id = (SELECT id FROM public.py_exception_state LIMIT 1);
+    IF error_message IS NULL OR error_message NOT LIKE '%takes no keyword arguments%' THEN
+        RAISE EXCEPTION 'FAIL: expected TypeError message containing "takes no keyword arguments", got: %', error_message;
+    END IF;
+    IF error_message LIKE '%''len''%' THEN
+        RAISE EXCEPTION 'FAIL: function name must not be quoted (CPython: len() not ''len''()), got: %', error_message;
+    END IF;
     RAISE NOTICE '✓ 35.1 len() with kwargs raises TypeError: len() takes no keyword arguments';
 
-    -- Test 2: abs() with kwargs must raise TypeError: abs() takes no keyword arguments
-    BEGIN
-        result_id := public.py_object_call(abs_func_id, ARRAY[arg_id], kwargs_dict_id);
-        RAISE EXCEPTION 'FAIL: py_object_call(abs, args, kwargs) should have raised TypeError';
-    EXCEPTION WHEN OTHERS THEN
-        GET STACKED DIAGNOSTICS error_message = MESSAGE_TEXT;
-        IF error_message NOT LIKE '%abs() takes no keyword arguments%' THEN
-            RAISE EXCEPTION 'FAIL: expected message containing "abs() takes no keyword arguments", got: %', error_message;
-        END IF;
-        IF error_message LIKE '%''abs''%' THEN
-            RAISE EXCEPTION 'FAIL: function name must not be quoted (CPython), got: %', error_message;
-        END IF;
-    END;
+    -- Test 2: abs() with kwargs → Python TypeError, NULL 반환
+    PERFORM public.py_err_clear();
+    result_id := public.py_object_call(abs_func_id, ARRAY[arg_id], kwargs_dict_id);
+    IF result_id IS NOT NULL THEN
+        RAISE EXCEPTION 'FAIL: py_object_call(abs, args, kwargs) should return NULL';
+    END IF;
+    IF NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: py_object_call(abs, args, kwargs) should set Python exception';
+    END IF;
+    SELECT u.str_value INTO error_message
+    FROM public.py_exception_state e
+    JOIN public.py_base_exception_object b ON b.ob_base = e.exc_value_id
+    JOIN public.py_tuple_object t ON t.ob_base = b.ob_args
+    JOIN public.py_unicode_object u ON u.ob_base = t.ob_item[1]
+    WHERE e.id = (SELECT id FROM public.py_exception_state LIMIT 1);
+    IF error_message IS NULL OR error_message NOT LIKE '%abs() takes no keyword arguments%' THEN
+        RAISE EXCEPTION 'FAIL: expected message containing "abs() takes no keyword arguments", got: %', error_message;
+    END IF;
+    IF error_message LIKE '%''abs''%' THEN
+        RAISE EXCEPTION 'FAIL: function name must not be quoted (CPython), got: %', error_message;
+    END IF;
     RAISE NOTICE '✓ 35.2 abs() with kwargs raises TypeError: abs() takes no keyword arguments';
 
     RAISE NOTICE '';

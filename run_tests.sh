@@ -530,6 +530,16 @@ else
     exit 1
 fi
 
+# 46. Integrated Scenarios (LOAD_ATTR, STORE_ATTR, Bound Method, Type.attr combined)
+echo "=== Phase 46: Integrated Scenarios ==="
+if run_test "supabase/tests/46_integrated_scenarios.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Integrated scenarios test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -585,8 +595,9 @@ echo "  ✅ 42: LOAD_ATTR Bytecode Integration (tp_dict lookup, AttributeError)"
 echo "  ✅ 43: LOAD_ATTR Phase 2 (instance __dict__, type+bases, AttributeError)"
 echo "  ✅ 44: STORE_ATTR Bytecode Integration (obj.x = value; non-instance → AttributeError)"
 echo "  ✅ 45: Bound Method Integration (getattr(inst,\"f\")→bound method; getattr(Type,\"f\")→func)"
+echo "  ✅ 46: Integrated Scenarios (LOAD_ATTR, STORE_ATTR, Bound Method, Type.attr combined)"
 echo ""
-echo "Total: 45 test suites passed ✨"
+echo "Total: 46 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

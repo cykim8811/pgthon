@@ -163,14 +163,14 @@ BEGIN
         RAISE EXCEPTION 'py_call_cfunction: Function implementation (m_ml_meth) not found for function %', func_obj_id;
     END IF;
 
+    SELECT str_value INTO func_name FROM public.py_unicode_object WHERE ob_base = ml_name_id;
+
     -- Reject kwargs for conventions that do not accept keyword arguments (METH_KEYWORDS = 2 does accept)
     IF kwargs_id IS NOT NULL THEN
         IF (ml_flags & 2) = 0 AND ((ml_flags & 8) != 0 OR (ml_flags & 4) != 0 OR (ml_flags & 1) != 0) THEN
-            SELECT str_value INTO func_name
-            FROM public.py_unicode_object
-            WHERE ob_base = ml_name_id;
-            -- CPython: "len() takes no keyword arguments" (name without quotes)
-            RAISE EXCEPTION 'TypeError: %() takes no keyword arguments', COALESCE(func_name, 'builtin');
+            -- CPython: "len() takes no keyword arguments" — Python 예외로 보고, NULL 반환
+            PERFORM public.py_err_set_type_error(COALESCE(func_name, 'builtin') || '() takes no keyword arguments');
+            RETURN NULL;
         END IF;
     END IF;
 
@@ -178,13 +178,16 @@ BEGIN
 
     IF (ml_flags & 8) != 0 THEN  -- METH_O
         IF arg_count != 1 THEN
-            RAISE EXCEPTION 'py_call_cfunction: METH_O function expects 1 argument, got %', COALESCE(arg_count, 0);
+            -- CPython: "len() takes 1 positional argument but N were given" — Python 예외로 보고, NULL 반환
+            PERFORM public.py_err_set_type_error(COALESCE(func_name, 'builtin') || '() takes 1 positional argument but ' || COALESCE(arg_count, 0)::text || ' were given');
+            RETURN NULL;
         END IF;
         EXECUTE format('SELECT %I($1)', ml_meth::text) USING args[1] INTO result_id;
 
     ELSIF (ml_flags & 4) != 0 THEN  -- METH_NOARGS
         IF arg_count != 0 THEN
-            RAISE EXCEPTION 'py_call_cfunction: METH_NOARGS function expects 0 arguments, got %', arg_count;
+            PERFORM public.py_err_set_type_error(COALESCE(func_name, 'builtin') || '() takes 0 positional arguments but ' || arg_count::text || ' were given');
+            RETURN NULL;
         END IF;
         EXECUTE format('SELECT %I()', ml_meth::text) INTO result_id;
 
@@ -253,6 +256,10 @@ BEGIN
 
     result_id := public.py_object_call(func_obj_id, args, NULL);
 
+    -- callee가 Python 예외를 세팅하고 NULL 반환한 경우 push하지 않고 반환 (eval loop이 py_err_occurred()로 처리)
+    IF result_id IS NULL THEN
+        RETURN;
+    END IF;
     PERFORM public.py_stack_push(frame_id, result_id);
 END;
 $$ LANGUAGE plpgsql;
@@ -331,6 +338,10 @@ BEGIN
     END LOOP;
 
     result_id := public.py_object_call(func_obj_id, args, kwargs_dict_id);
+
+    IF result_id IS NULL THEN
+        RETURN;
+    END IF;
     PERFORM public.py_stack_push(frame_id, result_id);
 END;
 $$ LANGUAGE plpgsql;

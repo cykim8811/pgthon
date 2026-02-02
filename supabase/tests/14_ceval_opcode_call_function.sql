@@ -27,6 +27,7 @@ DECLARE
     ID_TUPLE_TYPE UUID := '00000000-0000-4000-a000-000000000007';
     ID_BUILTIN_FUNCTION_OR_METHOD_TYPE UUID := '00000000-0000-4000-a000-000000000011';
     ID_LEN_FUNCTION UUID := '00000000-0000-4000-b000-000000000003';
+    ID_TYPE_ERROR_TYPE UUID := '00000000-0000-4000-a000-000000000022';
     
     -- Test counters
     test_count INTEGER := 0;
@@ -60,6 +61,7 @@ DECLARE
     -- Error handling
     error_occurred BOOLEAN;
     error_message TEXT;
+    got_exc_type_id UUID;
 BEGIN
     RAISE NOTICE '========================================';
     RAISE NOTICE 'VM CALL_FUNCTION Opcode Test';
@@ -321,24 +323,23 @@ BEGIN
     END;
     
     -- Test wrong argument count for METH_O function (len expects 1 arg)
-    -- Clear stack
+    -- 명세: py_call_cfunction는 인자 개수 오류 시 Python TypeError 세팅 후 NULL 반환; 호출부는 push하지 않고 반환.
     UPDATE public.py_frame_object
     SET f_valuestack = array[]::uuid[]
     WHERE ob_base = frame_id;
     
-    -- Push function but no arguments
     PERFORM public.py_stack_push(frame_id, len_func_id);
-    
-    BEGIN
-        PERFORM public.py_opcode_CALL_FUNCTION(frame_id, 0);
-        RAISE EXCEPTION 'FAIL: CALL_FUNCTION did not raise exception for wrong argument count';
-    EXCEPTION
-        WHEN OTHERS THEN
-            error_message := SQLERRM;
-            IF error_message NOT LIKE 'py_call_cfunction: METH_O function expects 1 argument%' THEN
-                RAISE EXCEPTION 'FAIL: CALL_FUNCTION raised wrong exception for wrong argument count: %', error_message;
-            END IF;
-    END;
+    PERFORM public.py_err_clear();
+
+    PERFORM public.py_opcode_CALL_FUNCTION(frame_id, 0);
+
+    IF NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: CALL_FUNCTION should set Python exception for wrong argument count';
+    END IF;
+    SELECT exc_type_id INTO got_exc_type_id FROM public.py_exception_state WHERE id = (SELECT id FROM public.py_exception_state LIMIT 1);
+    IF got_exc_type_id IS DISTINCT FROM ID_TYPE_ERROR_TYPE THEN
+        RAISE EXCEPTION 'FAIL: CALL_FUNCTION wrong argument count should set TypeError, got exc_type_id %', got_exc_type_id;
+    END IF;
     
     RAISE NOTICE '  ✓ CALL_FUNCTION correctly validates argument count';
     pass_count := pass_count + 1;

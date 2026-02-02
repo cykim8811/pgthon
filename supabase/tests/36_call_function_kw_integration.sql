@@ -21,6 +21,7 @@ DECLARE
     ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
     ID_BYTES_TYPE UUID := '00000000-0000-4000-a000-000000000012';
     ID_BUILTINS_MODULE UUID := '00000000-0000-4000-b000-000000000002';
+    ID_TYPE_ERROR_TYPE UUID := '00000000-0000-4000-a000-000000000022';
 
     frame_id UUID;
     code_obj_id UUID;
@@ -38,6 +39,7 @@ DECLARE
     const_x_id UUID;
     result_id UUID;
     error_message TEXT;
+    got_exc_type_id UUID;
 BEGIN
     RAISE NOTICE '========================================';
     RAISE NOTICE 'CALL_FUNCTION_KW Integration Test';
@@ -104,15 +106,28 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
-    BEGIN
-        result_id := public.py_eval_frame(frame_id);
-        RAISE EXCEPTION 'FAIL: len(..., x=...) should have raised TypeError, got result_id %', result_id;
-    EXCEPTION WHEN OTHERS THEN
-        GET STACKED DIAGNOSTICS error_message = MESSAGE_TEXT;
-        IF error_message NOT LIKE '%len() takes no keyword arguments%' THEN
-            RAISE EXCEPTION 'FAIL: expected "len() takes no keyword arguments", got: %', error_message;
-        END IF;
-    END;
+    -- 명세: kwargs 거부 시 py_call_cfunction는 Python TypeError 세팅 후 NULL 반환; py_eval_frame도 NULL 반환.
+    PERFORM public.py_err_clear();
+    result_id := public.py_eval_frame(frame_id);
+    IF result_id IS NOT NULL THEN
+        RAISE EXCEPTION 'FAIL: len(..., x=...) should return NULL (TypeError), got result_id %', result_id;
+    END IF;
+    IF NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: len(..., x=...) should set Python exception';
+    END IF;
+    SELECT exc_type_id INTO got_exc_type_id FROM public.py_exception_state WHERE id = (SELECT id FROM public.py_exception_state LIMIT 1);
+    IF got_exc_type_id IS DISTINCT FROM ID_TYPE_ERROR_TYPE THEN
+        RAISE EXCEPTION 'FAIL: expected TypeError, got exc_type_id %', got_exc_type_id;
+    END IF;
+    SELECT u.str_value INTO error_message
+    FROM public.py_exception_state e
+    JOIN public.py_base_exception_object b ON b.ob_base = e.exc_value_id
+    JOIN public.py_tuple_object t ON t.ob_base = b.ob_args
+    JOIN public.py_unicode_object u ON u.ob_base = t.ob_item[1]
+    WHERE e.id = (SELECT id FROM public.py_exception_state LIMIT 1);
+    IF error_message IS NULL OR error_message NOT LIKE '%len() takes no keyword arguments%' THEN
+        RAISE EXCEPTION 'FAIL: expected "len() takes no keyword arguments", got: %', error_message;
+    END IF;
     RAISE NOTICE '✓ 36.1 CALL_FUNCTION_KW len(hello, x=hello) raises TypeError: len() takes no keyword arguments';
 
     RAISE NOTICE '';

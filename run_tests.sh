@@ -510,6 +510,16 @@ else
     exit 1
 fi
 
+# 44. STORE_ATTR Bytecode Integration (obj.x = value, then LOAD_ATTR; non-instance → AttributeError)
+echo "=== Phase 44: STORE_ATTR Integration ==="
+if run_test "supabase/tests/44_store_attr_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ STORE_ATTR integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -563,8 +573,9 @@ echo "  ✅ 40: bytes Slots Integration (sq_length, sq_concat, sq_repeat, tp_ric
 echo "  ✅ 41: BUILD_TUPLE / BUILD_LIST Bytecode Integration"
 echo "  ✅ 42: LOAD_ATTR Bytecode Integration (tp_dict lookup, AttributeError)"
 echo "  ✅ 43: LOAD_ATTR Phase 2 (instance __dict__, type+bases, AttributeError)"
+echo "  ✅ 44: STORE_ATTR Bytecode Integration (obj.x = value; non-instance → AttributeError)"
 echo ""
-echo "Total: 43 test suites passed ✨"
+echo "Total: 44 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

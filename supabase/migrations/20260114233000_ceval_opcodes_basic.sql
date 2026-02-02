@@ -191,8 +191,8 @@ BEGIN
     ELSIF (ml_flags & 2) != 0 THEN  -- METH_KEYWORDS: (func_obj_id, args, kwargs_id) RETURNS UUID
         EXECUTE format('SELECT %I($1, $2, $3)', ml_meth::text) USING func_obj_id, args, kwargs_id INTO result_id;
 
-    ELSIF (ml_flags & 1) != 0 THEN  -- METH_VARARGS
-        RAISE EXCEPTION 'py_call_cfunction: METH_VARARGS calling convention not yet implemented';
+    ELSIF (ml_flags & 1) != 0 THEN  -- METH_VARARGS: (func_obj_id, args) → result
+        EXECUTE format('SELECT %I($1, $2)', ml_meth::text) USING func_obj_id, args INTO result_id;
 
     ELSE
         RAISE EXCEPTION 'py_call_cfunction: Unsupported calling convention (m_ml_flags=%)', ml_flags;

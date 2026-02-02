@@ -510,6 +510,61 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================================
+-- lookup_attr_in_type_and_bases: type + tp_bases DFS, return attr_id only (no __get__)
+-- For STORE_ATTR: find name in type/bases, return descriptor/attr id; design: docs/STORE_ATTR_DESIGN.md §4.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.lookup_attr_in_type_and_bases(type_id UUID, name_str_id UUID)
+RETURNS UUID AS $$
+DECLARE
+    dict_id UUID;
+    attr_id UUID;
+    bases_tuple_id UUID;
+    base_items UUID[];
+    n_bases INT;
+    i INT;
+    base_id UUID;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_type_object WHERE ob_base = type_id) THEN
+        RETURN NULL;
+    END IF;
+
+    SELECT tp_dict INTO dict_id FROM public.py_type_object WHERE ob_base = type_id;
+    IF dict_id IS NOT NULL THEN
+        attr_id := public.py_dict_get_item(dict_id, name_str_id);
+        IF attr_id IS NOT NULL THEN
+            RETURN attr_id;
+        END IF;
+    END IF;
+
+    SELECT tp_bases INTO bases_tuple_id FROM public.py_type_object WHERE ob_base = type_id;
+    IF bases_tuple_id IS NULL THEN
+        RETURN NULL;
+    END IF;
+    SELECT ob_item INTO base_items FROM public.py_tuple_object WHERE ob_base = bases_tuple_id;
+    IF base_items IS NULL THEN
+        RETURN NULL;
+    END IF;
+    n_bases := array_length(base_items, 1);
+    IF n_bases IS NULL OR n_bases < 1 THEN
+        RETURN NULL;
+    END IF;
+
+    FOR i IN 1..n_bases LOOP
+        base_id := base_items[i];
+        attr_id := public.lookup_attr_in_type_and_bases(base_id, name_str_id);
+        IF attr_id IS NOT NULL THEN
+            RETURN attr_id;
+        END IF;
+        IF public.py_err_occurred() THEN
+            RETURN NULL;
+        END IF;
+    END LOOP;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
 -- py_object_getattr: Get attribute by name (Phase 2: instance __dict__ then type+bases)
 -- CPython: PyObject_GetAttr; design: docs/LOAD_ATTR_DESIGN.md §7.3.
 -- Uses py_instance_object.in_dict, lookup_in_type_and_bases; no tp_name comparison.
@@ -560,6 +615,85 @@ BEGIN
     -- 3. Not found
     PERFORM public.py_err_set_attribute_error('object has no attribute');
     RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- py_object_setattr: Set attribute by name (CPython PyObject_SetAttr)
+-- Design: docs/STORE_ATTR_DESIGN.md §3.1. Descriptor __set__ then instance __dict__.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.py_object_setattr(obj_id UUID, name_str_id UUID, value_id UUID)
+RETURNS VOID AS $$
+DECLARE
+    type_id UUID;
+    attr_id UUID;
+    attr_type_id UUID;
+    set_str_id UUID;
+    set_id UUID;
+    in_dict_id UUID;
+    new_dict_id UUID;
+    dict_type_id UUID := '00000000-0000-4000-a000-000000000006';
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_object WHERE id = obj_id) THEN
+        PERFORM public.py_err_set_attribute_error('object has no attribute');
+        RETURN;
+    END IF;
+
+    SELECT ob_type INTO type_id FROM public.py_object WHERE id = obj_id;
+    IF type_id IS NULL THEN
+        PERFORM public.py_err_set_attribute_error('object has no type');
+        RETURN;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.py_type_object WHERE ob_base = type_id) THEN
+        PERFORM public.py_err_set_attribute_error('object type has no tp_dict');
+        RETURN;
+    END IF;
+
+    -- 1. Type + bases: lookup name; if descriptor with __set__, call __set__(attr, obj, value)
+    attr_id := public.lookup_attr_in_type_and_bases(type_id, name_str_id);
+    IF public.py_err_occurred() THEN
+        RETURN;
+    END IF;
+    IF attr_id IS NOT NULL THEN
+        SELECT ob_type INTO attr_type_id FROM public.py_object WHERE id = attr_id;
+        IF attr_type_id IS NOT NULL THEN
+            set_str_id := public.py_str_from_text('__set__');
+            IF set_str_id IS NULL AND public.py_err_occurred() THEN
+                RETURN;
+            END IF;
+            SELECT tp_dict INTO type_id FROM public.py_type_object WHERE ob_base = attr_type_id;
+            IF type_id IS NOT NULL THEN
+                set_id := public.py_dict_get_item(type_id, set_str_id);
+                IF set_id IS NOT NULL THEN
+                    PERFORM public.py_object_call(set_id, ARRAY[attr_id, obj_id, value_id], NULL);
+                    IF public.py_err_occurred() THEN
+                        RETURN;
+                    END IF;
+                    RETURN;
+                END IF;
+            END IF;
+        END IF;
+    END IF;
+
+    -- 2. Instance __dict__: py_instance_object row must exist
+    SELECT i.in_dict INTO in_dict_id
+    FROM public.py_instance_object i
+    WHERE i.ob_base = obj_id;
+    IF NOT FOUND THEN
+        PERFORM public.py_err_set_attribute_error('object has no attribute');
+        RETURN;
+    END IF;
+    IF in_dict_id IS NULL THEN
+        new_dict_id := gen_random_uuid();
+        INSERT INTO public.py_object (id, ob_type) VALUES (new_dict_id, dict_type_id);
+        INSERT INTO public.py_dict_object (ob_base) VALUES (new_dict_id);
+        UPDATE public.py_instance_object SET in_dict = new_dict_id WHERE ob_base = obj_id;
+        in_dict_id := new_dict_id;
+    END IF;
+    PERFORM public.py_dict_set_item(in_dict_id, name_str_id, value_id);
+    IF public.py_err_occurred() THEN
+        RETURN;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -707,3 +841,151 @@ BEGIN
     PERFORM public.py_stack_push(frame_id, result_id);
 END;
 $$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- STORE_ATTR Opcode (CPython 95). Depends on py_object_setattr (this file).
+-- ============================================================================
+-- STORE_ATTR(name_index): TOS = owner, SECOND = value; setattr(owner, co_names[name_index], value).
+-- Design: docs/STORE_ATTR_DESIGN.md
+--
+CREATE OR REPLACE FUNCTION public.py_opcode_STORE_ATTR(frame_id UUID, name_index INTEGER)
+RETURNS VOID AS $$
+DECLARE
+    code_obj_id UUID;
+    co_names_id UUID;
+    name_str_id UUID;
+    obj_id UUID;
+    value_id UUID;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
+        RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
+    END IF;
+    IF name_index < 0 THEN
+        RAISE EXCEPTION 'STORE_ATTR: name_index must be non-negative, got %', name_index;
+    END IF;
+
+    SELECT f_code INTO code_obj_id FROM public.py_frame_object WHERE ob_base = frame_id;
+    IF code_obj_id IS NULL THEN
+        RAISE EXCEPTION 'STORE_ATTR: Frame with id % does not have a code object', frame_id;
+    END IF;
+    SELECT co_names INTO co_names_id FROM public.py_code_object WHERE ob_base = code_obj_id;
+    IF co_names_id IS NULL THEN
+        RAISE EXCEPTION 'STORE_ATTR: Code object with id % does not have co_names', code_obj_id;
+    END IF;
+    SELECT ob_item[name_index + 1] INTO name_str_id
+    FROM public.py_tuple_object WHERE ob_base = co_names_id;
+    IF name_str_id IS NULL THEN
+        RAISE EXCEPTION 'STORE_ATTR: Index % out of range for co_names tuple', name_index;
+    END IF;
+
+    obj_id := public.py_stack_pop(frame_id);
+    value_id := public.py_stack_pop(frame_id);
+    PERFORM public.py_object_setattr(obj_id, name_str_id, value_id);
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- Descriptor __set__ / __get__ builtins (METH_VARARGS) for data descriptor tests
+-- Design: docs/STORE_ATTR_DESIGN.md §1.3. __set__(self, obj, value); __get__(self, obj).
+-- Used by type tp_dict["__set__"] / tp_dict["__get__"]; descriptor instance stores value in in_dict["_val"].
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.py_builtin_descriptor_set(func_obj_id UUID, args UUID[])
+RETURNS UUID AS $$
+DECLARE
+    descriptor_id UUID;
+    value_id UUID;
+    in_dict_id UUID;
+    new_dict_id UUID;
+    val_str_id UUID;
+    ID_NONE_OBJ UUID := '00000000-0000-4000-b000-000000000001';
+    ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
+BEGIN
+    IF array_length(args, 1) < 3 THEN
+        PERFORM public.py_err_set_type_error('descriptor __set__ requires 3 arguments');
+        RETURN NULL;
+    END IF;
+    descriptor_id := args[1];
+    value_id := args[3];
+    SELECT i.in_dict INTO in_dict_id
+    FROM public.py_instance_object i
+    WHERE i.ob_base = descriptor_id;
+    IF NOT FOUND THEN
+        PERFORM public.py_err_set_type_error('descriptor __set__: descriptor must have __dict__');
+        RETURN NULL;
+    END IF;
+    IF in_dict_id IS NULL THEN
+        new_dict_id := gen_random_uuid();
+        INSERT INTO public.py_object (id, ob_type) VALUES (new_dict_id, ID_DICT_TYPE);
+        INSERT INTO public.py_dict_object (ob_base) VALUES (new_dict_id);
+        UPDATE public.py_instance_object SET in_dict = new_dict_id WHERE ob_base = descriptor_id;
+        in_dict_id := new_dict_id;
+    END IF;
+    val_str_id := public.py_str_from_text('_val');
+    IF val_str_id IS NULL AND public.py_err_occurred() THEN
+        RETURN NULL;
+    END IF;
+    PERFORM public.py_dict_set_item(in_dict_id, val_str_id, value_id);
+    RETURN ID_NONE_OBJ;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.py_builtin_descriptor_get(func_obj_id UUID, args UUID[])
+RETURNS UUID AS $$
+DECLARE
+    descriptor_id UUID;
+    in_dict_id UUID;
+    val_str_id UUID;
+    result_id UUID;
+BEGIN
+    IF array_length(args, 1) < 2 THEN
+        PERFORM public.py_err_set_type_error('descriptor __get__ requires 2 arguments');
+        RETURN NULL;
+    END IF;
+    descriptor_id := args[1];
+    SELECT i.in_dict INTO in_dict_id
+    FROM public.py_instance_object i
+    WHERE i.ob_base = descriptor_id;
+    IF NOT FOUND OR in_dict_id IS NULL THEN
+        RETURN NULL;
+    END IF;
+    val_str_id := public.py_str_from_text('_val');
+    IF val_str_id IS NULL AND public.py_err_occurred() THEN
+        RETURN NULL;
+    END IF;
+    result_id := public.py_dict_get_item(in_dict_id, val_str_id);
+    RETURN result_id;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+DECLARE
+    ID_DESCRIPTOR_SET UUID := '00000000-0000-4000-b000-000000000020';
+    ID_DESCRIPTOR_GET UUID := '00000000-0000-4000-b000-000000000021';
+    ID_BUILTIN_FUNCTION_OR_METHOD_TYPE UUID := '00000000-0000-4000-a000-000000000010';
+    ID_STR_TYPE UUID := '00000000-0000-4000-a000-000000000003';
+    s_set_name_id UUID;
+    s_set_doc_id UUID;
+    s_get_name_id UUID;
+    s_get_doc_id UUID;
+BEGIN
+    s_set_name_id := gen_random_uuid();
+    s_set_doc_id := gen_random_uuid();
+    s_get_name_id := gen_random_uuid();
+    s_get_doc_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES
+    (s_set_name_id, ID_STR_TYPE),
+    (s_set_doc_id, ID_STR_TYPE),
+    (s_get_name_id, ID_STR_TYPE),
+    (s_get_doc_id, ID_STR_TYPE);
+    INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES
+    (s_set_name_id, '__set__'),
+    (s_set_doc_id, 'Descriptor __set__(self, obj, value).'),
+    (s_get_name_id, '__get__'),
+    (s_get_doc_id, 'Descriptor __get__(self, obj).');
+    INSERT INTO public.py_object (id, ob_type) VALUES (ID_DESCRIPTOR_SET, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE);
+    INSERT INTO public.py_cfunction_object (ob_base, m_ml_name, m_ml_flags, m_ml_doc, m_self, m_module, m_ml_meth)
+    VALUES (ID_DESCRIPTOR_SET, s_set_name_id, 1, s_set_doc_id, NULL, NULL, 'py_builtin_descriptor_set'::regproc);
+    INSERT INTO public.py_object (id, ob_type) VALUES (ID_DESCRIPTOR_GET, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE);
+    INSERT INTO public.py_cfunction_object (ob_base, m_ml_name, m_ml_flags, m_ml_doc, m_self, m_module, m_ml_meth)
+    VALUES (ID_DESCRIPTOR_GET, s_get_name_id, 1, s_get_doc_id, NULL, NULL, 'py_builtin_descriptor_get'::regproc);
+END $$;

@@ -87,6 +87,8 @@ BEGIN
                 PERFORM public.py_opcode_CALL_FUNCTION_KW(frame_id, arg);
             WHEN 90 THEN
                 PERFORM public.py_opcode_STORE_NAME(frame_id, arg);
+            WHEN 95 THEN
+                PERFORM public.py_opcode_STORE_ATTR(frame_id, arg);
             WHEN 23 THEN
                 PERFORM public.py_opcode_BINARY_ADD(frame_id);
             WHEN 24 THEN

@@ -989,3 +989,110 @@ BEGIN
     INSERT INTO public.py_cfunction_object (ob_base, m_ml_name, m_ml_flags, m_ml_doc, m_self, m_module, m_ml_meth)
     VALUES (ID_DESCRIPTOR_GET, s_get_name_id, 1, s_get_doc_id, NULL, NULL, 'py_builtin_descriptor_get'::regproc);
 END $$;
+
+-- ============================================================================
+-- Bound Method: method type + tp_call + builtin_function_or_method __get__
+-- Design: docs/BOUND_METHOD_DESIGN.md. No tp_name comparison.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.py_method_tp_call(method_obj_id UUID, args UUID[], kwargs_id UUID DEFAULT NULL)
+RETURNS UUID AS $$
+DECLARE
+    im_func_id UUID;
+    im_self_id UUID;
+    new_args UUID[];
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_method_object WHERE ob_base = method_obj_id) THEN
+        PERFORM public.py_err_set_type_error('method object expected');
+        RETURN NULL;
+    END IF;
+    SELECT im_func, im_self INTO im_func_id, im_self_id
+    FROM public.py_method_object
+    WHERE ob_base = method_obj_id;
+    IF im_self_id IS NULL THEN
+        PERFORM public.py_err_set_type_error('unbound method called');
+        RETURN NULL;
+    END IF;
+    new_args := array_prepend(im_self_id, COALESCE(args, ARRAY[]::uuid[]));
+    RETURN public.py_object_call(im_func_id, new_args, kwargs_id);
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+DECLARE
+    ID_METHOD_TYPE UUID := '00000000-0000-4000-a000-000000000030';
+    ID_TYPE_TYPE UUID := '00000000-0000-4000-a000-000000000002';
+    ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
+    ID_INT_TYPE UUID := '00000000-0000-4000-a000-000000000004';
+    bases_tuple_id UUID;
+    dict_method_id UUID;
+BEGIN
+    SELECT tp_bases INTO bases_tuple_id FROM public.py_type_object WHERE ob_base = ID_INT_TYPE LIMIT 1;
+    IF bases_tuple_id IS NULL THEN
+        RAISE EXCEPTION 'Bound method bootstrap: tp_bases (object,) not found';
+    END IF;
+    dict_method_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (dict_method_id, ID_DICT_TYPE);
+    INSERT INTO public.py_dict_object (ob_base) VALUES (dict_method_id);
+    INSERT INTO public.py_object (id, ob_type) VALUES (ID_METHOD_TYPE, ID_TYPE_TYPE);
+    INSERT INTO public.py_type_object (ob_base, tp_name, tp_bases, tp_dict)
+    VALUES (ID_METHOD_TYPE, 'method', bases_tuple_id, dict_method_id);
+    UPDATE public.py_type_object SET tp_call = 'py_method_tp_call'::regproc WHERE ob_base = ID_METHOD_TYPE;
+END $$;
+
+-- builtin_function_or_method __get__: (func, obj, type) -> func if obj IS NULL else bound method
+CREATE OR REPLACE FUNCTION public.py_builtin_function_descriptor_get(func_obj_id UUID, args UUID[])
+RETURNS UUID AS $$
+DECLARE
+    attr_id UUID;
+    obj_id UUID;
+    type_id UUID;
+    method_type_id UUID := '00000000-0000-4000-a000-000000000030';
+    new_id UUID;
+BEGIN
+    IF array_length(args, 1) < 3 THEN
+        PERFORM public.py_err_set_type_error('function __get__ requires 3 arguments');
+        RETURN NULL;
+    END IF;
+    attr_id := args[1];
+    obj_id := args[2];
+    type_id := args[3];
+    IF obj_id IS NULL OR obj_id = type_id THEN
+        RETURN attr_id;
+    END IF;
+    new_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (new_id, method_type_id);
+    INSERT INTO public.py_method_object (ob_base, im_func, im_self, im_class)
+    VALUES (new_id, attr_id, obj_id, type_id);
+    RETURN new_id;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+DECLARE
+    ID_FUNCTION_DESCRIPTOR_GET UUID := '00000000-0000-4000-b000-000000000022';
+    ID_BUILTIN_FUNCTION_OR_METHOD_TYPE UUID := '00000000-0000-4000-a000-000000000010';
+    ID_STR_TYPE UUID := '00000000-0000-4000-a000-000000000003';
+    tp_dict_id UUID;
+    fget_name_id UUID;
+    fget_doc_id UUID;
+    get_key_id UUID;
+    h BIGINT;
+BEGIN
+    SELECT tp_dict INTO tp_dict_id FROM public.py_type_object WHERE ob_base = ID_BUILTIN_FUNCTION_OR_METHOD_TYPE LIMIT 1;
+    IF tp_dict_id IS NULL THEN
+        RAISE EXCEPTION 'Bound method: builtin_function_or_method tp_dict not found';
+    END IF;
+    fget_name_id := gen_random_uuid();
+    fget_doc_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (fget_name_id, ID_STR_TYPE), (fget_doc_id, ID_STR_TYPE);
+    INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES
+    (fget_name_id, '__get__'),
+    (fget_doc_id, 'Function descriptor __get__(self, obj, type).');
+    INSERT INTO public.py_object (id, ob_type) VALUES (ID_FUNCTION_DESCRIPTOR_GET, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE);
+    INSERT INTO public.py_cfunction_object (ob_base, m_ml_name, m_ml_flags, m_ml_doc, m_self, m_module, m_ml_meth)
+    VALUES (ID_FUNCTION_DESCRIPTOR_GET, fget_name_id, 1, fget_doc_id, NULL, NULL, 'py_builtin_function_descriptor_get'::regproc);
+    get_key_id := public.py_str_from_text('__get__');
+    h := public.py_object_hash(get_key_id);
+    INSERT INTO public.py_dict_entry (dict_id, me_key, me_value, me_hash)
+    VALUES (tp_dict_id, get_key_id, ID_FUNCTION_DESCRIPTOR_GET, h);
+END $$;

@@ -100,3 +100,4 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
 - **docs/[BUILD_TUPLE_LIST_DESIGN.md](docs/BUILD_TUPLE_LIST_DESIGN.md)**: BUILD_TUPLE(102)·BUILD_LIST(103) opcode 설계 (CPython 고증·임시구현 없음, 작업 의존관계·실행 순서 포함).
 - **docs/[LOAD_ATTR_DESIGN.md](docs/LOAD_ATTR_DESIGN.md)**: LOAD_ATTR(106)·속성 조회 설계 (PyObject_GetAttr, tp_dict, 디스크립터 __get__, AttributeError, 작업 의존관계·실행 순서 포함).
 - **docs/[STORE_ATTR_DESIGN.md](docs/STORE_ATTR_DESIGN.md)**: STORE_ATTR(95)·속성 저장 설계 (PyObject_SetAttr, 디스크립터 __set__, 인스턴스 __dict__, 작업 의존관계·실행 순서 포함).
+- **docs/[BOUND_METHOD_DESIGN.md](docs/BOUND_METHOD_DESIGN.md)**: Bound Method 설계 (인스턴스에서 메서드 조회 시 __get__ → bound method, 호출 시 im_func(im_self, *args), 작업 의존관계·실행 순서 포함).

@@ -520,6 +520,16 @@ else
     exit 1
 fi
 
+# 45. Bound Method Integration (getattr(inst,"f")→bound method; getattr(Type,"f")→func; bytecode LOAD_ATTR)
+echo "=== Phase 45: Bound Method Integration ==="
+if run_test "supabase/tests/45_bound_method_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Bound method integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -574,8 +584,9 @@ echo "  ✅ 41: BUILD_TUPLE / BUILD_LIST Bytecode Integration"
 echo "  ✅ 42: LOAD_ATTR Bytecode Integration (tp_dict lookup, AttributeError)"
 echo "  ✅ 43: LOAD_ATTR Phase 2 (instance __dict__, type+bases, AttributeError)"
 echo "  ✅ 44: STORE_ATTR Bytecode Integration (obj.x = value; non-instance → AttributeError)"
+echo "  ✅ 45: Bound Method Integration (getattr(inst,\"f\")→bound method; getattr(Type,\"f\")→func)"
 echo ""
-echo "Total: 44 test suites passed ✨"
+echo "Total: 45 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

@@ -453,7 +453,7 @@ $$ LANGUAGE plpgsql;
 2. **RAISE_VARARGS** (opcode 130) — argc 0=re-raise, 1=raise TOS, 2=raise from
 3. **Exception table** (`co_exceptiontable`) — 3.11 방식. (start, end, target, depth)로 unwinding
 4. **예외 상태** — `py_exception_state` (exc_type, exc_value, exc_traceback). RERAISE, POP_EXCEPT, PUSH_EXC_INFO, CHECK_EXC_MATCH
-→ 설계: **docs/EXCEPTION_HANDLING_DESIGN.md**. 구현: `224100`–`224300`(스키마·헬퍼·세터), `240700`–`241100`(exception table·디스패치·세터 확장).
+→ 설계: **docs/EXCEPTION_HANDLING_DESIGN.md**. 구현: `224100`–`224400`(스키마·헬퍼·세터·exception table 파싱), `241000`–`241100`(디스패치·세터 확장).
 
 ## 설계 원칙
 

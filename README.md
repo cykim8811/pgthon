@@ -48,9 +48,9 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
   - `py_function_object`, `py_code_object`, `py_frame_object` 등과 내장 함수(`len`, `abs`) 등록
   - `tp_as_sequence`/`tp_as_mapping`·`PyObject_Size` 등 타입 슬롯 기반 길이 연산
 
-- **VM 코어·opcode** (스택, eval_frame, 기본 opcode)
+- **VM 코어·opcode** (스택, eval_frame, opcode 핸들러)
   - 스택 연산·바이트코드 해석·`py_eval_frame` 메인 루프
-  - `LOAD_CONST` 등 기본 opcode; `STORE_NAME`/`LOAD_NAME`의 이름공간 조회·저장은 tp_hash 쪽 migration에서 구현
+  - opcode 핸들러는 **파일당 1개** opcode만 정의 (`*_opcode_*.sql`); 슬롯/객체 계층과 분리
 
 - **타입 슬롯** (tp_call, tp_hash, tp_richcompare)
   - 호출 가능·해시·비교를 슬롯으로 디스패치; dict lookup은 hash + tp_richcompare 기반으로 동작

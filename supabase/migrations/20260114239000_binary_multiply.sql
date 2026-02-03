@@ -290,27 +290,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- ============================================================================
--- py_opcode_BINARY_MULTIPLY (opcode 20): pop right, left → py_object_multiply(left, right) → push
--- ============================================================================
-
-CREATE OR REPLACE FUNCTION public.py_opcode_BINARY_MULTIPLY(frame_id uuid)
-RETURNS void AS $$
-DECLARE
-    right_id uuid;
-    left_id  uuid;
-    result_id uuid;
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
-        RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
-    END IF;
-
-    right_id := public.py_stack_pop(frame_id);
-    left_id  := public.py_stack_pop(frame_id);
-    result_id := public.py_object_multiply(left_id, right_id);
-    IF result_id IS NULL AND public.py_err_occurred() THEN
-        RETURN;
-    END IF;
-    PERFORM public.py_stack_push(frame_id, result_id);
-END;
-$$ LANGUAGE plpgsql;
+-- Opcode BINARY_MULTIPLY (20): 20260114239001_opcode_binary_multiply.sql

@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Exception table parsing (CPython 3.11 co_exceptiontable)
--- 20260114240900_exception_table_parsing.sql
+-- 20260114224400_exception_table_parsing.sql — 예외 처리 블록(224100–224300) 직후
 --
 -- Design: docs/EXCEPTION_HANDLING_DESIGN.md, CPython InternalDocs/exception_handling.md
 -- Format: start, size, target, depth, push-lasti. Encoded as 6-bit varint per byte

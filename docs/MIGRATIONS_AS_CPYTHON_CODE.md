@@ -36,35 +36,36 @@
 | `20260114224100_exception_schema` | `py_exception_state`, `py_traceback_object` 등 **예외 스키마** (builtin/슬롯에서 사용) |
 | `20260114224200_exception_helpers` | `py_err_occurred`, `py_err_set_*` 등 **예외 헬퍼** |
 | `20260114224300_exception_setters` | 예외 세터 함수 (builtin/슬롯에서 호출) |
+| `20260114224400_exception_table_parsing` | **exception table** 파싱 (3.11 co_exceptiontable → start/end/target/depth/lasti) |
 | `20260114225000_builtin_functions` | `len`, `abs` 등 **builtin 함수** 구현·등록 |
 | `20260114226000_type_method_slots` | `PySequenceMethods`/`PyMappingMethods` **슬롯 구현·등록** (sq_length, mp_length, len) |
 | `20260114234000_tp_call_slot` | `tp_call` 슬롯 + `py_object_call` |
 | `20260114235000_tp_hash_slot` | `tp_hash` 슬롯 + hash 기반 dict (`py_dict_get_item`, `py_dict_set_item`) |
 | `20260114235500_nb_absolute_slot` | `nb_absolute` 슬롯 + int/float 등록 |
 | `20260114236000_tp_richcompare_slot` | `tp_richcompare` 슬롯 + `py_object_richcompare` |
-| `20260114238000_binary_add` | `nb_add`/`sq_concat` 슬롯 + `py_object_add` + opcode 23 |
-| `20260114238500_binary_subtract` | `nb_subtract` 슬롯 + `py_object_subtract` + opcode 24 |
-| `20260114239000_binary_multiply` | `nb_multiply`/`sq_repeat` 슬롯 + `py_object_multiply` + opcode 20 |
-| `20260114240000_compare_op` | `py_object_richcompare` reflected op + **COMPARE_OP** opcode 107 |
+| `20260114238000_binary_add` | `nb_add`/`sq_concat` 슬롯 + `py_object_add` |
+| `20260114238500_binary_subtract` | `nb_subtract` 슬롯 + `py_object_subtract` |
+| `20260114239000_binary_multiply` | `nb_multiply`/`sq_repeat` 슬롯 + `py_object_multiply` |
 | `20260114240300_py_object_istrue` | **PyObject_IsTrue** (truth value for JUMP_*) |
-| `20260114240400_jump_opcodes` | **JUMP_FORWARD, POP_JUMP_IF_FALSE/TRUE** opcode 핸들러 + eval_frame 분기 |
-| `20260114240600_pop_top` | **POP_TOP** (opcode 1) opcode 핸들러 |
 
 ### 2.3 VM / ceval (Python/ceval.c에 대응)
 
+**순서**: 슬롯·지원(233000, 234000, …, 240300) → **opcode 블록 240301–240316** → 241000(예외 디스패치) → **예외 opcode 241001–241005** → 241100.
+
 | 마이그레이션 | CPython 관점에서의 역할 |
 |--------------|-------------------------|
-| `20260114230000_ceval_core` | 스택·프레임 유틸, **py_get_opcode_size** (Python 3.11 uniform 2-byte) |
-| `20260114232000_ceval_eval_frame` | **py_eval_frame** = 메인 루프 + opcode `CASE` 전부 (LOAD_CONST, BINARY_ADD, COMPARE_OP, JUMP_*, POP_TOP, RETURN_VALUE 등) |
-| `20260114233000_ceval_opcodes_basic` | **LOAD_CONST, STORE_NAME, LOAD_NAME, CALL_FUNCTION** opcode 핸들러 |
-| `20260114240700_exception_schema` | `co_exceptiontable` 등 **예외 테이블 스키마** (code object 확장) |
-| `20260114240800_exception_helpers` | exception table 파싱용 **헬퍼** |
-| `20260114240900_exception_table_parsing` | **exception table** 파싱 (3.11 방식) |
-| `20260114241000_ceval_exception_dispatch` | **py_eval_frame** 내 예외 디스패치 (had_err, unwinding, RAISE_VARARGS, RERAISE, POP_EXCEPT, PUSH_EXC_INFO, CHECK_EXC_MATCH) |
+| `20260114230000_ceval_core` | 스택·프레임 유틸, **py_get_opcode_size** |
+| `20260114232000_ceval_eval_frame` | **py_eval_frame** = 메인 루프 + opcode `CASE` 전부 |
+| `20260114233000_ceval_opcodes_basic` | **py_call_cfunction** (CALL_FUNCTION/CALL_FUNCTION_KW 지원만) |
+| `20260114234000_tp_call_slot` | `tp_call` 슬롯 + `py_object_call` |
+| `20260114235000_tp_hash_slot` | `tp_hash` 슬롯 + dict/getattr/setattr |
+| … (235500, 236000, 238000, 238500, 239000, 240300: 슬롯·지원) | |
+| **`20260114240301_opcode_load_const`** … **`20260114240316_opcode_pop_top`** | **opcode 블록** (100, 141, 142, 102, 103, 90, 101, 106, 95, 23, 24, 20, 107, 114, 115, 1) |
+| `20260114241000_ceval_exception_dispatch` | **py_eval_frame** 예외 디스패치 루프 + py_err_restore, py_stack_trim, py_stack_peek, py_type_issubclass, py_tuple_from_3 |
+| `20260114241001_opcode_raise_varargs` … `20260114241005_opcode_pop_except` | 예외 opcode (130, 119, 35, 36, 89) |
 | `20260114241100_python_exception_setters` | 예외 세터 확장 (traceback 등) |
 
-→ **py_eval_frame**과 그 안의 **CASE 전부**는 `20260114232000_ceval_eval_frame` 한 파일에 정의되며, 예외 디스패치·unwinding은 `20260114241000_ceval_exception_dispatch`에서 같은 루프를 수정해 반영한다.  
-opcode **핸들러 함수**는 basic(233000) + binary_*(238000 등) + compare_op(240000) + jump(240400) + pop_top(240600)에 나뉜다.
+→ **opcode 핸들러**는 **파일당 1개**, **240301–240316**(일반 opcode) + **241001–241005**(예외 opcode) 두 블록으로 묶임.
 
 ---
 
@@ -81,8 +82,8 @@ opcode **핸들러 함수**는 basic(233000) + binary_*(238000 등) + compare_op
 ### 3.2 파일명·구조 정리
 
 - **이름**: `phase1`/`phase2` 대신 **ceval_core**, **binary_add**, **compare_op**, **jump_opcodes**, **pop_top** 등 CPython 개념 기준.
-- **병합**: BINARY_ADD/SUBTRACT/MULTIPLY는 각각 슬롯·디스패치·opcode를 한 파일에 통합. COMPARE_OP는 richcompare reflected + opcode를 `240000_compare_op` 한 파일에. Jump는 PyObject_IsTrue(240300) + opcode·eval_frame 분기(240400) 두 파일로 정리.
-- **함수 정의**: `py_get_opcode_size`는 `230000_ceval_core` 한 곳. `py_eval_frame`은 `232000_ceval_eval_frame` 한 곳에서만 CREATE OR REPLACE하며, opcode 추가 시 그 파일을 직접 수정.
+- **계층 분리**: 슬롯/객체 마이그레이션에는 `py_object_*`·슬롯만 두고, **opcode 핸들러는 별도 파일에서 파일당 1개** opcode만 정의 (예: `233001_opcode_load_const.sql`, `238001_opcode_binary_add.sql`).
+- **함수 정의**: `py_get_opcode_size`는 `230000_ceval_core` 한 곳. `py_eval_frame`은 `232000`·`241000`에서 CREATE OR REPLACE. **opcode 순서**: 슬롯/지원(234000–240300) 먼저, 그 다음 opcode 블록(240301–240316, 241001–241005). 새 opcode 추가 시: (1) `240317_opcode_<name>.sql` 등 블록 안에 새 파일 추가, (2) eval 루프 3곳(232000, 241000, 241100)에 CASE 분기 추가.
 
 ---
 
@@ -93,9 +94,9 @@ opcode **핸들러 함수**는 basic(233000) + binary_*(238000 등) + compare_op
    그 위에 **tp_call, tp_hash, tp_richcompare, nb_*, sq_*** 가 슬롯 단위·기능 단위로 한 파일씩 정리됨.
 
 2. **VM (ceval)**  
-   **메인 루프 + 전체 opcode switch** 는 `232000_ceval_eval_frame` 한 파일에 모여 있음.  
-   **opcode 핸들러**는 ceval_opcodes_basic(233000) + binary_*(238000 등) + compare_op(240000) + jump_opcodes(240400) + pop_top(240600) 로 기능별로 나뉨.  
-   **예외 처리**는 exception_schema(240700), exception_helpers(240800), exception_table_parsing(240900), ceval_exception_dispatch(241000), python_exception_setters(241100)에서 스키마·파싱·디스패치·세터가 순서대로 쌓임.
+   **메인 루프 + 전체 opcode switch** 는 `232000_ceval_eval_frame`·`241000_ceval_exception_dispatch`·`241100_python_exception_setters` 에서 CASE 분기.  
+   **opcode 핸들러**는 파일당 1개, **240301–240316**(일반 opcode 블록)과 **241001–241005**(예외 opcode 블록)에만 있음.  
+   **예외 처리**는 exception_schema(224100, co_exceptiontable 포함), exception_helpers(224200), exception_setters(224300), exception_table_parsing(224400) → ceval_exception_dispatch(241000), opcode 5개(241001–241005), python_exception_setters(241100) 순.
 
 3. **참고 문서**  
    - [EXCEPTION_HANDLING_DESIGN.md](EXCEPTION_HANDLING_DESIGN.md): 예외 처리 설계 (CPython 3.11 고증).  

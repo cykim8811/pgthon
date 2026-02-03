@@ -68,7 +68,9 @@ BEGIN
         SELECT tp_name INTO func_type_name
         FROM public.py_type_object
         WHERE ob_base = obj_type_id;
-        RAISE EXCEPTION 'TypeError: ''%'' object is not callable', COALESCE(func_type_name, 'unknown');
+        -- CPython: PyErr_Format(PyExc_TypeError, "'%.200s' object is not callable", type->tp_name); return NULL
+        PERFORM public.py_err_set_type_error('''' || COALESCE(func_type_name, 'unknown') || ''' object is not callable');
+        RETURN NULL;
     END IF;
 
     SELECT n.nspname, p.proname INTO call_nspname, call_proname

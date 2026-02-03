@@ -269,32 +269,38 @@ BEGIN
     pass_count := pass_count + 1;
     
     -- ========================================================================
-    -- Test 4: CALL_FUNCTION raises TypeError for non-callable objects
+    -- Test 4: CALL_FUNCTION raises TypeError for non-callable objects (Python 예외 + NULL)
     -- ========================================================================
     RAISE NOTICE '';
     RAISE NOTICE 'Test 4: CALL_FUNCTION raises TypeError for non-callable objects...';
     test_count := test_count + 1;
-    
-    -- Clear stack
+
     UPDATE public.py_frame_object
     SET f_valuestack = array[]::uuid[]
     WHERE ob_base = frame_id;
-    
-    -- Push non-callable object (int) onto stack
+
     PERFORM public.py_stack_push(frame_id, non_callable_id);
-    
-    -- Execute CALL_FUNCTION(0) - should raise TypeError
-    BEGIN
-        PERFORM public.py_opcode_CALL_FUNCTION(frame_id, 0);
-        RAISE EXCEPTION 'FAIL: CALL_FUNCTION did not raise TypeError for non-callable object';
-    EXCEPTION
-        WHEN OTHERS THEN
-            error_message := SQLERRM;
-            IF error_message NOT LIKE 'TypeError: ''int'' object is not callable%' THEN
-                RAISE EXCEPTION 'FAIL: CALL_FUNCTION raised wrong exception: %', error_message;
-            END IF;
-    END;
-    
+    PERFORM public.py_err_clear();
+
+    PERFORM public.py_opcode_CALL_FUNCTION(frame_id, 0);
+
+    IF NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: CALL_FUNCTION should set Python exception for non-callable object';
+    END IF;
+    SELECT exc_type_id INTO got_exc_type_id FROM public.py_exception_state WHERE id = (SELECT id FROM public.py_exception_state LIMIT 1);
+    IF got_exc_type_id IS DISTINCT FROM ID_TYPE_ERROR_TYPE THEN
+        RAISE EXCEPTION 'FAIL: CALL_FUNCTION non-callable should set TypeError, got exc_type_id %', got_exc_type_id;
+    END IF;
+    SELECT u.str_value INTO error_message
+    FROM public.py_exception_state e
+    JOIN public.py_base_exception_object b ON b.ob_base = e.exc_value_id
+    JOIN public.py_tuple_object t ON t.ob_base = b.ob_args
+    JOIN public.py_unicode_object u ON u.ob_base = t.ob_item[1]
+    WHERE e.id = (SELECT id FROM public.py_exception_state LIMIT 1);
+    IF error_message IS NULL OR error_message NOT LIKE '%object is not callable%' THEN
+        RAISE EXCEPTION 'FAIL: CALL_FUNCTION non-callable expected message containing "object is not callable", got: %', error_message;
+    END IF;
+
     RAISE NOTICE '  ✓ CALL_FUNCTION correctly raises TypeError for non-callable objects';
     pass_count := pass_count + 1;
     

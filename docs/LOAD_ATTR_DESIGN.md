@@ -94,7 +94,7 @@ CPython의 **LOAD_ATTR** opcode 및 **PyObject_GetAttr**에 해당하는 속성 
 
 - **232000** `ceval_eval_frame.sql`: CASE에 `WHEN 106 THEN PERFORM py_opcode_LOAD_ATTR(frame_id, arg);` 추가.
 - **41000** `ceval_exception_dispatch.sql`: 동일 CASE에 106 추가.
-- **41100** `python_exception_setters.sql`: 동일 CASE에 106 추가.
+- **41100** `ceval_eval_frame_final.sql`: 동일 CASE에 106 추가.
 
 ---
 
@@ -119,7 +119,7 @@ CPython의 **LOAD_ATTR** opcode 및 **PyObject_GetAttr**에 해당하는 속성 
 | **D** | py_opcode_LOAD_ATTR(frame_id, name_index) 정의 | 기존 opcode 마이그레이션(233000) 수정 |
 | **E** | py_eval_frame에 106 분기 추가 | 232000 수정 |
 | **F** | ceval_exception_dispatch에 106 분기 추가 | 41000 수정 |
-| **G** | python_exception_setters에 106 분기 추가 | 41100 수정 |
+| **G** | ceval_eval_frame_final에 106 분기 추가 | 41100 수정 |
 | **H** | LOAD_ATTR 통합 테스트 | supabase/tests/, run_tests.sh |
 
 ### 5.2 의존관계
@@ -155,7 +155,7 @@ G ──┘
 | **4** | **D** py_opcode_LOAD_ATTR 정의 | C | 233000 또는 opcode 담당 마이그레이션에 추가 |
 | **5** | **E** py_eval_frame에 106 추가 | D | 232000 CASE |
 | **6** | **F** ceval_exception_dispatch에 106 추가 | D | 41000 CASE |
-| **7** | **G** python_exception_setters에 106 추가 | D | 41100 CASE |
+| **7** | **G** ceval_eval_frame_final에 106 추가 | D | 41100 CASE |
 | **8** | **H** 통합 테스트 | E, F, G | 바이트코드 obj.attr, 없을 때 AttributeError 등 |
 
 ---

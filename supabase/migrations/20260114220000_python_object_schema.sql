@@ -59,7 +59,7 @@ create table public.py_type_object (
   -- In CPython, each type object has its own __dict__ for storing type attributes.
   tp_call regproc,       -- CPython ternaryfunc tp_call; NULL = not callable. See 234000.
   tp_hash regproc,       -- CPython hashfunc tp_hash; NULL = unhashable. See 235000.
-  tp_richcompare regproc, -- CPython richcmpfunc tp_richcompare; NULL = not implemented. See 236000.
+  tp_richcompare regproc, -- CPython richcmpfunc tp_richcompare; NULL = not implemented. See 234900.
   tp_as_sequence uuid references public.py_sequence_methods(id),
   tp_as_mapping uuid references public.py_mapping_methods(id),
   tp_as_number uuid references public.py_number_methods(id)

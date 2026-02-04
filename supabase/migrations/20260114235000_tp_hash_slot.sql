@@ -25,7 +25,7 @@
 --   2. Implements type-specific hash functions (str, int, bytes, float, bool, None, tuple)
 --   3. Registers tp_hash for all hashable builtin types
 --   4. Dict lookup hash-based: me_hash backfill/index,
---      py_dict_get_item, py_dict_set_item (key equality via py_object_richcompare_eq in 236000), LOAD_NAME/STORE_NAME.
+--      py_dict_get_item, py_dict_set_item (key equality via py_object_richcompare_eq in 234900), LOAD_NAME/STORE_NAME.
 --      Design: docs/DICT_LOOKUP_DESIGN.md
 --   (tp_hash column is defined in 20260114220000_python_object_schema.sql)
 --
@@ -374,7 +374,7 @@ ALTER COLUMN me_hash SET NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_py_dict_entry_dict_id_me_hash
 ON public.py_dict_entry (dict_id, me_hash);
 
--- Dict key equality uses py_object_richcompare_eq (defined in 236000).
+-- Dict key equality uses py_object_richcompare_eq (defined in 234900).
 CREATE OR REPLACE FUNCTION public.py_dict_get_item(dict_id UUID, key_id UUID)
 RETURNS UUID AS $$
 DECLARE

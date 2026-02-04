@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Migration: tp_richcompare Slot (CPython Rich Comparison Protocol)
--- Created: 2026-01-14 23:60:00
+-- 20260114234900 — runs before 235000_tp_hash_slot (tp_hash_slot uses py_object_richcompare_eq).
 --
 -- Purpose:
 --   Implements CPython's tp_richcompare slot for key equality in dict lookup.

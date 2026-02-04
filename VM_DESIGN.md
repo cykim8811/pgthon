@@ -453,7 +453,7 @@ $$ LANGUAGE plpgsql;
 2. **RAISE_VARARGS** (opcode 130) — argc 0=re-raise, 1=raise TOS, 2=raise from
 3. **Exception table** (`co_exceptiontable`) — 3.11 방식. (start, end, target, depth)로 unwinding
 4. **예외 상태** — `py_exception_state` (exc_type, exc_value, exc_traceback). RERAISE, POP_EXCEPT, PUSH_EXC_INFO, CHECK_EXC_MATCH
-→ 설계: **docs/EXCEPTION_HANDLING_DESIGN.md**. 구현: `224100`–`224400`(스키마·헬퍼·세터·exception table 파싱), `241000`–`241100`(디스패치·세터 확장).
+→ 설계: **docs/EXCEPTION_HANDLING_DESIGN.md**. 구현: `224100`–`224400`(스키마·헬퍼·세터·exception table 파싱), `241000`–`241100`(디스패치·py_eval_frame 최종).
 
 ## 설계 원칙
 
@@ -486,7 +486,7 @@ $$ LANGUAGE plpgsql;
 
 ### 2. Opcode 확장 (EXTENDED_ARG) — 구현 완료
 - EXTENDED_ARG(144): 다음 opcode의 operand를 (extended << 8) | arg 로 확장. 연쇄 가능.
-- py_eval_frame 3곳(232000, 241000, 241100)에서 prefix 누적 후 디스패치. f_lasti·점프·예외 테이블은 논리적 instruction 시작(start_i) 기준.
+- py_eval_frame 3곳(232000, 241000, 241100_ceval_eval_frame_final)에서 prefix 누적 후 디스패치. f_lasti·점프·예외 테이블은 논리적 instruction 시작(start_i) 기준.
 
 ### 3. 성능
 - PL/pgSQL은 C보다 느림

@@ -1,10 +1,10 @@
 -- ============================================================================
--- py_eval_frame with exception dispatch (CPython 3.11)
--- 20260114241100_python_exception_setters.sql
+-- py_eval_frame 최종 정의 (예외 디스패치 포함, CPython 3.11)
+-- 20260114241100_ceval_eval_frame_final.sql
 --
 -- Design: docs/EXCEPTION_HANDLING_DESIGN.md
--- py_str_from_text, py_err_set_type_error 등 setters는 20260114224300_exception_setters.sql 로 이동 (의존성 순서).
--- 이 파일에는 py_eval_frame 재정의만 유지 (예외 발생 시 py_traceback_here + exception table 조회).
+-- 241000에서 예외 디스패치·헬퍼를 정의하고, 이 파일에서 py_eval_frame을 최종 재정의.
+-- 예외 발생 시 py_traceback_here + exception table 조회 → 핸들러 점프 또는 전파.
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------

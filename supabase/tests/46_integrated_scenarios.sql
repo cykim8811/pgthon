@@ -15,9 +15,11 @@
 --   7. getattr(Type, "nonexistent") → AttributeError
 --   8. 클래스 속성 쓰기 후 인스턴스 조회: bytecode C.x=1 실행 후 getattr(inst,"x") → 1 (인스턴스 __dict__ 없음, 타입에서 조회)
 --   9. 클래스 속성 + 인스턴스 shadowing: C.x=1 → getattr(inst,"x")→1 → setattr(inst,"x",2) → getattr(inst,"x")→2
+--  10. DELETE_ATTR 통합: obj.x=42, bytecode DELETE_ATTR("x"), getattr(obj,"x") → AttributeError
+--  11. DELETE_ATTR + class fallback: C.x=1, inst.x=2 (shadow), del inst.x, getattr(inst,"x")→1 (타입에서 다시 조회)
 --
 -- Usage:
---   Run after Phase 45. If any assertion fails, exception is raised.
+--   Run after Phase 48. If any assertion fails, exception is raised.
 --   규칙: 테스트 실패 시 코드 수정 없이 멈추고 사용자에게 실패만 알린다.
 -- ============================================================================
 
@@ -537,6 +539,108 @@ BEGIN
     END IF;
     pass_count := pass_count + 1;
     RAISE NOTICE '  ✓ C.x=1 → inst.x→1 → inst.x=2 → inst.x→2';
+
+    -- ========================================================================
+    -- Scenario 10: DELETE_ATTR 통합 — obj.x=42, bytecode DELETE_ATTR("x"), getattr(obj,"x") → AttributeError
+    -- ========================================================================
+    RAISE NOTICE 'Scenario 10: obj.x=42, bytecode DELETE_ATTR("x"), getattr(obj,"x") → AttributeError...';
+    test_count := test_count + 1;
+    PERFORM public.py_err_clear();
+
+    dict_empty_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (dict_empty_id, ID_DICT_TYPE);
+    INSERT INTO public.py_dict_object (ob_base) VALUES (dict_empty_id);
+    type_t_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (type_t_id, ID_TYPE_TYPE);
+    INSERT INTO public.py_type_object (ob_base, tp_name, tp_bases, tp_dict)
+    VALUES (type_t_id, 'T', bases_tuple_id, dict_empty_id);
+    inst_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (inst_id, type_t_id);
+    dict_inst_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (dict_inst_id, ID_DICT_TYPE);
+    INSERT INTO public.py_dict_object (ob_base) VALUES (dict_inst_id);
+    INSERT INTO public.py_instance_object (ob_base, in_dict) VALUES (inst_id, dict_inst_id);
+
+    PERFORM public.py_object_setattr(inst_id, name_x_id, value_42_id);
+    IF public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: Scenario 10 setattr(inst,"x",42) raised';
+    END IF;
+
+    co_names_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_names_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_names_id, ARRAY[name_x_id]);
+    co_consts_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_consts_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[inst_id]);
+    co_code_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006100', 'hex'));
+    code_obj_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars)
+    VALUES (code_obj_id, co_code_id, co_consts_id, co_names_id, empty_str_id, empty_str_id, 0, empty_tuple_id, empty_tuple_id, empty_tuple_id);
+    frame_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (frame_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
+    VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, real_builtins_dict_id);
+
+    PERFORM public.py_eval_frame(frame_id);
+    IF public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: Scenario 10 DELETE_ATTR("x") raised';
+    END IF;
+    res_id := public.py_object_getattr(inst_id, name_x_id);
+    IF res_id IS NOT NULL THEN
+        RAISE EXCEPTION 'FAIL: getattr(inst,"x") after del expected NULL, got %', res_id;
+    END IF;
+    IF NOT public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: getattr(inst,"x") after del should set AttributeError';
+    END IF;
+    pass_count := pass_count + 1;
+    RAISE NOTICE '  ✓ obj.x=42, del obj.x, getattr(obj,"x") → AttributeError';
+
+    -- ========================================================================
+    -- Scenario 11: DELETE_ATTR + class fallback — C.x=1, inst.x=2 (shadow), del inst.x, getattr(inst,"x")→1
+    -- ========================================================================
+    RAISE NOTICE 'Scenario 11: C.x=1, inst.x=2, del inst.x, getattr(inst,"x")→1 (class attr again)...';
+    test_count := test_count + 1;
+    PERFORM public.py_err_clear();
+
+    dict_empty_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (dict_empty_id, ID_DICT_TYPE);
+    INSERT INTO public.py_dict_object (ob_base) VALUES (dict_empty_id);
+    type_t_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (type_t_id, ID_TYPE_TYPE);
+    INSERT INTO public.py_type_object (ob_base, tp_name, tp_bases, tp_dict)
+    VALUES (type_t_id, 'C', bases_tuple_id, dict_empty_id);
+    inst_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (inst_id, type_t_id);
+    dict_inst_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (dict_inst_id, ID_DICT_TYPE);
+    INSERT INTO public.py_dict_object (ob_base) VALUES (dict_inst_id);
+    INSERT INTO public.py_instance_object (ob_base, in_dict) VALUES (inst_id, dict_inst_id);
+
+    PERFORM public.py_object_setattr(type_t_id, name_x_id, value_1_id);
+    IF public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: Scenario 11 setattr(C,"x",1) raised';
+    END IF;
+    PERFORM public.py_object_setattr(inst_id, name_x_id, value_2_id);
+    IF public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: Scenario 11 setattr(inst,"x",2) raised';
+    END IF;
+    res_id := public.py_object_getattr(inst_id, name_x_id);
+    IF res_id IS DISTINCT FROM value_2_id THEN
+        RAISE EXCEPTION 'FAIL: getattr(inst,"x") after inst.x=2 expected 2 id %, got %', value_2_id, res_id;
+    END IF;
+    PERFORM public.py_object_delattr(inst_id, name_x_id);
+    IF public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: Scenario 11 delattr(inst,"x") raised';
+    END IF;
+    res_id := public.py_object_getattr(inst_id, name_x_id);
+    IF res_id IS DISTINCT FROM value_1_id THEN
+        RAISE EXCEPTION 'FAIL: getattr(inst,"x") after del inst.x expected 1 (class attr) id %, got %', value_1_id, res_id;
+    END IF;
+    pass_count := pass_count + 1;
+    RAISE NOTICE '  ✓ C.x=1, inst.x=2, del inst.x, inst.x → 1';
 
     RAISE NOTICE '';
     RAISE NOTICE '========================================';

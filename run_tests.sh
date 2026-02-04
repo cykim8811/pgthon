@@ -550,6 +550,16 @@ else
     exit 1
 fi
 
+# 48. DELETE_ATTR Bytecode Integration (del obj.x / del C.x → AttributeError when absent)
+echo "=== Phase 48: DELETE_ATTR Integration ==="
+if run_test "supabase/tests/48_delete_attr_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ DELETE_ATTR integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -607,8 +617,9 @@ echo "  ✅ 44: STORE_ATTR Bytecode Integration (obj.x = value; non-instance →
 echo "  ✅ 45: Bound Method Integration (getattr(inst,\"f\")→bound method; getattr(Type,\"f\")→func)"
 echo "  ✅ 46: Integrated Scenarios (LOAD_ATTR, STORE_ATTR, Bound Method, Type.attr combined)"
 echo "  ✅ 47: STORE_ATTR Class (C.x = v) — type object setattr, LOAD_ATTR(C, \"x\") → v"
+echo "  ✅ 48: DELETE_ATTR Bytecode Integration (del obj.x / del C.x)"
 echo ""
-echo "Total: 47 test suites passed ✨"
+echo "Total: 48 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

@@ -421,6 +421,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Design: docs/DELETE_ATTR_DESIGN.md §3.1. Key deletion; returns TRUE if key existed and was deleted.
+CREATE OR REPLACE FUNCTION public.py_dict_del_item(dict_id UUID, key_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+    h BIGINT;
+    n INT;
+BEGIN
+    h := public.py_object_hash(key_id);
+    IF h IS NULL AND public.py_err_occurred() THEN
+        RETURN FALSE;
+    END IF;
+    DELETE FROM public.py_dict_entry e
+    WHERE e.dict_id = py_dict_del_item.dict_id
+      AND e.me_hash = h
+      AND public.py_object_richcompare_eq(e.me_key, key_id);
+    GET DIAGNOSTICS n = ROW_COUNT;
+    RETURN n > 0;
+END;
+$$ LANGUAGE plpgsql;
+
 -- ============================================================================
 -- lookup_in_type_and_bases: Phase 2 — type + tp_bases DFS (no MRO/C3)
 -- Design: docs/LOAD_ATTR_DESIGN.md §7.4. No tp_name comparison.
@@ -718,6 +738,106 @@ BEGIN
     PERFORM public.py_dict_set_item(in_dict_id, name_str_id, value_id);
     IF public.py_err_occurred() THEN
         RETURN;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- py_object_delattr: Delete attribute by name (CPython PyObject_DelAttr)
+-- Design: docs/DELETE_ATTR_DESIGN.md §3.2. Descriptor __delete__ then type tp_dict / instance in_dict del.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.py_object_delattr(obj_id UUID, name_str_id UUID)
+RETURNS VOID AS $$
+DECLARE
+    type_id UUID;
+    attr_id UUID;
+    attr_type_id UUID;
+    del_str_id UUID;
+    set_str_id UUID;
+    del_id UUID;
+    set_id UUID;
+    in_dict_id UUID;
+    deleted BOOLEAN;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.py_object WHERE id = obj_id) THEN
+        PERFORM public.py_err_set_attribute_error('object has no attribute');
+        RETURN;
+    END IF;
+
+    SELECT ob_type INTO type_id FROM public.py_object WHERE id = obj_id;
+    IF type_id IS NULL THEN
+        PERFORM public.py_err_set_attribute_error('object has no type');
+        RETURN;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.py_type_object WHERE ob_base = type_id) THEN
+        PERFORM public.py_err_set_attribute_error('object type has no tp_dict');
+        RETURN;
+    END IF;
+
+    -- 1. Descriptor: lookup name in type+bases; if __delete__ present call it; if data descriptor without __delete__ → AttributeError
+    attr_id := public.lookup_attr_in_type_and_bases(type_id, name_str_id);
+    IF public.py_err_occurred() THEN
+        RETURN;
+    END IF;
+    IF attr_id IS NOT NULL THEN
+        SELECT ob_type INTO attr_type_id FROM public.py_object WHERE id = attr_id;
+        IF attr_type_id IS NOT NULL THEN
+            del_str_id := public.py_str_from_text('__delete__');
+            IF del_str_id IS NULL AND public.py_err_occurred() THEN
+                RETURN;
+            END IF;
+            SELECT tp_dict INTO type_id FROM public.py_type_object WHERE ob_base = attr_type_id;
+            IF type_id IS NOT NULL THEN
+                del_id := public.py_dict_get_item(type_id, del_str_id);
+                IF del_id IS NOT NULL THEN
+                    PERFORM public.py_object_call(del_id, ARRAY[attr_id, obj_id], NULL);
+                    IF public.py_err_occurred() THEN
+                        RETURN;
+                    END IF;
+                    RETURN;
+                END IF;
+                set_str_id := public.py_str_from_text('__set__');
+                IF set_str_id IS NULL AND public.py_err_occurred() THEN
+                    RETURN;
+                END IF;
+                set_id := public.py_dict_get_item(type_id, set_str_id);
+                IF set_id IS NOT NULL THEN
+                    PERFORM public.py_err_set_attribute_error('attribute deletion not supported');
+                    RETURN;
+                END IF;
+            END IF;
+        END IF;
+    END IF;
+
+    -- 2. Type object path: if obj_id is a type, delete from its tp_dict
+    IF EXISTS (SELECT 1 FROM public.py_type_object WHERE ob_base = obj_id) THEN
+        SELECT tp_dict INTO in_dict_id FROM public.py_type_object WHERE ob_base = obj_id;
+        IF in_dict_id IS NULL THEN
+            PERFORM public.py_err_set_attribute_error('object has no attribute');
+            RETURN;
+        END IF;
+        deleted := public.py_dict_del_item(in_dict_id, name_str_id);
+        IF NOT deleted THEN
+            PERFORM public.py_err_set_attribute_error('object has no attribute');
+        END IF;
+        RETURN;
+    END IF;
+
+    -- 3. Instance __dict__ path
+    SELECT i.in_dict INTO in_dict_id
+    FROM public.py_instance_object i
+    WHERE i.ob_base = obj_id;
+    IF NOT FOUND THEN
+        PERFORM public.py_err_set_attribute_error('object has no attribute');
+        RETURN;
+    END IF;
+    IF in_dict_id IS NULL THEN
+        PERFORM public.py_err_set_attribute_error('object has no attribute');
+        RETURN;
+    END IF;
+    deleted := public.py_dict_del_item(in_dict_id, name_str_id);
+    IF NOT deleted THEN
+        PERFORM public.py_err_set_attribute_error('object has no attribute');
     END IF;
 END;
 $$ LANGUAGE plpgsql;

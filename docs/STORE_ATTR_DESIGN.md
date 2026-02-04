@@ -51,12 +51,14 @@ CPython의 **STORE_ATTR** opcode 및 **PyObject_SetAttr**에 해당하는 속성
 | `py_instance_object(ob_base, in_dict)` | ✅ 220000에 정의 |
 | `py_dict_set_item` | ✅ 235000에서 hash·동등성 기반 |
 | `lookup_in_type_and_bases` | ✅ 235000 (Phase 2 LOAD_ATTR) |
+| `lookup_attr_in_type_and_bases` | ✅ 235000 (타입+bases DFS, attr_id만 반환, §4) |
 | `py_object_call` | ✅ 존재 |
 | `py_str_from_text` | ✅ (예: `"__set__"` str 생성 가능) |
-| **py_object_setattr** | ❌ 없음 |
-| **STORE_ATTR(95)** | ❌ 없음 |
+| **py_object_setattr** | ✅ 235000 (descriptor __set__ 우선, 없으면 인스턴스 __dict__) |
+| **py_opcode_STORE_ATTR** | ✅ 240309 (opcode 95) |
+| **eval_frame·예외 디스패치 95 분기** | ✅ 241100 |
 
-- **결론**: 기존 스키마·함수만 사용하고, `py_object_setattr`, `py_opcode_STORE_ATTR` 추가, eval_frame·예외 디스패치에 95 분기 추가.
+- **결론**: 구현 완료. `lookup_attr_in_type_and_bases`, `py_object_setattr`, `py_opcode_STORE_ATTR`는 235000·240309에 정의되어 있고, 241100에서 opcode 95 분기 연결됨. 통합 테스트: Phase 44 (`44_store_attr_integration.sql`).
 
 ---
 
@@ -153,6 +155,8 @@ CPython의 **STORE_ATTR** opcode 및 **PyObject_SetAttr**에 해당하는 속성
 | **S5** | ceval_exception_dispatch에 95 분기 추가 | 41000 수정 |
 | **S6** | ceval_eval_frame에 95 분기 추가 | 41100 수정 |
 | **S7** | STORE_ATTR 통합 테스트 (obj.x = value, LOAD_ATTR로 확인; descriptor __set__; 미허용 대상 시 AttributeError) | supabase/tests/, run_tests.sh |
+
+**구현 완료**: S1–S7 모두 반영됨. `lookup_attr_in_type_and_bases`·`py_object_setattr`·`py_opcode_STORE_ATTR`는 235000·240309에 정의, opcode 95 분기는 241100(ceval_eval_frame). 통합 테스트: Phase 44 (`44_store_attr_integration.sql`).
 
 ### 7.2 의존 관계
 

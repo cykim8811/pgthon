@@ -50,11 +50,13 @@ CPython의 **LOAD_ATTR** opcode 및 **PyObject_GetAttr**에 해당하는 속성 
 | `py_dict_get_item` (키 = str id) | ✅ 235000에서 hash·동등성 기반 조회 |
 | `py_object_call` (호출 가능 객체) | ✅ tp_call·CALL_FUNCTION 등으로 존재 |
 | `py_str_from_text` | ✅ 24300에서 정의 (예: `"__get__"` str 생성 가능) |
-| **AttributeError** 타입·setter | ❌ 없음 (24100·24300에 추가 필요) |
-| **py_object_getattr** | ❌ 없음 |
-| **LOAD_ATTR(106)** | ❌ 없음 |
+| **AttributeError** 타입·setter | ✅ 24100·24300에 정의 |
+| **lookup_in_type_and_bases** (Phase 2, tp_bases DFS) | ✅ 235000 |
+| **py_object_getattr** (Phase 2: 인스턴스 __dict__ → 타입+bases) | ✅ 235000 |
+| **py_opcode_LOAD_ATTR** | ✅ 240308 (opcode 106) |
+| **eval_frame·예외 106 분기** | ✅ 241100 |
 
-- **결론**: 스키마는 그대로 두고, AttributeError 부트스트랩·setter, `py_object_getattr`, `py_opcode_LOAD_ATTR`, eval_frame·예외 디스패치에 106 분기만 추가하면 됨.
+- **결론**: 구현 완료 (Phase 1·Phase 2). AttributeError, `py_object_getattr`(인스턴스 __dict__ + lookup_in_type_and_bases), `py_opcode_LOAD_ATTR`, eval_frame 106 분기는 235000·240308·241100에 반영됨. 통합 테스트 Phase 42 (`42_load_attr_integration.sql`), Phase 43 (`43_load_attr_phase2_integration.sql`).
 
 ---
 
@@ -293,5 +295,7 @@ P2-1 (설계 확정)
 | 3 | py_opcode_LOAD_ATTR, eval_frame·예외 106 분기 | 233000, 232000, 41000, 41100 |
 | 4 | 테스트: obj.attr, AttributeError | supabase/tests/, run_tests.sh |
 
-**CPython 고증**: LOAD_ATTR(106) = getattr(TOS, co_names[namei]), 타입 tp_dict 조회, 디스크립터 __get__(obj, type) 호출, 실패 시 AttributeError.  
+**CPython 고증**: LOAD_ATTR(106) = getattr(TOS, co_names[namei]), 인스턴스 __dict__ 우선 후 타입·tp_bases 조회, 디스크립터 __get__(obj, type) 호출, 실패 시 AttributeError.  
 **임시구현 없음**: tp_name 분기·타입 이름 비교 없이, 테이블·tp_dict·py_dict_get_item·py_object_call만 사용.
+
+**구현 완료**: Phase 1(A–H) 및 Phase 2(P2-2a, P2-2b, P2-3) 반영됨. 235000(`lookup_in_type_and_bases`, `py_object_getattr`), 240308(`py_opcode_LOAD_ATTR`), 241100(106 분기). 테스트 Phase 42, 43.

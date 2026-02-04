@@ -84,6 +84,9 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
 
 - **Dict lookup hash 1단계**: 완료. `LOAD_NAME`/`STORE_NAME`과 dict 조회는 hash·동등성 기반(`py_dict_get_item`/`py_dict_set_item`)으로 동작한다. 설계는 **[docs/DICT_LOOKUP_DESIGN.md](docs/DICT_LOOKUP_DESIGN.md)** 참고.
 - **Dict lookup 2단계**: 완료. 키 동등성은 `tp_richcompare` 슬롯 경유 `py_object_richcompare_eq` 사용. True/False/NotImplemented는 부트스트랩에 있으며, `20260114236000_tp_richcompare_slot.sql`에서 슬롯·타입별 함수·디스패치·dict 연동 및 str/int에 대한 Py_LT·Py_LE·Py_NE·Py_GT·Py_GE 구현.
+- **LOAD_ATTR(106) Phase 1·Phase 2**: 완료. `py_object_getattr`(인스턴스 __dict__ → 타입+bases, 디스크립터 __get__), `lookup_in_type_and_bases`, opcode 106·eval_frame 분기. 설계는 **docs/LOAD_ATTR_DESIGN.md** 참고. 통합 테스트 Phase 42, 43.
+- **STORE_ATTR(95)**: 완료. `py_object_setattr`(descriptor __set__ 우선, 없으면 인스턴스 __dict__), `lookup_attr_in_type_and_bases`, opcode 95·eval_frame 분기. 설계는 **docs/STORE_ATTR_DESIGN.md** 참고. 통합 테스트 Phase 44.
+- **Bound Method**: 완료. method 타입·py_method_tp_call·builtin_function_or_method의 __get__. 설계는 **docs/BOUND_METHOD_DESIGN.md** 참고. 통합 테스트 Phase 45.
 - **같은 해시 다른 문자열 테스트**: `18_dict_lookup_hash.sql` Test 10은 서로 다른 str이 같은 `py_object_hash`인 쌍을 써서, 같은 `me_hash` 다른 키에 대해 `get_item`이 equality로 올바른 값을 반환하는지 검증한다. 충돌 쌍은 **`supabase/scripts/find_hash_collision.sql`**을 한 번 실행해 얻고, 출력된 두 문자열을 Test 10의 `COLLISION_A`/`COLLISION_B`에 하드코딩해 두었다. 테스트는 매번 탐색하지 않으므로 가볍게 동작한다.
 
 ---
@@ -98,6 +101,6 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
 - **docs/[FLOAT_IMPLEMENTATION_DESIGN.md](docs/FLOAT_IMPLEMENTATION_DESIGN.md)**: float 타입 nb_add/nb_subtract/nb_multiply·tp_hash·tp_richcompare 설계·구현 완료.
 - **docs/[BYTES_OPERATIONS_DESIGN.md](docs/BYTES_OPERATIONS_DESIGN.md)**: bytes 타입 sq_length/sq_concat/sq_repeat·tp_richcompare 설계·구현 완료 (CPython 고증·임시구현 없음).
 - **docs/[BUILD_TUPLE_LIST_DESIGN.md](docs/BUILD_TUPLE_LIST_DESIGN.md)**: BUILD_TUPLE(102)·BUILD_LIST(103) opcode 설계 (CPython 고증·임시구현 없음, 작업 의존관계·실행 순서 포함).
-- **docs/[LOAD_ATTR_DESIGN.md](docs/LOAD_ATTR_DESIGN.md)**: LOAD_ATTR(106)·속성 조회 설계 (PyObject_GetAttr, tp_dict, 디스크립터 __get__, AttributeError, 작업 의존관계·실행 순서 포함).
-- **docs/[STORE_ATTR_DESIGN.md](docs/STORE_ATTR_DESIGN.md)**: STORE_ATTR(95)·속성 저장 설계 (PyObject_SetAttr, 디스크립터 __set__, 인스턴스 __dict__, 작업 의존관계·실행 순서 포함).
-- **docs/[BOUND_METHOD_DESIGN.md](docs/BOUND_METHOD_DESIGN.md)**: Bound Method 설계 (인스턴스에서 메서드 조회 시 __get__ → bound method, 호출 시 im_func(im_self, *args), 작업 의존관계·실행 순서 포함).
+- **docs/[LOAD_ATTR_DESIGN.md](docs/LOAD_ATTR_DESIGN.md)**: LOAD_ATTR(106)·속성 조회 설계·구현 완료 (PyObject_GetAttr, 인스턴스 __dict__·타입+bases, 디스크립터 __get__, AttributeError, Phase 42·43).
+- **docs/[STORE_ATTR_DESIGN.md](docs/STORE_ATTR_DESIGN.md)**: STORE_ATTR(95)·속성 저장 설계·구현 완료 (PyObject_SetAttr, 디스크립터 __set__, 인스턴스 __dict__, Phase 44).
+- **docs/[BOUND_METHOD_DESIGN.md](docs/BOUND_METHOD_DESIGN.md)**: Bound Method 설계·구현 완료 (인스턴스에서 메서드 조회 시 __get__ → bound method, 호출 시 im_func(im_self, *args), Phase 45).

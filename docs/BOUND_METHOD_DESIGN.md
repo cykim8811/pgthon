@@ -25,12 +25,12 @@ CPython의 **bound method** 동작(인스턴스에서 메서드 속성 조회 �
 - **LOAD_ATTR / lookup_in_type_and_bases**: 타입·bases에서 name 조회 후, 조회된 값의 타입에 `__get__`가 있으면 `__get__(attr, obj, type)` 호출 후 그 결과를 반환. **따라서** `builtin_function_or_method` 타입의 `tp_dict`에 `"__get__"`만 넣어 주면, 인스턴스에서 해당 타입의 속성을 꺼낼 때 자동으로 그 `__get__`가 호출된다.
 - **py_object_call**: `tp_call` 슬롯으로 디스패치. bound method의 **타입**에 `tp_call`을 등록하면, bound method를 호출할 때 그 함수가 실행된다.
 
-### 1.4 Elytra에서 추가할 것 (요약)
+### 1.4 Elytra에서 추가한 것 (요약, 구현 완료)
 
 | 항목 | 내용 |
 |------|------|
-| **method 타입** | bound method 객체의 타입(PyTypeObject). 인스턴스는 `py_method_object` 행. 고정 UUID로 부트스트랩 또는 단일 마이그레이션에서 생성. |
-| **method 타입의 tp_call** | `py_method_tp_call(method_obj_id, args, kwargs_id)`: `py_method_object`에서 `im_func`, `im_self` 조회 → `new_args = [im_self] || args` → `py_object_call(im_func, new_args, kwargs_id)` 반환. |
+| **method 타입** | bound method 객체의 타입(PyTypeObject). 인스턴스는 `py_method_object` 행. 고정 UUID로 235000에서 생성. |
+| **method 타입의 tp_call** | `py_method_tp_call(method_obj_id, args, kwargs_id)`: `py_method_object`에서 `im_func`, `im_self` 조회 → `new_args = [im_self] \|\| args` → `py_object_call(im_func, new_args, kwargs_id)` 반환. |
 | **builtin_function_or_method의 __get__** | `(func_id, obj_id, type_id)` 인자로 호출되는 callable. `obj_id IS NULL`이면 `func_id` 그대로 반환. 아니면 새 `py_method_object` 생성(ob_type = method 타입, im_func=func_id, im_self=obj_id, im_class=type_id) 후 그 id 반환. |
 | **타입 판별** | `py_object`, `py_type_object`, `py_method_object`, `py_dict_get_item`, 테이블 존재만 사용. `tp_name` 비교 금지. |
 
@@ -44,11 +44,11 @@ CPython의 **bound method** 동작(인스턴스에서 메서드 속성 조회 �
 | `lookup_in_type_and_bases` (타입+bases, 발견 시 `__get__` 호출) | ✅ 235000 |
 | `py_object_getattr` (인스턴스 __dict__ → 타입+bases, 디스크립터 __get__ 호출) | ✅ 235000 |
 | `py_object_call` (tp_call 디스패치) | ✅ 234000 |
-| **method 타입** (PyTypeObject for method objects) | ❌ 없음 |
-| **method 타입의 tp_call** | ❌ 없음 |
-| **builtin_function_or_method 타입의 tp_dict["__get__"]** | ❌ 없음 (현재 해당 tp_dict에 __get__ 미등록) |
+| **method 타입** (PyTypeObject for method objects) | ✅ 235000 (고정 UUID 0x030 등) |
+| **method 타입의 tp_call** | ✅ 235000 (py_method_tp_call) |
+| **builtin_function_or_method 타입의 tp_dict["__get__"]** | ✅ 235000 (py_builtin_function_descriptor_get 등록) |
 
-- **결론**: method 타입 생성·tp_call 등록, 그리고 builtin_function_or_method의 `__get__` 구현(및 tp_dict 등록)만 하면 된다. LOAD_ATTR/속성 조회 경로는 수정할 필요 없음.
+- **결론**: 구현 완료. method 타입·tp_call·builtin_function_or_method의 __get__ 은 235000(tp_hash_slot.sql)에 반영됨. 통합 테스트 Phase 45 (`45_bound_method_integration.sql`).
 
 ---
 
@@ -99,6 +99,8 @@ CPython의 **bound method** 동작(인스턴스에서 메서드 속성 조회 �
 | **M4** | py_builtin_function_descriptor_get(func_obj_id, args) 정의 (METH_VARARGS) | 235000 (이미 METH_VARARGS·py_dict_set_item 있음) |
 | **M5** | __get__ builtin 객체 생성 및 builtin_function_or_method의 tp_dict에 등록 | 235000, M4 직후 |
 | **M6** | Bound Method 통합 테스트: 인스턴스에서 메서드 조회 → bound method, 호출 시 self 전달 | supabase/tests/, run_tests.sh Phase 45 |
+
+**구현 완료**: M1–M6 모두 반영됨. method 타입·py_method_tp_call·py_builtin_function_descriptor_get·builtin_function_or_method tp_dict["__get__"] 는 235000에 정의. 통합 테스트 Phase 45 (`45_bound_method_integration.sql`).
 
 ### 4.2 의존 관계
 

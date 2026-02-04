@@ -13,6 +13,8 @@
 --   5. 서브클래스: Sub 인스턴스에서 base "a", sub "b" 조회 후 STORE_ATTR sub_inst.a=77, LOAD_ATTR → 77
 --   6. 인스턴스 shadowing: type x=10, instance y=20; bytecode로 x,y 조회 후 inst.x=99 저장, x 조회 → 99
 --   7. getattr(Type, "nonexistent") → AttributeError
+--   8. 클래스 속성 쓰기 후 인스턴스 조회: bytecode C.x=1 실행 후 getattr(inst,"x") → 1 (인스턴스 __dict__ 없음, 타입에서 조회)
+--   9. 클래스 속성 + 인스턴스 shadowing: C.x=1 → getattr(inst,"x")→1 → setattr(inst,"x",2) → getattr(inst,"x")→2
 --
 -- Usage:
 --   Run after Phase 45. If any assertion fails, exception is raised.
@@ -444,6 +446,97 @@ BEGIN
     END IF;
     pass_count := pass_count + 1;
     RAISE NOTICE '  ✓ getattr(Type, "nonexistent") → AttributeError';
+
+    -- ========================================================================
+    -- Scenario 8: 클래스 속성 쓰기 후 인스턴스 조회 — bytecode C.x=1, then getattr(inst,"x") → 1
+    -- C의 tp_dict에 setattr로 저장 후, 인스턴스(inst __dict__에 "x" 없음)에서 타입으로부터 x 조회.
+    -- ========================================================================
+    RAISE NOTICE 'Scenario 8: Bytecode C.x=1 then getattr(inst,"x") → 1 (class attr)...';
+    test_count := test_count + 1;
+    PERFORM public.py_err_clear();
+
+    dict_empty_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (dict_empty_id, ID_DICT_TYPE);
+    INSERT INTO public.py_dict_object (ob_base) VALUES (dict_empty_id);
+    type_t_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (type_t_id, ID_TYPE_TYPE);
+    INSERT INTO public.py_type_object (ob_base, tp_name, tp_bases, tp_dict)
+    VALUES (type_t_id, 'C', bases_tuple_id, dict_empty_id);
+    inst_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (inst_id, type_t_id);
+    dict_inst_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (dict_inst_id, ID_DICT_TYPE);
+    INSERT INTO public.py_dict_object (ob_base) VALUES (dict_inst_id);
+    INSERT INTO public.py_instance_object (ob_base, in_dict) VALUES (inst_id, dict_inst_id);
+
+    co_names_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_names_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_names_id, ARRAY[name_x_id]);
+    co_consts_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_consts_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[value_1_id, type_t_id]);
+    co_code_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('640064015f00', 'hex'));
+    code_obj_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars)
+    VALUES (code_obj_id, co_code_id, co_consts_id, co_names_id, empty_str_id, empty_str_id, 0, empty_tuple_id, empty_tuple_id, empty_tuple_id);
+    frame_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (frame_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
+    VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, real_builtins_dict_id);
+
+    res_id := public.py_eval_frame(frame_id);
+    IF public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: Scenario 8 C.x=1 bytecode raised';
+    END IF;
+    res_id := public.py_object_getattr(inst_id, name_x_id);
+    IF res_id IS DISTINCT FROM value_1_id THEN
+        RAISE EXCEPTION 'FAIL: getattr(inst,"x") after C.x=1 expected 1 id %, got %', value_1_id, res_id;
+    END IF;
+    pass_count := pass_count + 1;
+    RAISE NOTICE '  ✓ C.x=1 then getattr(inst,"x") → 1';
+
+    -- ========================================================================
+    -- Scenario 9: 클래스 속성 + 인스턴스 shadowing — C.x=1 → inst.x→1 → inst.x=2 → inst.x→2
+    -- ========================================================================
+    RAISE NOTICE 'Scenario 9: C.x=1, getattr(inst,"x")→1, setattr(inst,"x",2), getattr(inst,"x")→2...';
+    test_count := test_count + 1;
+    PERFORM public.py_err_clear();
+
+    dict_empty_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (dict_empty_id, ID_DICT_TYPE);
+    INSERT INTO public.py_dict_object (ob_base) VALUES (dict_empty_id);
+    type_t_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (type_t_id, ID_TYPE_TYPE);
+    INSERT INTO public.py_type_object (ob_base, tp_name, tp_bases, tp_dict)
+    VALUES (type_t_id, 'C', bases_tuple_id, dict_empty_id);
+    inst_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (inst_id, type_t_id);
+    dict_inst_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (dict_inst_id, ID_DICT_TYPE);
+    INSERT INTO public.py_dict_object (ob_base) VALUES (dict_inst_id);
+    INSERT INTO public.py_instance_object (ob_base, in_dict) VALUES (inst_id, dict_inst_id);
+
+    PERFORM public.py_object_setattr(type_t_id, name_x_id, value_1_id);
+    IF public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: Scenario 9 setattr(C,"x",1) raised';
+    END IF;
+    res_id := public.py_object_getattr(inst_id, name_x_id);
+    IF res_id IS DISTINCT FROM value_1_id THEN
+        RAISE EXCEPTION 'FAIL: getattr(inst,"x") after C.x=1 expected 1 id %, got %', value_1_id, res_id;
+    END IF;
+    PERFORM public.py_object_setattr(inst_id, name_x_id, value_2_id);
+    IF public.py_err_occurred() THEN
+        RAISE EXCEPTION 'FAIL: Scenario 9 setattr(inst,"x",2) raised';
+    END IF;
+    res_id := public.py_object_getattr(inst_id, name_x_id);
+    IF res_id IS DISTINCT FROM value_2_id THEN
+        RAISE EXCEPTION 'FAIL: getattr(inst,"x") after inst.x=2 expected 2 id %, got %', value_2_id, res_id;
+    END IF;
+    pass_count := pass_count + 1;
+    RAISE NOTICE '  ✓ C.x=1 → inst.x→1 → inst.x=2 → inst.x→2';
 
     RAISE NOTICE '';
     RAISE NOTICE '========================================';

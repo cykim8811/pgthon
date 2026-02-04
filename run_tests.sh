@@ -540,6 +540,16 @@ else
     exit 1
 fi
 
+# 47. STORE_ATTR Class (C.x = v) — type object setattr, then LOAD_ATTR(C, "x") → v
+echo "=== Phase 47: STORE_ATTR Class (C.x = v) Integration ==="
+if run_test "supabase/tests/47_store_attr_class_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ STORE_ATTR class integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -596,8 +606,9 @@ echo "  ✅ 43: LOAD_ATTR Phase 2 (instance __dict__, type+bases, AttributeError
 echo "  ✅ 44: STORE_ATTR Bytecode Integration (obj.x = value; non-instance → AttributeError)"
 echo "  ✅ 45: Bound Method Integration (getattr(inst,\"f\")→bound method; getattr(Type,\"f\")→func)"
 echo "  ✅ 46: Integrated Scenarios (LOAD_ATTR, STORE_ATTR, Bound Method, Type.attr combined)"
+echo "  ✅ 47: STORE_ATTR Class (C.x = v) — type object setattr, LOAD_ATTR(C, \"x\") → v"
 echo ""
-echo "Total: 46 test suites passed ✨"
+echo "Total: 47 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

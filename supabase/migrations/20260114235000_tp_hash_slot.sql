@@ -628,7 +628,7 @@ $$ LANGUAGE plpgsql;
 
 -- ============================================================================
 -- py_object_setattr: Set attribute by name (CPython PyObject_SetAttr)
--- Design: docs/STORE_ATTR_DESIGN.md §3.1. Descriptor __set__ then instance __dict__.
+-- Design: docs/STORE_ATTR_DESIGN.md §3.1, §9. Descriptor __set__ then type tp_dict (if obj is type) then instance __dict__.
 -- ============================================================================
 CREATE OR REPLACE FUNCTION public.py_object_setattr(obj_id UUID, name_str_id UUID, value_id UUID)
 RETURNS VOID AS $$
@@ -683,7 +683,24 @@ BEGIN
         END IF;
     END IF;
 
-    -- 2. Instance __dict__: py_instance_object row must exist
+    -- 2. Type object path: if obj_id is a type (has py_type_object row), write to its tp_dict (design §9, DFS only)
+    IF EXISTS (SELECT 1 FROM public.py_type_object WHERE ob_base = obj_id) THEN
+        SELECT tp_dict INTO in_dict_id FROM public.py_type_object WHERE ob_base = obj_id;
+        IF in_dict_id IS NULL THEN
+            new_dict_id := gen_random_uuid();
+            INSERT INTO public.py_object (id, ob_type) VALUES (new_dict_id, dict_type_id);
+            INSERT INTO public.py_dict_object (ob_base) VALUES (new_dict_id);
+            UPDATE public.py_type_object SET tp_dict = new_dict_id WHERE ob_base = obj_id;
+            in_dict_id := new_dict_id;
+        END IF;
+        PERFORM public.py_dict_set_item(in_dict_id, name_str_id, value_id);
+        IF public.py_err_occurred() THEN
+            RETURN;
+        END IF;
+        RETURN;
+    END IF;
+
+    -- 3. Instance __dict__: py_instance_object row must exist
     SELECT i.in_dict INTO in_dict_id
     FROM public.py_instance_object i
     WHERE i.ob_base = obj_id;

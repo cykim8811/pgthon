@@ -134,4 +134,4 @@ END;
 $$;
 
 -- Exception opcode handlers (130, 119, 35, 89, 36): 241001–241005 (one per file).
--- py_eval_frame은 재정의하지 않음. 단일 정의: 20260114241100_ceval_eval_frame_final.sql
+-- py_eval_frame은 재정의하지 않음. 단일 정의: 20260114241100_ceval_eval_frame.sql

@@ -63,7 +63,7 @@ CPython의 **BUILD_TUPLE**(opcode 102)·**BUILD_LIST**(opcode 103)를 Elytra VM�
 
 - **232000** `py_eval_frame`: CASE에 `WHEN 102 THEN PERFORM py_opcode_BUILD_TUPLE(frame_id, arg);`, `WHEN 103 THEN PERFORM py_opcode_BUILD_LIST(frame_id, arg);` 추가.
 - **41000** `ceval_exception_dispatch`: 동일 CASE에 102, 103 분기 추가(실행 경로 통일).
-- **41100** `ceval_eval_frame_final`: 최종 `py_eval_frame` 정의를 갖고 있으므로 CASE에 102, 103 분기 **필수** 추가. 미추가 시 BUILD_TUPLE/BUILD_LIST 실행 시 "Unknown opcode" 발생.
+- **41100** `ceval_eval_frame`: 최종 `py_eval_frame` 정의를 갖고 있으므로 CASE에 102, 103 분기 **필수** 추가. 미추가 시 BUILD_TUPLE/BUILD_LIST 실행 시 "Unknown opcode" 발생.
 
 ---
 
@@ -85,7 +85,7 @@ CPython의 **BUILD_TUPLE**(opcode 102)·**BUILD_LIST**(opcode 103)를 Elytra VM�
 | **B** | py_opcode_BUILD_LIST 정의 | 위와 동일 파일 |
 | **C** | py_eval_frame에 102, 103 분기 추가 | 232000 수정 |
 | **D** | ceval_exception_dispatch에 102, 103 분기 추가 | 41000 수정 |
-| **E** | ceval_eval_frame_final에 102, 103 분기 추가 | 41100 수정 |
+| **E** | ceval_eval_frame에 102, 103 분기 추가 | 41100 수정 |
 | **F** | BUILD_TUPLE/BUILD_LIST 통합 테스트 추가 | supabase/tests/, run_tests.sh |
 
 ### 5.2 의존관계
@@ -120,7 +120,7 @@ E ──┘
 | **2** | **B** py_opcode_BUILD_LIST 정의 | 없음 | 같은 마이그레이션에 함수 정의 |
 | **3** | **C** py_eval_frame에 102, 103 추가 | A, B | 232000의 CASE에 WHEN 102, WHEN 103 추가 |
 | **4** | **D** ceval_exception_dispatch에 102, 103 추가 | A, B | 41000의 CASE에 WHEN 102, WHEN 103 추가 |
-| **5** | **E** ceval_eval_frame_final에 102, 103 추가 | A, B | 41100은 최종 py_eval_frame이므로 필수 |
+| **5** | **E** ceval_eval_frame에 102, 103 추가 | A, B | 41100은 최종 py_eval_frame이므로 필수 |
 | **6** | **F** 통합 테스트 | C, D(, E) | 바이트코드 (1,2) → tuple/list, len() 등 검증, run_tests.sh Phase 41 등록 |
 
 ---
@@ -132,7 +132,7 @@ E ──┘
   - **새 파일** `20260114239500_build_tuple_list.sql`: `py_opcode_BUILD_TUPLE`, `py_opcode_BUILD_LIST` 정의.
   - **232000** `20260114232000_ceval_eval_frame.sql`: CASE에 `WHEN 102`, `WHEN 103` 추가.
   - **41000** `20260114241000_ceval_exception_dispatch.sql`: CASE에 `WHEN 102`, `WHEN 103` 추가.
-  - **41100** `20260114241100_ceval_eval_frame_final.sql`: opcode별 분기가 있다면 102, 103 추가.
+  - **41100** `20260114241100_ceval_eval_frame.sql`: opcode별 분기가 있다면 102, 103 추가.
 
 ---
 
@@ -157,7 +157,7 @@ E ──┘
 | 2 | B | 같은 파일에 `py_opcode_BUILD_LIST(frame_id, count)` 정의 |
 | 3 | C | `20260114232000_ceval_eval_frame.sql`의 CASE에 `WHEN 102`, `WHEN 103` 추가 |
 | 4 | D | `20260114241000_ceval_exception_dispatch.sql`의 CASE에 `WHEN 102`, `WHEN 103` 추가 |
-| 5 | E | `20260114241100_ceval_eval_frame_final.sql`의 CASE에 `WHEN 102`, `WHEN 103` 추가 |
+| 5 | E | `20260114241100_ceval_eval_frame.sql`의 CASE에 `WHEN 102`, `WHEN 103` 추가 |
 | 6 | F | 통합 테스트 파일 추가(예: `41_build_tuple_list_integration.sql`) 및 `run_tests.sh` Phase 41 등록 |
 
 의존 관계: **A, B → C, D, E** (A·B 완료 후 C·D·E 수정). **C, D, E → F** (eval_frame 세 파일 반영 후 테스트 추가).

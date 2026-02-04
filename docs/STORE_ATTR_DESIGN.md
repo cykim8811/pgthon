@@ -100,7 +100,7 @@ CPython의 **STORE_ATTR** opcode 및 **PyObject_SetAttr**에 해당하는 속성
 
 - **232000** `ceval_eval_frame.sql`: CASE에 `WHEN 95 THEN PERFORM py_opcode_STORE_ATTR(frame_id, arg);` 추가.
 - **41000** `ceval_exception_dispatch.sql`: 동일 CASE에 95 추가.
-- **41100** `ceval_eval_frame_final.sql`: 동일 CASE에 95 추가.
+- **41100** `ceval_eval_frame.sql`: 동일 CASE에 95 추가.
 
 ---
 
@@ -135,7 +135,7 @@ CPython의 **STORE_ATTR** opcode 및 **PyObject_SetAttr**에 해당하는 속성
   - **235000** `tp_hash_slot.sql`: `lookup_attr_in_type_and_bases` (또는 기존 lookup 재사용), `py_object_setattr`, `py_opcode_STORE_ATTR` 정의.
   - **232000** `ceval_eval_frame.sql`: CASE에 95 추가.
   - **41000** `ceval_exception_dispatch.sql`: CASE에 95 추가.
-  - **41100** `ceval_eval_frame_final.sql`: CASE에 95 추가.
+  - **41100** `ceval_eval_frame.sql`: CASE에 95 추가.
 - **233000** 은 opcode 정의만 두고, STORE_ATTR 핸들러는 235000에 두는 것이 LOAD_ATTR과 일관됨 (235000에 py_opcode_LOAD_ATTR이 있으므로 py_opcode_STORE_ATTR도 235000).
 
 ---
@@ -151,7 +151,7 @@ CPython의 **STORE_ATTR** opcode 및 **PyObject_SetAttr**에 해당하는 속성
 | **S3** | py_opcode_STORE_ATTR(frame_id, name_index) 정의 | 235000 수정 |
 | **S4** | py_eval_frame에 95 분기 추가 | 232000 수정 |
 | **S5** | ceval_exception_dispatch에 95 분기 추가 | 41000 수정 |
-| **S6** | ceval_eval_frame_final에 95 분기 추가 | 41100 수정 |
+| **S6** | ceval_eval_frame에 95 분기 추가 | 41100 수정 |
 | **S7** | STORE_ATTR 통합 테스트 (obj.x = value, LOAD_ATTR로 확인; descriptor __set__; 미허용 대상 시 AttributeError) | supabase/tests/, run_tests.sh |
 
 ### 7.2 의존 관계
@@ -179,7 +179,7 @@ S1 (lookup_attr_in_type_and_bases)
 | **3** | **S3** py_opcode_STORE_ATTR 정의 | S2 | 235000 |
 | **4** | **S4** py_eval_frame에 95 분기 | S3 | 232000 |
 | **5** | **S5** ceval_exception_dispatch에 95 분기 | S3 | 41000 |
-| **6** | **S6** ceval_eval_frame_final에 95 분기 | S3 | 41100 |
+| **6** | **S6** ceval_eval_frame에 95 분기 | S3 | 41100 |
 | **7** | **S7** STORE_ATTR 통합 테스트 | S4,S5,S6 | 테스트 파일 추가, run_tests.sh Phase 44 등록 |
 
 ---

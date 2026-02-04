@@ -1,9 +1,9 @@
 -- ============================================================================
--- py_eval_frame 최종 정의 (예외 디스패치 포함, CPython 3.11)
--- 20260114241100_ceval_eval_frame_final.sql
+-- py_eval_frame 정의 (예외 디스패치 포함, CPython 3.11)
+-- 20260114241100_ceval_eval_frame.sql
 --
 -- Design: docs/EXCEPTION_HANDLING_DESIGN.md
--- 241000에서 예외 디스패치·헬퍼를 정의하고, 이 파일에서 py_eval_frame을 최종 재정의.
+-- 241000에서 예외 디스패치·헬퍼를 정의하고, 이 파일에서 py_eval_frame을 정의.
 -- 예외 발생 시 py_traceback_here + exception table 조회 → 핸들러 점프 또는 전파.
 -- ============================================================================
 

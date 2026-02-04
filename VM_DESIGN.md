@@ -486,7 +486,7 @@ $$ LANGUAGE plpgsql;
 
 ### 2. Opcode 확장 (EXTENDED_ARG) — 구현 완료
 - EXTENDED_ARG(144): 다음 opcode의 operand를 (extended << 8) | arg 로 확장. 연쇄 가능.
-- py_eval_frame 3곳(232000, 241000, 241100_ceval_eval_frame_final)에서 prefix 누적 후 디스패치. f_lasti·점프·예외 테이블은 논리적 instruction 시작(start_i) 기준.
+- py_eval_frame 3곳(232000, 241000, 241100_ceval_eval_frame)에서 prefix 누적 후 디스패치. f_lasti·점프·예외 테이블은 논리적 instruction 시작(start_i) 기준.
 
 ### 3. 성능
 - PL/pgSQL은 C보다 느림

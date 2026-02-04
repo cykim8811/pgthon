@@ -50,7 +50,7 @@
 
 ### 2.3 VM / ceval (Python/ceval.c에 대응)
 
-**순서**: 슬롯·지원(233000, 234000, 234900, 235000, …, 240300) → **opcode 블록 240301–240316** → 241000(예외 디스패치 헬퍼만) → **예외 opcode 241001–241005** → 241100(ceval_eval_frame_final, **py_eval_frame 단일 정의**).
+**순서**: 슬롯·지원(233000, 234000, 234900, 235000, …, 240300) → **opcode 블록 240301–240316** → 241000(예외 디스패치 헬퍼만) → **예외 opcode 241001–241005** → 241100(ceval_eval_frame, **py_eval_frame 단일 정의**).
 
 | 마이그레이션 | CPython 관점에서의 역할 |
 |--------------|-------------------------|
@@ -62,7 +62,7 @@
 | **`20260114240301_opcode_load_const`** … **`20260114240316_opcode_pop_top`** | **opcode 블록** (100, 141, 142, 102, 103, 90, 101, 106, 95, 23, 24, 20, 107, 114, 115, 1) |
 | `20260114241000_ceval_exception_dispatch` | py_err_restore, py_stack_trim, py_stack_peek, py_type_issubclass, py_tuple_from_3 (py_eval_frame 재정의 없음) |
 | `20260114241001_opcode_raise_varargs` … `20260114241005_opcode_pop_except` | 예외 opcode (130, 119, 35, 36, 89) |
-| `20260114241100_ceval_eval_frame_final` | **py_eval_frame** 유일한 정의 (예외 디스패치 포함, 재정의 없음) |
+| `20260114241100_ceval_eval_frame` | **py_eval_frame** 유일한 정의 (예외 디스패치 포함, 재정의 없음) |
 
 → **opcode 핸들러**는 **파일당 1개**, **240301–240316**(일반 opcode) + **241001–241005**(예외 opcode) 두 블록으로 묶임.
 
@@ -82,7 +82,7 @@
 
 - **이름**: `phase1`/`phase2` 대신 **ceval_core**, **binary_add**, **compare_op**, **jump_opcodes**, **pop_top** 등 CPython 개념 기준.
 - **계층 분리**: 슬롯/객체 마이그레이션에는 `py_object_*`·슬롯만 두고, **opcode 핸들러는 별도 파일에서 파일당 1개** opcode만 정의 (예: `233001_opcode_load_const.sql`, `238001_opcode_binary_add.sql`).
-- **함수 정의**: `py_get_opcode_size`는 `230000_ceval_core` 한 곳. **`py_eval_frame`은 `241100_ceval_eval_frame_final` 한 곳에서만 정의** (재정의 없음). **opcode 순서**: 슬롯/지원(234000, 234900, 235000–240300) 먼저, 그 다음 opcode 블록(240301–240316, 241001–241005). 새 opcode 추가 시: (1) `240317_opcode_<name>.sql` 등 블록 안에 새 파일 추가, (2) **241100_ceval_eval_frame_final** 한 곳에 CASE 분기 추가.
+- **함수 정의**: `py_get_opcode_size`는 `230000_ceval_core` 한 곳. **`py_eval_frame`은 `241100_ceval_eval_frame` 한 곳에서만 정의** (재정의 없음). **opcode 순서**: 슬롯/지원(234000, 234900, 235000–240300) 먼저, 그 다음 opcode 블록(240301–240316, 241001–241005). 새 opcode 추가 시: (1) `240317_opcode_<name>.sql` 등 블록 안에 새 파일 추가, (2) **241100_ceval_eval_frame** 한 곳에 CASE 분기 추가.
 
 ---
 
@@ -93,9 +93,9 @@
    그 위에 **tp_call, tp_hash, tp_richcompare, nb_*, sq_*** 가 슬롯 단위·기능 단위로 한 파일씩 정리됨.
 
 2. **VM (ceval)**  
-   **메인 루프 + 전체 opcode switch** 는 **241100_ceval_eval_frame_final** 한 곳에서만 정의 (재정의 없음).  
+   **메인 루프 + 전체 opcode switch** 는 **241100_ceval_eval_frame** 한 곳에서만 정의 (재정의 없음).  
    **opcode 핸들러**는 파일당 1개, **240301–240316**(일반 opcode 블록)과 **241001–241005**(예외 opcode 블록)에만 있음.  
-   **예외 처리**는 exception_schema(224100, co_exceptiontable 포함), exception_helpers(224200), exception_setters(224300), exception_table_parsing(224400) → ceval_exception_dispatch(241000, 헬퍼만), opcode 5개(241001–241005), ceval_eval_frame_final(241100) 순.
+   **예외 처리**는 exception_schema(224100, co_exceptiontable 포함), exception_helpers(224200), exception_setters(224300), exception_table_parsing(224400) → ceval_exception_dispatch(241000, 헬퍼만), opcode 5개(241001–241005), ceval_eval_frame(241100) 순.
 
 3. **참고 문서**  
    - [EXCEPTION_HANDLING_DESIGN.md](EXCEPTION_HANDLING_DESIGN.md): 예외 처리 설계 (CPython 3.11 고증).  
@@ -164,6 +164,6 @@
 | 마이그레이션 | 역할 | 의존 (실행 시) |
 |--------------|------|-----------------|
 | `241000_ceval_exception_dispatch` | `py_err_restore`, `py_stack_trim`, `py_stack_peek`, `py_type_issubclass`, `py_tuple_from_3` 정의만 (py_eval_frame 재정의 없음) | 224200, 224000 |
-| `241100_ceval_eval_frame_final` | **py_eval_frame** 유일한 정의 (opcode 실행 후 `had_err`/`py_err_occurred()`로 예외 디스패치) | 224200, 224400, 230000, 241000(헬퍼), **240301–240316**, **241001–241005** |
+| `241100_ceval_eval_frame` | **py_eval_frame** 유일한 정의 (opcode 실행 후 `had_err`/`py_err_occurred()`로 예외 디스패치) | 224200, 224400, 230000, 241000(헬퍼), **240301–240316**, **241001–241005** |
 
 요약: **객체 스키마(220000, 224000) → 예외 스키마/헬퍼/세터(224100–224300) → builtin/슬롯(225000, 226000, 233000, 234000, 234900, 235000, 238000, 238500, 239000, 240300) → VM 코어(230000) → opcode 블록(240301–240316, 241001–241005) → py_eval_frame 단일 정의(241100)** 순으로 “정의”가 쌓이고, **py_eval_frame은 241100 한 곳에서만 정의되며 (실행 시) 모든 opcode와 예외 헬퍼에 의존**한다.

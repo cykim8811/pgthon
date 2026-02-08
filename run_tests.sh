@@ -609,6 +609,26 @@ else
     exit 1
 fi
 
+# 54. NOP(9), JUMP_BACKWARD(140), DELETE_FAST(126) Opcode (CPython 3.11)
+echo "=== Phase 54: Ceval NOP / JUMP_BACKWARD / DELETE_FAST Opcode ==="
+if run_test "supabase/tests/54_ceval_opcode_nop_jump_backward_delete_fast.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ NOP / JUMP_BACKWARD / DELETE_FAST opcode test failed. Cannot continue."
+    exit 1
+fi
+
+# 55. POP_JUMP_BACKWARD_IF_FALSE(175), POP_JUMP_BACKWARD_IF_TRUE(176) Opcode (CPython 3.11)
+echo "=== Phase 55: Ceval POP_JUMP_BACKWARD Opcode ==="
+if run_test "supabase/tests/55_ceval_opcode_pop_jump_backward.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ POP_JUMP_BACKWARD opcode test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -672,8 +692,10 @@ echo "  ✅ 50: Ceval LOAD_GLOBAL Opcode (CPython 3.11 opcode 116: globals+built
 echo "  ✅ 51: Ceval LOAD_GLOBAL Integration (bytecode + len(\"hello\") + ignore locals)"
 echo "  ✅ 52: LOAD_FAST / STORE_FAST Opcode (f_fastlocals, referenced before assignment)"
 echo "  ✅ 53: LOAD_FAST / STORE_FAST Integration (x=1; return x, a+b, frame isolation)"
+echo "  ✅ 54: NOP(9) / JUMP_BACKWARD(140) / DELETE_FAST(126) Opcode (CPython 3.11)"
+echo "  ✅ 55: POP_JUMP_BACKWARD_IF_FALSE(175) / POP_JUMP_BACKWARD_IF_TRUE(176) Opcode (CPython 3.11)"
 echo ""
-echo "Total: 53 test suites passed ✨"
+echo "Total: 55 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

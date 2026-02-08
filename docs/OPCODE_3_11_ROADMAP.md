@@ -48,6 +48,9 @@ opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준
 | 119 | RERAISE | |
 | 130 | RAISE_VARARGS | |
 | 144 | EXTENDED_ARG | eval 루프에서 연쇄 처리 |
+| 9 | NOP | no-op; f_lasti 갱신 (CACHE 0과 구분). eval_frame 인라인. |
+| 126 | DELETE_FAST | f_fastlocals[var_num] → NULL; 스택 미사용. 240325. |
+| 140 | JUMP_BACKWARD | oparg = 목적지 instruction offset (bytes = arg*2). eval_frame 인라인. |
 
 **⚠️ 이항 연산:** CPython 3.11은 BINARY_ADD(23), BINARY_SUBTRACT(24), BINARY_MULTIPLY(20)를 제거하고 **BINARY_OP(122)** + 하위 opcode로 통합했다. Elytra는 현재 23/24/20을 구현해 두었고, 3.11 컴파일러가 생성하는 바이트코드는 122를 쓰므로 **3.11 생성 바이트코드**를 직접 실행하려면 BINARY_OP(122) 구현이 필요하다.
 
@@ -68,13 +71,13 @@ Elytra는 **97**으로 디스패치하지만, CPython 3.11에서는 **96 = DELET
 | 98 | DELETE_GLOBAL | 낮음 | |
 | 124 | LOAD_FAST | 높음 | 로컬 변수 인덱스. 3.11 기본 로딩. |
 | 125 | STORE_FAST | 높음 | |
-| 126 | DELETE_FAST | 낮음 | |
+| 126 | DELETE_FAST | — | ✅ 구현됨 (240325). |
 | 116 | LOAD_GLOBAL | 높음 | globals+builtins. LOAD_NAME과 유사하나 3.11에서 별도. |
 | 122 | BINARY_OP | 중 | 3.11 통합 이항 연산. 하위 opcode로 +, -, * 등. |
 | 160 | LOAD_METHOD | 중 | 메서드 로드(bound/unbound). CALL 전에 사용. |
 | 142 | CALL_FUNCTION_EX | 낮음 | *args/**kwargs 확장 호출. |
 | 132 | MAKE_FUNCTION | 중 | 함수 객체 생성. |
-| 9 | NOP | 낮음 | no-op. |
+| 9 | NOP | — | ✅ 구현됨 (eval_frame 인라인). |
 | 10–12, 15 | UNARY_* | 낮음 | UNARY_POSITIVE, NEGATIVE, NOT, INVERT. |
 | 25 | BINARY_SUBSCR | 중 | obj[key]. |
 | 60 | STORE_SUBSCR | 낮음 | obj[key]=v. |
@@ -92,7 +95,7 @@ Elytra는 **97**으로 디스패치하지만, CPython 3.11에서는 **96 = DELET
 | 128–129 | POP_JUMP_*_IF_NONE/NOT_NONE | 낮음 | |
 | 133 | BUILD_SLICE | 낮음 | |
 | 135–139, 148 | MAKE_CELL, LOAD_CLOSURE, *DEREF, LOAD_CLASSDEREF | 낮음 | 클로저/자유 변수. |
-| 140 | JUMP_BACKWARD | 중 | 루프 등. |
+| 140 | JUMP_BACKWARD | — | ✅ 구현됨 (oparg = target instruction offset). |
 | 173–176 | POP_JUMP_BACKWARD_* | 낮음 | |
 | 82 | LIST_TO_TUPLE | 낮음 | |
 | 84–88 | IMPORT_STAR, SETUP_ANNOTATIONS, YIELD_VALUE 등 | 낮음 | 모듈/제너레이터. |
@@ -153,5 +156,6 @@ docs/CACHE_AND_SPECIALIZED_3_11.md: 먼저 기본 opcode를 채우고, 필요 �
 | LOAD_FAST(124), STORE_FAST(125) — 빠른 로컬 슬롯·opcode·eval_frame | agent-amber-five-bold-hawk | 완료 |
 | LOAD_GLOBAL(116) — globals+builtins, opcode·eval_frame | agent-silver-three-swift-wolf | 완료 |
 | BINARY_OP(122) — 3.11 이항 연산 통합 (NB_* 디스패치) | agent-crimson-nine-nimble-otter | 완료 |
+| NOP(9), JUMP_BACKWARD(140), DELETE_FAST(126) — no-op·backward jump·fast local 삭제 (CPython 3.11) | agent | 완료 |
 
 이 문서는 “어떤 opcode를 구현해야 3.11 지원이 되는지”와 “지금 무엇을 해야 하는지”를 한곳에 정리한 로드맵이다.

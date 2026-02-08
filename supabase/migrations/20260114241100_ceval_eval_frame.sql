@@ -79,6 +79,8 @@ BEGIN
         CASE opcode
             WHEN 0 THEN
                 NULL;  -- CACHE (3.11): 2-byte no-op, do not update f_lasti
+            WHEN 9 THEN
+                NULL;  -- NOP (3.11): no-op; f_lasti updated below (unlike CACHE)
             WHEN 1 THEN
                 PERFORM public.py_opcode_POP_TOP(frame_id);
             WHEN 2 THEN
@@ -93,6 +95,8 @@ BEGIN
                 PERFORM public.py_opcode_LOAD_FAST(frame_id, arg);
             WHEN 125 THEN
                 PERFORM public.py_opcode_STORE_FAST(frame_id, arg);
+            WHEN 126 THEN
+                PERFORM public.py_opcode_DELETE_FAST(frame_id, arg);
             WHEN 166 THEN
                 PERFORM public.py_opcode_PRECALL(frame_id, arg);
             WHEN 171 THEN
@@ -126,10 +130,16 @@ BEGIN
                 PERFORM public.py_opcode_COMPARE_OP(frame_id, arg);
             WHEN 110 THEN
                 next_i := start_i + 2 + arg * 2;
+            WHEN 140 THEN
+                next_i := arg * 2;  -- JUMP_BACKWARD (3.11): oparg = target instruction offset (bytes = arg*2)
             WHEN 114 THEN
                 next_i := public.py_opcode_POP_JUMP_FORWARD_IF_FALSE(frame_id, start_i, arg);
             WHEN 115 THEN
                 next_i := public.py_opcode_POP_JUMP_FORWARD_IF_TRUE(frame_id, start_i, arg);
+            WHEN 175 THEN
+                next_i := public.py_opcode_POP_JUMP_BACKWARD_IF_FALSE(frame_id, arg);
+            WHEN 176 THEN
+                next_i := public.py_opcode_POP_JUMP_BACKWARD_IF_TRUE(frame_id, arg);
             WHEN 151 THEN
                 PERFORM public.py_opcode_RESUME(frame_id, arg);
             WHEN 35 THEN

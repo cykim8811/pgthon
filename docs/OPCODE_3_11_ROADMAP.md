@@ -57,6 +57,7 @@ opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준
 | 175 | POP_JUMP_BACKWARD_IF_FALSE | pop TOS; false면 target instruction offset으로 점프. 240326. |
 | 176 | POP_JUMP_BACKWARD_IF_TRUE | pop TOS; true면 target instruction offset으로 점프. 240327. |
 | 120 | COPY | stack[-depth]를 TOS에 복사(push). depth≥1, 스택 길이≥depth 검사. 240329. |
+| 12 | UNARY_NOT | pop TOS; push True if not PyObject_IsTrue(TOS) else False. 240332. |
 
 **⚠️ 이항 연산:** CPython 3.11은 BINARY_ADD(23), BINARY_SUBTRACT(24), BINARY_MULTIPLY(20)를 제거하고 **BINARY_OP(122)** + 하위 opcode로 통합했다. Elytra는 현재 23/24/20을 구현해 두었고, 3.11 컴파일러가 생성하는 바이트코드는 122를 쓰므로 **3.11 생성 바이트코드**를 직접 실행하려면 BINARY_OP(122) 구현이 필요하다.
 
@@ -84,7 +85,7 @@ Elytra는 **97**으로 디스패치하지만, CPython 3.11에서는 **96 = DELET
 | 142 | CALL_FUNCTION_EX | 낮음 | *args/**kwargs 확장 호출. |
 | 132 | MAKE_FUNCTION | 중 | 함수 객체 생성. |
 | 9 | NOP | — | ✅ 구현됨 (eval_frame 인라인). |
-| 10–12, 15 | UNARY_* | 낮음 | UNARY_POSITIVE, NEGATIVE, NOT, INVERT. |
+| 10–12, 15 | UNARY_* | 낮음 | 12 UNARY_NOT ✅ 구현됨 (240332). 10, 11, 15 (POSITIVE, NEGATIVE, INVERT) 미구현. |
 | 25 | BINARY_SUBSCR | 중 | obj[key]. |
 | 60 | STORE_SUBSCR | 낮음 | obj[key]=v. |
 | 61 | DELETE_SUBSCR | 낮음 | |
@@ -167,5 +168,6 @@ docs/CACHE_AND_SPECIALIZED_3_11.md: 먼저 기본 opcode를 채우고, 필요 �
 | DELETE_GLOBAL(98) — del globals[name], NameError if missing (CPython 3.11) | agent | 완료 |
 | COPY(120) — stack[-depth]를 TOS에 복사 (CPython 3.11) | agent | 완료 |
 | POP_JUMP_BACKWARD_IF_NONE(173), POP_JUMP_BACKWARD_IF_NOT_NONE(174) — backward None 조건 점프 (CPython 3.11) | agent | 완료 |
+| UNARY_NOT(12) — not x → True/False (CPython 3.11) | agent | 완료 |
 
 이 문서는 “어떤 opcode를 구현해야 3.11 지원이 되는지”와 “지금 무엇을 해야 하는지”를 한곳에 정리한 로드맵이다.

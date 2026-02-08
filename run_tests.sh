@@ -659,6 +659,16 @@ else
     exit 1
 fi
 
+# 59. UNARY_NOT(12) Opcode (CPython 3.11: not x → True/False)
+echo "=== Phase 59: Ceval UNARY_NOT Opcode ==="
+if run_test "supabase/tests/59_ceval_opcode_unary_not.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ UNARY_NOT opcode test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -727,8 +737,9 @@ echo "  ✅ 55: POP_JUMP_BACKWARD_IF_FALSE(175) / POP_JUMP_BACKWARD_IF_TRUE(176)
 echo "  ✅ 56: DELETE_GLOBAL(98) Opcode (CPython 3.11: del globals[name], NameError if missing)"
 echo "  ✅ 57: COPY(120) Opcode (CPython 3.11: copy stack[-depth] to top)"
 echo "  ✅ 58: POP_JUMP_BACKWARD_IF_NONE(173) / POP_JUMP_BACKWARD_IF_NOT_NONE(174) Opcode (CPython 3.11)"
+echo "  ✅ 59: UNARY_NOT(12) Opcode (CPython 3.11: not x → True/False)"
 echo ""
-echo "Total: 58 test suites passed ✨"
+echo "Total: 59 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

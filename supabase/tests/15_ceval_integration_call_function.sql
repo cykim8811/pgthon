@@ -1,17 +1,17 @@
 -- ============================================================================
--- Test: VM CALL_FUNCTION Integration Test
+-- Test: VM PRECALL/CALL Integration Test (CPython 3.11 call protocol)
 -- 
 -- Purpose:
---   Tests CALL_FUNCTION opcode in realistic integration scenarios. This verifies:
---   - LOAD_NAME + CALL_FUNCTION: len("hello") 실행 패턴
---   - LOAD_NAME + LOAD_CONST + CALL_FUNCTION: 상수와 함수 조합
+--   Tests PRECALL(166) and CALL(171) opcodes in realistic integration scenarios. This verifies:
+--   - LOAD_NAME + PRECALL + CALL: len("hello") 실행 패턴
+--   - LOAD_NAME + LOAD_CONST + PRECALL + CALL: 상수와 함수 조합
 --   - 실제 bytecode 실행을 통한 함수 호출
 --   - Frame isolation (여러 frame에서 독립적인 실행)
 --
 --   All tests follow CPython's exact behavior and execution model.
 --
 -- Usage:
---   Run this file after migrations to verify CALL_FUNCTION integration.
+--   Run this file after migrations to verify PRECALL/CALL integration.
 --   If any assertion fails, an exception will be raised with details.
 -- ============================================================================
 
@@ -59,7 +59,7 @@ DECLARE
     real_builtins_dict_id UUID;
 BEGIN
     RAISE NOTICE '========================================';
-    RAISE NOTICE 'VM CALL_FUNCTION Integration Test';
+    RAISE NOTICE 'VM PRECALL/CALL Integration Test';
     RAISE NOTICE '========================================';
     RAISE NOTICE '';
     
@@ -158,10 +158,10 @@ BEGIN
     RAISE NOTICE '';
     
     -- ========================================================================
-    -- Test 1: LOAD_NAME + LOAD_CONST + CALL_FUNCTION + RETURN_VALUE
+    -- Test 1: LOAD_NAME + LOAD_CONST + PRECALL + CALL + RETURN_VALUE
     --         (len("hello") 실행)
     -- ========================================================================
-    RAISE NOTICE 'Test 1: LOAD_NAME + LOAD_CONST + CALL_FUNCTION + RETURN_VALUE (len("hello"))...';
+    RAISE NOTICE 'Test 1: LOAD_NAME + LOAD_CONST + PRECALL + CALL + RETURN_VALUE (len("hello"))...';
     test_count := test_count + 1;
     
     -- Create constants tuple with 'hello' string
@@ -174,13 +174,12 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (co_names_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_names_id, ARRAY[len_str_id]);
     
-    -- Create bytecode: LOAD_NAME(0) LOAD_CONST(0) CALL_FUNCTION(1) RETURN_VALUE
-    -- CPython order: function first, then arguments
-    -- Bytecode: [101, 0, 100, 0, 141, 1, 83, 0]
-    -- LOAD_NAME = 101, LOAD_CONST = 100, CALL_FUNCTION = 141, RETURN_VALUE = 83
+    -- Create bytecode: LOAD_NAME(0) LOAD_CONST(0) PRECALL(1) CALL(1) RETURN_VALUE (CPython 3.11)
+    -- Bytecode: [101, 0, 100, 0, 166, 1, 171, 1, 83, 0]
+    -- LOAD_NAME=101, LOAD_CONST=100, PRECALL=166, CALL=171, RETURN_VALUE=83
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x650064008d015300'::bytea);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x65006400a601ab015300'::bytea);
     
     -- Update code object
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_names = co_names_id WHERE ob_base = code_obj_id;
@@ -213,11 +212,11 @@ BEGIN
     pass_count := pass_count + 1;
     
     -- ========================================================================
-    -- Test 2: LOAD_NAME + LOAD_CONST + CALL_FUNCTION + RETURN_VALUE
+    -- Test 2: LOAD_NAME + LOAD_CONST + PRECALL + CALL + RETURN_VALUE
     --         (len("world") 실행)
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 2: LOAD_NAME + LOAD_CONST + CALL_FUNCTION + RETURN_VALUE (len("world"))...';
+    RAISE NOTICE 'Test 2: LOAD_NAME + LOAD_CONST + PRECALL + CALL + RETURN_VALUE (len("world"))...';
     test_count := test_count + 1;
     
     -- Create constants tuple with 'world' string
@@ -230,11 +229,11 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (co_names_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_names_id, ARRAY[len_str_id]);
     
-    -- Create bytecode: LOAD_NAME(0) LOAD_CONST(0) CALL_FUNCTION(1) RETURN_VALUE
+    -- Create bytecode: LOAD_NAME(0) LOAD_CONST(0) PRECALL(1) CALL(1) RETURN_VALUE
     -- CPython order: function first, then arguments
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x650064008d015300'::bytea);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x65006400a601ab015300'::bytea);
     
     -- Update code object
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_names = co_names_id WHERE ob_base = code_obj_id;
@@ -278,14 +277,14 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_names_id, ARRAY[len_str_id]);
     
     -- Create bytecode: 
-    --   LOAD_NAME(0) LOAD_CONST(0) CALL_FUNCTION(1)  -- len("hello")
-    --   LOAD_NAME(0) LOAD_CONST(1) CALL_FUNCTION(1)  -- len("world")
+    --   LOAD_NAME(0) LOAD_CONST(0) PRECALL(1) CALL(1)  -- len("hello")
+    --   LOAD_NAME(0) LOAD_CONST(1) PRECALL(1) CALL(1)  -- len("world")
     --   RETURN_VALUE
     -- CPython order: function first, then arguments
-    -- Bytecode: [101, 0, 100, 0, 141, 1, 101, 0, 100, 1, 141, 1, 83, 0]
+    -- Bytecode: [101, 0, 100, 0, 166, 1, 171, 1, 101, 0, 100, 1, 166, 1, 171, 1, 83, 0]
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x650064008d01650064018d015300'::bytea);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x65006400a601ab0165006401a601ab015300'::bytea);
     
     -- Update code object
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_names = co_names_id WHERE ob_base = code_obj_id;

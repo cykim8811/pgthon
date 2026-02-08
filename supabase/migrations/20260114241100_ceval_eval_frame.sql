@@ -32,6 +32,7 @@ DECLARE
     had_err BOOLEAN;
     start_i INTEGER;
     extended INTEGER;
+    pending_kw_names_const_i INTEGER := NULL;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
         RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
@@ -81,10 +82,13 @@ BEGIN
                 PERFORM public.py_opcode_LOAD_CONST(frame_id, arg);
             WHEN 101 THEN
                 PERFORM public.py_opcode_LOAD_NAME(frame_id, arg);
-            WHEN 141 THEN
-                PERFORM public.py_opcode_CALL_FUNCTION(frame_id, arg);
-            WHEN 142 THEN
-                PERFORM public.py_opcode_CALL_FUNCTION_KW(frame_id, arg);
+            WHEN 166 THEN
+                PERFORM public.py_opcode_PRECALL(frame_id, arg);
+            WHEN 171 THEN
+                PERFORM public.py_opcode_CALL(frame_id, arg, pending_kw_names_const_i);
+                pending_kw_names_const_i := NULL;
+            WHEN 172 THEN
+                pending_kw_names_const_i := arg;
             WHEN 90 THEN
                 PERFORM public.py_opcode_STORE_NAME(frame_id, arg);
             WHEN 95 THEN

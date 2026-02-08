@@ -1,17 +1,13 @@
 -- ============================================================================
--- Test: CALL_FUNCTION_KW opcode integration
+-- Test: KW_NAMES + PRECALL + CALL opcode integration (CPython 3.11 call protocol)
 --
 -- Purpose:
---   Verifies CALL_FUNCTION_KW (opcode 142) builds kwargs dict from stack
---   and calls py_object_call(..., kwargs_id). Tests that passing keyword
---   args to builtins that do not accept them (len, abs) raises
---   TypeError: name() takes no keyword arguments.
+--   Verifies KW_NAMES(172) + PRECALL(166) + CALL(171) build kwargs from
+--   co_consts[keyword names tuple] and call py_object_call(..., kwargs_id).
+--   Tests that passing keyword args to builtins that do not accept them (len)
+--   raises TypeError: len() takes no keyword arguments.
 --
--- Operand: arg = (nk << 4) | na; na = positional count, nk = keyword count.
--- Stack (top to bottom): [kwval_nk..kwval_1, kwname_nk..kwname_1,
---                        pos_na..pos_1, callable]
---
--- Design: docs/KWARGS_IMPLEMENTATION_PLAN.md
+-- Design: docs/CALL_PROTOCOL_3_11_DESIGN.md
 -- ============================================================================
 
 DO $$
@@ -40,9 +36,10 @@ DECLARE
     result_id UUID;
     error_message TEXT;
     got_exc_type_id UUID;
+    kw_names_tuple_id UUID;
 BEGIN
     RAISE NOTICE '========================================';
-    RAISE NOTICE 'CALL_FUNCTION_KW Integration Test';
+    RAISE NOTICE 'KW_NAMES + CALL Integration Test';
     RAISE NOTICE '========================================';
     RAISE NOTICE '';
 
@@ -81,9 +78,14 @@ BEGIN
     INSERT INTO public.py_dict_object (ob_base) VALUES (globals_dict_id);
     builtins_dict_id := real_builtins_dict_id;
 
+    -- co_consts[0] = tuple of keyword names ('x'); co_consts[1] = 'hello'
+    kw_names_tuple_id := gen_random_uuid();
+    INSERT INTO public.py_object (id, ob_type) VALUES (kw_names_tuple_id, (SELECT ob_base FROM public.py_type_object WHERE tp_name = 'tuple' LIMIT 1));
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (kw_names_tuple_id, ARRAY[const_x_id]);
+
     co_consts_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_consts_id, (SELECT ob_base FROM public.py_type_object WHERE tp_name = 'tuple' LIMIT 1));
-    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[const_hello_id, const_x_id]);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[kw_names_tuple_id, const_hello_id]);
 
     co_names_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_names_id, (SELECT ob_base FROM public.py_type_object WHERE tp_name = 'tuple' LIMIT 1));
@@ -91,10 +93,10 @@ BEGIN
 
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    -- Bytecode: LOAD_NAME(0)=101,0  LOAD_CONST(0)=100,0  LOAD_CONST(1)=100,1  LOAD_CONST(0)=100,0  CALL_FUNCTION_KW(17)=142,17  RETURN_VALUE=83,0
-    -- Stack for CALL_FUNCTION_KW(na=1,nk=1): top = kwval, kwname, pos, callable -> len, 'hello', 'x', 'hello'
+    -- Bytecode (CPython 3.11): LOAD_NAME 0, LOAD_CONST 1 ('hello' pos), LOAD_CONST 1 ('hello' kw val), KW_NAMES 0, PRECALL 1, CALL 1, RETURN_VALUE
+    -- 101,0 100,1 100,1 172,0 166,1 171,1 83,0
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id,
-        decode('65006400640164008e115300', 'hex'));
+        decode('650064016401ac00a601ab015300', 'hex'));
 
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, (SELECT ob_base FROM public.py_type_object WHERE tp_name = 'type' LIMIT 1));
@@ -128,11 +130,11 @@ BEGIN
     IF error_message IS NULL OR error_message NOT LIKE '%len() takes no keyword arguments%' THEN
         RAISE EXCEPTION 'FAIL: expected "len() takes no keyword arguments", got: %', error_message;
     END IF;
-    RAISE NOTICE '✓ 36.1 CALL_FUNCTION_KW len(hello, x=hello) raises TypeError: len() takes no keyword arguments';
+    RAISE NOTICE '✓ 36.1 KW_NAMES+CALL len(hello, x=hello) raises TypeError: len() takes no keyword arguments';
 
     RAISE NOTICE '';
     RAISE NOTICE '========================================';
-    RAISE NOTICE 'CALL_FUNCTION_KW integration: all checks passed';
+    RAISE NOTICE 'KW_NAMES + CALL integration: all checks passed';
     RAISE NOTICE '========================================';
 END;
 $$;

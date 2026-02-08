@@ -1,9 +1,9 @@
 -- ============================================================================
--- Test: VM CALL_FUNCTION Opcode Test
+-- Test: VM PRECALL/CALL Opcode Test (CPython 3.11 call protocol)
 -- 
 -- Purpose:
---   Tests that CALL_FUNCTION opcode handler works correctly. This verifies:
---   - py_opcode_CALL_FUNCTION correctly calls builtin functions
+--   Tests that PRECALL(166) and CALL(171) opcode handlers work correctly. This verifies:
+--   - py_opcode_CALL correctly calls builtin functions
 --   - py_call_cfunction correctly handles METH_O calling convention
 --   - Arguments are popped from stack in correct order
 --   - Function result is pushed onto stack
@@ -12,7 +12,7 @@
 --   - Integration with py_eval_frame
 --
 -- Usage:
---   Run this file after migrations to verify CALL_FUNCTION opcode implementation.
+--   Run this file after migrations to verify PRECALL/CALL opcode implementation.
 --   If any assertion fails, an exception will be raised with details.
 -- ============================================================================
 
@@ -64,7 +64,7 @@ DECLARE
     got_exc_type_id UUID;
 BEGIN
     RAISE NOTICE '========================================';
-    RAISE NOTICE 'VM CALL_FUNCTION Opcode Test';
+    RAISE NOTICE 'VM PRECALL/CALL Opcode Test';
     RAISE NOTICE '========================================';
     RAISE NOTICE '';
     
@@ -158,10 +158,10 @@ BEGIN
     
     IF NOT EXISTS (
         SELECT 1 FROM pg_proc 
-        WHERE proname = 'py_opcode_call_function' 
+        WHERE proname = 'py_opcode_call' 
         AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
     ) THEN
-        RAISE EXCEPTION 'FAIL: py_opcode_CALL_FUNCTION function does not exist';
+        RAISE EXCEPTION 'FAIL: py_opcode_CALL function does not exist';
     END IF;
     
     IF NOT EXISTS (
@@ -172,24 +172,24 @@ BEGIN
         RAISE EXCEPTION 'FAIL: py_call_cfunction function does not exist';
     END IF;
     
-    RAISE NOTICE '  ✓ py_opcode_CALL_FUNCTION and py_call_cfunction functions exist';
+    RAISE NOTICE '  ✓ py_opcode_CALL and py_call_cfunction functions exist';
     pass_count := pass_count + 1;
     
     -- ========================================================================
-    -- Test 2: CALL_FUNCTION calls len function correctly
+    -- Test 2: CALL calls len function correctly
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 2: CALL_FUNCTION calls len function correctly...';
+    RAISE NOTICE 'Test 2: CALL calls len function correctly...';
     test_count := test_count + 1;
     
     -- Push arguments onto stack (function first, then arguments)
-    -- CPython: function is pushed first, then arguments left-to-right
-    -- CALL_FUNCTION pops arguments right-to-left, then pops function
+    -- CPython 3.11: CALL n pops n args, then callable
     PERFORM public.py_stack_push(frame_id, len_func_id);  -- function (pushed first, popped last)
     PERFORM public.py_stack_push(frame_id, test_str_id);  -- argument (pushed last, popped first)
     
-    -- Execute CALL_FUNCTION(1) - 1 argument
-    PERFORM public.py_opcode_CALL_FUNCTION(frame_id, 1);
+    -- Execute PRECALL(1) then CALL(1) - 1 argument
+    PERFORM public.py_opcode_PRECALL(frame_id, 1);
+    PERFORM public.py_opcode_CALL(frame_id, 1);
     
     -- Verify result is on stack
     SELECT array_length(f_valuestack, 1) INTO stack_size
@@ -197,7 +197,7 @@ BEGIN
     WHERE ob_base = frame_id;
     
     IF stack_size IS NULL OR stack_size != 1 THEN
-        RAISE EXCEPTION 'FAIL: Stack size after CALL_FUNCTION is %, expected 1', stack_size;
+        RAISE EXCEPTION 'FAIL: Stack size after CALL is %, expected 1', stack_size;
     END IF;
     
     -- Verify result is correct
@@ -206,7 +206,7 @@ BEGIN
     WHERE ob_base = frame_id;
     
     IF result_id IS NULL THEN
-        RAISE EXCEPTION 'FAIL: CALL_FUNCTION result is NULL';
+        RAISE EXCEPTION 'FAIL: CALL result is NULL';
     END IF;
     
     -- Get result value
@@ -218,14 +218,14 @@ BEGIN
         RAISE EXCEPTION 'FAIL: len("hello") returned %, expected 5', result_value;
     END IF;
     
-    RAISE NOTICE '  ✓ CALL_FUNCTION correctly calls len function';
+    RAISE NOTICE '  ✓ CALL correctly calls len function';
     pass_count := pass_count + 1;
     
     -- ========================================================================
-    -- Test 3: CALL_FUNCTION argument order (right-to-left pop)
+    -- Test 3: CALL argument order (right-to-left pop)
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 3: CALL_FUNCTION argument order (right-to-left pop)...';
+    RAISE NOTICE 'Test 3: CALL argument order (right-to-left pop)...';
     test_count := test_count + 1;
     
     -- Clear stack
@@ -248,8 +248,8 @@ BEGIN
         PERFORM public.py_stack_push(frame_id, len_func_id);   -- function (pushed first, popped last)
         PERFORM public.py_stack_push(frame_id, test_str2_id);  -- argument (pushed last, popped first)
         
-        -- Execute CALL_FUNCTION(1)
-        PERFORM public.py_opcode_CALL_FUNCTION(frame_id, 1);
+        -- Execute CALL(1)
+        PERFORM public.py_opcode_CALL(frame_id, 1);
         
         -- Verify result
         SELECT f_valuestack[1] INTO result2_id
@@ -265,14 +265,14 @@ BEGIN
         END IF;
     END;
     
-    RAISE NOTICE '  ✓ CALL_FUNCTION correctly handles argument order';
+    RAISE NOTICE '  ✓ CALL correctly handles argument order';
     pass_count := pass_count + 1;
     
     -- ========================================================================
-    -- Test 4: CALL_FUNCTION raises TypeError for non-callable objects (Python 예외 + NULL)
+    -- Test 4: CALL raises TypeError for non-callable objects (Python 예외 + NULL)
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 4: CALL_FUNCTION raises TypeError for non-callable objects...';
+    RAISE NOTICE 'Test 4: CALL raises TypeError for non-callable objects...';
     test_count := test_count + 1;
 
     UPDATE public.py_frame_object
@@ -282,14 +282,14 @@ BEGIN
     PERFORM public.py_stack_push(frame_id, non_callable_id);
     PERFORM public.py_err_clear();
 
-    PERFORM public.py_opcode_CALL_FUNCTION(frame_id, 0);
+    PERFORM public.py_opcode_CALL(frame_id, 0);
 
     IF NOT public.py_err_occurred() THEN
-        RAISE EXCEPTION 'FAIL: CALL_FUNCTION should set Python exception for non-callable object';
+        RAISE EXCEPTION 'FAIL: CALL should set Python exception for non-callable object';
     END IF;
     SELECT exc_type_id INTO got_exc_type_id FROM public.py_exception_state WHERE id = (SELECT id FROM public.py_exception_state LIMIT 1);
     IF got_exc_type_id IS DISTINCT FROM ID_TYPE_ERROR_TYPE THEN
-        RAISE EXCEPTION 'FAIL: CALL_FUNCTION non-callable should set TypeError, got exc_type_id %', got_exc_type_id;
+        RAISE EXCEPTION 'FAIL: CALL non-callable should set TypeError, got exc_type_id %', got_exc_type_id;
     END IF;
     SELECT u.str_value INTO error_message
     FROM public.py_exception_state e
@@ -298,17 +298,17 @@ BEGIN
     JOIN public.py_unicode_object u ON u.ob_base = t.ob_item[1]
     WHERE e.id = (SELECT id FROM public.py_exception_state LIMIT 1);
     IF error_message IS NULL OR error_message NOT LIKE '%object is not callable%' THEN
-        RAISE EXCEPTION 'FAIL: CALL_FUNCTION non-callable expected message containing "object is not callable", got: %', error_message;
+        RAISE EXCEPTION 'FAIL: CALL non-callable expected message containing "object is not callable", got: %', error_message;
     END IF;
 
-    RAISE NOTICE '  ✓ CALL_FUNCTION correctly raises TypeError for non-callable objects';
+    RAISE NOTICE '  ✓ CALL correctly raises TypeError for non-callable objects';
     pass_count := pass_count + 1;
     
     -- ========================================================================
-    -- Test 5: CALL_FUNCTION argument count validation
+    -- Test 5: CALL argument count validation
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 5: CALL_FUNCTION argument count validation...';
+    RAISE NOTICE 'Test 5: CALL argument count validation...';
     test_count := test_count + 1;
     
     -- Clear stack
@@ -316,15 +316,15 @@ BEGIN
     SET f_valuestack = array[]::uuid[]
     WHERE ob_base = frame_id;
     
-    -- Test negative arg_count
+    -- Test negative n
     BEGIN
-        PERFORM public.py_opcode_CALL_FUNCTION(frame_id, -1);
-        RAISE EXCEPTION 'FAIL: CALL_FUNCTION did not raise exception for negative arg_count';
+        PERFORM public.py_opcode_CALL(frame_id, -1);
+        RAISE EXCEPTION 'FAIL: CALL did not raise exception for negative n';
     EXCEPTION
         WHEN OTHERS THEN
             error_message := SQLERRM;
-            IF error_message NOT LIKE 'CALL_FUNCTION: arg_count must be non-negative%' THEN
-                RAISE EXCEPTION 'FAIL: CALL_FUNCTION raised wrong exception for negative arg_count: %', error_message;
+            IF error_message NOT LIKE 'CALL: n must be non-negative%' THEN
+                RAISE EXCEPTION 'FAIL: CALL raised wrong exception for negative n: %', error_message;
             END IF;
     END;
     
@@ -337,17 +337,17 @@ BEGIN
     PERFORM public.py_stack_push(frame_id, len_func_id);
     PERFORM public.py_err_clear();
 
-    PERFORM public.py_opcode_CALL_FUNCTION(frame_id, 0);
+    PERFORM public.py_opcode_CALL(frame_id, 0);
 
     IF NOT public.py_err_occurred() THEN
-        RAISE EXCEPTION 'FAIL: CALL_FUNCTION should set Python exception for wrong argument count';
+        RAISE EXCEPTION 'FAIL: CALL should set Python exception for wrong argument count';
     END IF;
     SELECT exc_type_id INTO got_exc_type_id FROM public.py_exception_state WHERE id = (SELECT id FROM public.py_exception_state LIMIT 1);
     IF got_exc_type_id IS DISTINCT FROM ID_TYPE_ERROR_TYPE THEN
-        RAISE EXCEPTION 'FAIL: CALL_FUNCTION wrong argument count should set TypeError, got exc_type_id %', got_exc_type_id;
+        RAISE EXCEPTION 'FAIL: CALL wrong argument count should set TypeError, got exc_type_id %', got_exc_type_id;
     END IF;
     
-    RAISE NOTICE '  ✓ CALL_FUNCTION correctly validates argument count';
+    RAISE NOTICE '  ✓ CALL correctly validates argument count';
     pass_count := pass_count + 1;
     
     -- ========================================================================

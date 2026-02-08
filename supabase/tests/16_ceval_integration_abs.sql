@@ -3,7 +3,7 @@
 -- 
 -- Purpose:
 --   Tests abs() builtin function execution in the VM. This verifies:
---   - LOAD_NAME + LOAD_CONST + CALL_FUNCTION + RETURN_VALUE: abs(-5) 실행
+--   - LOAD_NAME + LOAD_CONST + PRECALL + CALL + RETURN_VALUE: abs(-5) 실행
 --   - abs() on positive and negative integers
 --   - abs() on positive and negative floats
 --   - 실제 bytecode 실행을 통한 abs() 함수 호출
@@ -186,12 +186,12 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (co_names_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_names_id, ARRAY[abs_str_id]);
     
-    -- Create bytecode: LOAD_NAME(0) LOAD_CONST(0) CALL_FUNCTION(1) RETURN_VALUE
+    -- Create bytecode: LOAD_NAME(0) LOAD_CONST(0) PRECALL(1) CALL(1) RETURN_VALUE (CPython 3.11)
     -- CPython order: function first, then arguments
-    -- Bytecode: [101, 0, 100, 0, 141, 1, 83, 0]
+    -- Bytecode: [101, 0, 100, 0, 166, 1, 171, 1, 83, 0]
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x650064008d015300'::bytea);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x65006400a601ab015300'::bytea);
     
     -- Update code object
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_names = co_names_id WHERE ob_base = code_obj_id;
@@ -240,11 +240,11 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (co_names_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_names_id, ARRAY[abs_str_id]);
     
-    -- Create bytecode: LOAD_NAME(0) LOAD_CONST(0) CALL_FUNCTION(1) RETURN_VALUE
+    -- Create bytecode: LOAD_NAME(0) LOAD_CONST(0) PRECALL(1) CALL(1) RETURN_VALUE (CPython 3.11)
     -- CPython order: function first, then arguments
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x650064008d015300'::bytea);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x65006400a601ab015300'::bytea);
     
     -- Update code object
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_names = co_names_id WHERE ob_base = code_obj_id;
@@ -287,11 +287,11 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (co_names_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_names_id, ARRAY[abs_str_id]);
     
-    -- Create bytecode: LOAD_NAME(0) LOAD_CONST(0) CALL_FUNCTION(1) RETURN_VALUE
+    -- Create bytecode: LOAD_NAME(0) LOAD_CONST(0) PRECALL(1) CALL(1) RETURN_VALUE (CPython 3.11)
     -- CPython order: function first, then arguments
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x650064008d015300'::bytea);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x65006400a601ab015300'::bytea);
     
     -- Update code object
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_names = co_names_id WHERE ob_base = code_obj_id;
@@ -334,11 +334,11 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (co_names_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_names_id, ARRAY[abs_str_id]);
     
-    -- Create bytecode: LOAD_NAME(0) LOAD_CONST(0) CALL_FUNCTION(1) RETURN_VALUE
+    -- Create bytecode: LOAD_NAME(0) LOAD_CONST(0) PRECALL(1) CALL(1) RETURN_VALUE (CPython 3.11)
     -- CPython order: function first, then arguments
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x650064008d015300'::bytea);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x65006400a601ab015300'::bytea);
     
     -- Update code object
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_names = co_names_id WHERE ob_base = code_obj_id;

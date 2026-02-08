@@ -104,3 +104,4 @@ Elytra는 CPython의 "구조체 상속(헤더 + 확장)" 감각을 PostgreSQL에
 - **docs/[LOAD_ATTR_DESIGN.md](docs/LOAD_ATTR_DESIGN.md)**: LOAD_ATTR(106)·속성 조회 설계·구현 완료 (PyObject_GetAttr, 인스턴스 __dict__·타입+bases, 디스크립터 __get__, AttributeError, Phase 42·43).
 - **docs/[STORE_ATTR_DESIGN.md](docs/STORE_ATTR_DESIGN.md)**: STORE_ATTR(95)·속성 저장 설계·구현 완료 (PyObject_SetAttr, 디스크립터 __set__, 인스턴스 __dict__, Phase 44).
 - **docs/[BOUND_METHOD_DESIGN.md](docs/BOUND_METHOD_DESIGN.md)**: Bound Method 설계·구현 완료 (인스턴스에서 메서드 조회 시 __get__ → bound method, 호출 시 im_func(im_self, *args), Phase 45).
+- **docs/[CALL_PROTOCOL_3_11_DESIGN.md](docs/CALL_PROTOCOL_3_11_DESIGN.md)**: CPython 3.11 호출 프로토콜 (PRECALL/CALL/KW_NAMES/PUSH_NULL) 설계 및 단계별 리팩터링 계획.

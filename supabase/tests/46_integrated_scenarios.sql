@@ -8,7 +8,7 @@
 -- Scenarios:
 --   1. 한 프레임: STORE_ATTR(obj.x=42) 후 LOAD_ATTR(obj.x) RETURN_VALUE → 42
 --   2. Type.attr vs inst.attr: getattr(T,"x")→1, getattr(inst,"x")→1; STORE_ATTR inst.x=2 후 getattr(inst,"x")→2
---   3. Bytecode Class.attr 호출: LOAD_CONST(T), LOAD_ATTR("f"), LOAD_CONST("hi"), CALL_FUNCTION(1) → len("hi")=2
+--   3. Bytecode Class.attr 호출: LOAD_CONST(T), LOAD_ATTR("f"), LOAD_CONST("hi"), PRECALL(1) CALL(1) → len("hi")=2
 --   4. Bytecode Bound method 호출: inst.f("hi") → TypeError (bound method가 len(inst,"hi")로 호출되어 인자 2개 → len은 METH_O 1개)
 --   5. 서브클래스: Sub 인스턴스에서 base "a", sub "b" 조회 후 STORE_ATTR sub_inst.a=77, LOAD_ATTR → 77
 --   6. 인스턴스 shadowing: type x=10, instance y=20; bytecode로 x,y 조회 후 inst.x=99 저장, x 조회 → 99
@@ -232,7 +232,7 @@ BEGIN
     RAISE NOTICE '  ✓ Type.attr / inst.attr / STORE_ATTR shadowing';
 
     -- ========================================================================
-    -- Scenario 3: Bytecode Class.attr 호출 — LOAD_CONST(T), LOAD_ATTR("f"), LOAD_CONST("hi"), CALL_FUNCTION(1) → 2
+    -- Scenario 3: Bytecode Class.attr 호출 — LOAD_CONST(T), LOAD_ATTR("f"), LOAD_CONST("hi"), PRECALL(1) CALL(1) → 2
     -- ========================================================================
     RAISE NOTICE 'Scenario 3: Bytecode T.f("hi") → len("hi") = 2...';
     test_count := test_count + 1;
@@ -255,8 +255,8 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[type_t_id, str_hi_id]);
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    -- LOAD_CONST 0 (T), LOAD_ATTR 0 ("f"), LOAD_CONST 1 ("hi"), CALL_FUNCTION 1, RETURN_VALUE
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006a0064018d015300', 'hex'));
+    -- LOAD_CONST 0 (T), LOAD_ATTR 0 ("f"), LOAD_CONST 1 ("hi"), PRECALL 1, CALL 1, RETURN_VALUE (CPython 3.11)
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006a006401a601ab015300', 'hex'));
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars)
@@ -308,7 +308,8 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[inst_id, str_hi_id]);
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006a0064018d015300', 'hex'));
+    -- LOAD_CONST 0 (inst), LOAD_ATTR 0 ("f"), LOAD_CONST 1 ("hi"), PRECALL 1, CALL 1, RETURN_VALUE (CPython 3.11)
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006a006401a601ab015300', 'hex'));
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars)

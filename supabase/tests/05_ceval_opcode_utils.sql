@@ -62,10 +62,10 @@ BEGIN
         RAISE EXCEPTION 'FAIL: RETURN_VALUE (83) size is %, expected 2', opcode_size;
     END IF;
     
-    -- Test CALL_FUNCTION (opcode 141)
-    opcode_size := public.py_get_opcode_size(141);
+    -- Test CALL (opcode 171) — CPython 3.11 call protocol
+    opcode_size := public.py_get_opcode_size(171);
     IF opcode_size != 2 THEN
-        RAISE EXCEPTION 'FAIL: CALL_FUNCTION (141) size is %, expected 2', opcode_size;
+        RAISE EXCEPTION 'FAIL: CALL (171) size is %, expected 2', opcode_size;
     END IF;
     
     RAISE NOTICE '  ✓ Default size (2 bytes) works for common opcodes';

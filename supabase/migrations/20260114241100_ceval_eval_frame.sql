@@ -134,6 +134,8 @@ BEGIN
                 PERFORM public.py_opcode_LOAD_ATTR(frame_id, arg);
             WHEN 107 THEN
                 PERFORM public.py_opcode_COMPARE_OP(frame_id, arg);
+            WHEN 117 THEN
+                PERFORM public.py_opcode_IS_OP(frame_id, arg);
             WHEN 110 THEN
                 next_i := start_i + 2 + arg * 2;
             WHEN 140 THEN

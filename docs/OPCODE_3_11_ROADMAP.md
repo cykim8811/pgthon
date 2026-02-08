@@ -58,6 +58,7 @@ opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준
 | 176 | POP_JUMP_BACKWARD_IF_TRUE | pop TOS; true면 target instruction offset으로 점프. 240327. |
 | 120 | COPY | stack[-depth]를 TOS에 복사(push). depth≥1, 스택 길이≥depth 검사. 240329. |
 | 12 | UNARY_NOT | pop TOS; push True if not PyObject_IsTrue(TOS) else False. 240332. |
+| 117 | IS_OP | oparg 0 = "is" (push True if left is right), oparg 1 = "is not". Identity = same object (UUID). 240333. |
 
 **⚠️ 이항 연산:** CPython 3.11은 BINARY_ADD(23), BINARY_SUBTRACT(24), BINARY_MULTIPLY(20)를 제거하고 **BINARY_OP(122)** + 하위 opcode로 통합했다. Elytra는 현재 23/24/20을 구현해 두었고, 3.11 컴파일러가 생성하는 바이트코드는 122를 쓰므로 **3.11 생성 바이트코드**를 직접 실행하려면 BINARY_OP(122) 구현이 필요하다.
 
@@ -96,7 +97,7 @@ Elytra는 **97**으로 디스패치하지만, CPython 3.11에서는 **96 = DELET
 | 109 | IMPORT_FROM | 낮음 | |
 | 111 | JUMP_IF_FALSE_OR_POP | 낮음 | |
 | 112 | JUMP_IF_TRUE_OR_POP | 낮음 | |
-| 117 | IS_OP | 낮음 | is / is not. |
+| 117 | IS_OP | — | ✅ 구현됨 (240333). oparg 0=is, 1=is not. |
 | 118 | CONTAINS_OP | 낮음 | in / not in. |
 | 120 | COPY | — | ✅ 구현됨 (240329). |
 | 128–129 | POP_JUMP_*_IF_NONE/NOT_NONE | 낮음 | |
@@ -169,5 +170,6 @@ docs/CACHE_AND_SPECIALIZED_3_11.md: 먼저 기본 opcode를 채우고, 필요 �
 | COPY(120) — stack[-depth]를 TOS에 복사 (CPython 3.11) | agent | 완료 |
 | POP_JUMP_BACKWARD_IF_NONE(173), POP_JUMP_BACKWARD_IF_NOT_NONE(174) — backward None 조건 점프 (CPython 3.11) | agent | 완료 |
 | UNARY_NOT(12) — not x → True/False (CPython 3.11) | agent | 완료 |
+| IS_OP(117) — is / is not, identity comparison (CPython 3.11) | agent | 완료 |
 
 이 문서는 “어떤 opcode를 구현해야 3.11 지원이 되는지”와 “지금 무엇을 해야 하는지”를 한곳에 정리한 로드맵이다.

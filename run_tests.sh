@@ -669,6 +669,16 @@ else
     exit 1
 fi
 
+# 60. IS_OP(117) Opcode (CPython 3.11: is / is not, identity comparison)
+echo "=== Phase 60: Ceval IS_OP Opcode ==="
+if run_test "supabase/tests/60_ceval_opcode_is_op.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ IS_OP opcode test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -738,8 +748,9 @@ echo "  ✅ 56: DELETE_GLOBAL(98) Opcode (CPython 3.11: del globals[name], NameE
 echo "  ✅ 57: COPY(120) Opcode (CPython 3.11: copy stack[-depth] to top)"
 echo "  ✅ 58: POP_JUMP_BACKWARD_IF_NONE(173) / POP_JUMP_BACKWARD_IF_NOT_NONE(174) Opcode (CPython 3.11)"
 echo "  ✅ 59: UNARY_NOT(12) Opcode (CPython 3.11: not x → True/False)"
+echo "  ✅ 60: IS_OP(117) Opcode (CPython 3.11: is / is not, identity comparison)"
 echo ""
-echo "Total: 59 test suites passed ✨"
+echo "Total: 60 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

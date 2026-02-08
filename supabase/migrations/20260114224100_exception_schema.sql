@@ -2,7 +2,7 @@
 -- Exception handling schema (CPython 3.11) — 의존성 순서: 224000 직후, 225000 직전
 -- 20260114224100_exception_schema.sql
 --
--- Design: docs/EXCEPTION_HANDLING_DESIGN.md, docs/MIGRATION_EXCEPTION_ORDER.md
+-- Design: docs/EXCEPTION_HANDLING_DESIGN.md, docs/CODE_OBJECT_3_11.md, docs/MIGRATION_EXCEPTION_ORDER.md
 -- builtin_functions(225000), type_method_slots(226000), tp_hash_slot(235000)에서
 -- py_err_occurred / py_err_set_type_error / py_err_set_name_error 를 쓰려면
 -- 이 스키마·bootstrap이 먼저 적용되어야 함.
@@ -53,6 +53,22 @@ alter table public.py_code_object
 add column if not exists co_exceptiontable bytea;
 
 comment on column public.py_code_object.co_exceptiontable is 'Exception table (3.11): start, end, target, depth. NULL = no try/except.';
+
+-- ----------------------------------------------------------------------------
+-- 4b. py_code_object: add CPython 3.11 optional fields (CODE_OBJECT_3_11.md)
+-- ----------------------------------------------------------------------------
+alter table public.py_code_object add column if not exists co_posonlyargcount integer default 0;
+alter table public.py_code_object add column if not exists co_kwonlyargcount integer default 0;
+alter table public.py_code_object add column if not exists co_nlocals integer;
+alter table public.py_code_object add column if not exists co_stacksize integer;
+alter table public.py_code_object add column if not exists co_flags integer default 0;
+alter table public.py_code_object add column if not exists co_firstlineno integer default 0;
+comment on column public.py_code_object.co_posonlyargcount is 'CPython 3.11: positional-only arg count. 0 if not set.';
+comment on column public.py_code_object.co_kwonlyargcount is 'CPython 3.11: keyword-only arg count. 0 if not set.';
+comment on column public.py_code_object.co_nlocals is 'CPython 3.11: number of local vars. NULL = derive from co_varnames.';
+comment on column public.py_code_object.co_stacksize is 'CPython 3.11: stack depth. NULL = VM may ignore.';
+comment on column public.py_code_object.co_flags is 'CPython 3.11: CO_OPTIMIZED, CO_NEWLOCALS, etc. 0 if not set.';
+comment on column public.py_code_object.co_firstlineno is 'CPython 3.11: first source line (traceback). 0 if not set.';
 
 -- ----------------------------------------------------------------------------
 -- 5. Bootstrap: exception types (BaseException, Exception, TypeError, ...)

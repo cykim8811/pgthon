@@ -2,7 +2,8 @@
 -- py_eval_frame 정의 (예외 디스패치 포함, CPython 3.11)
 -- 20260114241100_ceval_eval_frame.sql
 --
--- Design: docs/EXCEPTION_HANDLING_DESIGN.md
+-- Design: docs/EXCEPTION_HANDLING_DESIGN.md, docs/BYTECODE_ENCODING_3_11.md
+-- Bytecode: wordcode (2 bytes per instruction, 0-based byte offset). CACHE(0) = skip 2 bytes.
 -- 241000에서 예외 디스패치·헬퍼를 정의하고, 이 파일에서 py_eval_frame을 정의.
 -- 예외 발생 시 py_traceback_here + exception table 조회 → 핸들러 점프 또는 전파.
 -- ============================================================================
@@ -76,6 +77,8 @@ BEGIN
         arg := (extended << 8) | arg;
 
         CASE opcode
+            WHEN 0 THEN
+                NULL;  -- CACHE (3.11): 2-byte no-op, do not update f_lasti
             WHEN 1 THEN
                 PERFORM public.py_opcode_POP_TOP(frame_id);
             WHEN 100 THEN
@@ -150,7 +153,7 @@ BEGIN
             END IF;
         END IF;
 
-        IF opcode != 83 THEN
+        IF opcode != 83 AND opcode != 0 THEN
             UPDATE public.py_frame_object SET f_lasti = start_i WHERE ob_base = frame_id;
         END IF;
 

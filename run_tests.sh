@@ -560,6 +560,55 @@ else
     exit 1
 fi
 
+echo "=== Phase 49: BINARY_OP(122) Integration ==="
+if run_test "supabase/tests/49_binary_op_integration.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ BINARY_OP(122) integration test failed. Cannot continue."
+    exit 1
+fi
+
+# 50. LOAD_GLOBAL (116) Opcode Test (CPython 3.11: globals+builtins only)
+echo "=== Phase 50: Ceval LOAD_GLOBAL Opcode ==="
+if run_test "supabase/tests/50_ceval_opcode_load_global.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Ceval LOAD_GLOBAL opcode test failed. Cannot continue."
+    exit 1
+fi
+
+# 51. LOAD_GLOBAL Integration Test (bytecode + combined scenarios)
+echo "=== Phase 51: Ceval LOAD_GLOBAL Integration ==="
+if run_test "supabase/tests/51_ceval_integration_load_global.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Ceval LOAD_GLOBAL integration test failed. Cannot continue."
+    exit 1
+fi
+
+# 52. LOAD_FAST / STORE_FAST Opcode Test (CPython 3.11: f_fastlocals)
+echo "=== Phase 52: Ceval LOAD_FAST / STORE_FAST Opcode ==="
+if run_test "supabase/tests/52_ceval_opcode_load_fast_store_fast.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ LOAD_FAST / STORE_FAST opcode test failed. Cannot continue."
+    exit 1
+fi
+
+# 53. LOAD_FAST / STORE_FAST Integration (bytecode x=1; return x, a+b, frame isolation)
+echo "=== Phase 53: Ceval LOAD_FAST / STORE_FAST Integration ==="
+if run_test "supabase/tests/53_ceval_integration_load_fast_store_fast.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ LOAD_FAST / STORE_FAST integration test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -618,8 +667,13 @@ echo "  ✅ 45: Bound Method Integration (getattr(inst,\"f\")→bound method; ge
 echo "  ✅ 46: Integrated Scenarios (LOAD_ATTR, STORE_ATTR, Bound Method, Type.attr combined)"
 echo "  ✅ 47: STORE_ATTR Class (C.x = v) — type object setattr, LOAD_ATTR(C, \"x\") → v"
 echo "  ✅ 48: DELETE_ATTR Bytecode Integration (del obj.x / del C.x)"
+echo "  ✅ 49: BINARY_OP(122) Bytecode Integration (NB_ADD/NB_SUBTRACT/NB_MULTIPLY, unsupported→TypeError)"
+echo "  ✅ 50: Ceval LOAD_GLOBAL Opcode (CPython 3.11 opcode 116: globals+builtins only)"
+echo "  ✅ 51: Ceval LOAD_GLOBAL Integration (bytecode + len(\"hello\") + ignore locals)"
+echo "  ✅ 52: LOAD_FAST / STORE_FAST Opcode (f_fastlocals, referenced before assignment)"
+echo "  ✅ 53: LOAD_FAST / STORE_FAST Integration (x=1; return x, a+b, frame isolation)"
 echo ""
-echo "Total: 48 test suites passed ✨"
+echo "Total: 53 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

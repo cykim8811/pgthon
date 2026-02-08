@@ -114,6 +114,8 @@ BEGIN
                 PERFORM public.py_opcode_BINARY_SUBTRACT(frame_id);
             WHEN 20 THEN
                 PERFORM public.py_opcode_BINARY_MULTIPLY(frame_id);
+            WHEN 122 THEN
+                PERFORM public.py_opcode_BINARY_OP(frame_id, arg);
             WHEN 102 THEN
                 PERFORM public.py_opcode_BUILD_TUPLE(frame_id, arg);
             WHEN 103 THEN

@@ -639,6 +639,16 @@ else
     exit 1
 fi
 
+# 57. COPY(120) Opcode (CPython 3.11: copy stack[-depth] to top)
+echo "=== Phase 57: Ceval COPY Opcode ==="
+if run_test "supabase/tests/57_ceval_opcode_copy.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ COPY opcode test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -705,8 +715,9 @@ echo "  ✅ 53: LOAD_FAST / STORE_FAST Integration (x=1; return x, a+b, frame is
 echo "  ✅ 54: NOP(9) / JUMP_BACKWARD(140) / DELETE_FAST(126) Opcode (CPython 3.11)"
 echo "  ✅ 55: POP_JUMP_BACKWARD_IF_FALSE(175) / POP_JUMP_BACKWARD_IF_TRUE(176) Opcode (CPython 3.11)"
 echo "  ✅ 56: DELETE_GLOBAL(98) Opcode (CPython 3.11: del globals[name], NameError if missing)"
+echo "  ✅ 57: COPY(120) Opcode (CPython 3.11: copy stack[-depth] to top)"
 echo ""
-echo "Total: 56 test suites passed ✨"
+echo "Total: 57 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

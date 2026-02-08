@@ -54,6 +54,7 @@ opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준
 | 98 | DELETE_GLOBAL | f_globals에서 이름 삭제; 없으면 NameError. 240328. |
 | 175 | POP_JUMP_BACKWARD_IF_FALSE | pop TOS; false면 target instruction offset으로 점프. 240326. |
 | 176 | POP_JUMP_BACKWARD_IF_TRUE | pop TOS; true면 target instruction offset으로 점프. 240327. |
+| 120 | COPY | stack[-depth]를 TOS에 복사(push). depth≥1, 스택 길이≥depth 검사. 240329. |
 
 **⚠️ 이항 연산:** CPython 3.11은 BINARY_ADD(23), BINARY_SUBTRACT(24), BINARY_MULTIPLY(20)를 제거하고 **BINARY_OP(122)** + 하위 opcode로 통합했다. Elytra는 현재 23/24/20을 구현해 두었고, 3.11 컴파일러가 생성하는 바이트코드는 122를 쓰므로 **3.11 생성 바이트코드**를 직접 실행하려면 BINARY_OP(122) 구현이 필요하다.
 
@@ -94,7 +95,7 @@ Elytra는 **97**으로 디스패치하지만, CPython 3.11에서는 **96 = DELET
 | 112 | JUMP_IF_TRUE_OR_POP | 낮음 | |
 | 117 | IS_OP | 낮음 | is / is not. |
 | 118 | CONTAINS_OP | 낮음 | in / not in. |
-| 120 | COPY | 낮음 | 스택 복사. |
+| 120 | COPY | — | ✅ 구현됨 (240329). |
 | 128–129 | POP_JUMP_*_IF_NONE/NOT_NONE | 낮음 | |
 | 133 | BUILD_SLICE | 낮음 | |
 | 135–139, 148 | MAKE_CELL, LOAD_CLOSURE, *DEREF, LOAD_CLASSDEREF | 낮음 | 클로저/자유 변수. |
@@ -162,5 +163,6 @@ docs/CACHE_AND_SPECIALIZED_3_11.md: 먼저 기본 opcode를 채우고, 필요 �
 | NOP(9), JUMP_BACKWARD(140), DELETE_FAST(126) — no-op·backward jump·fast local 삭제 (CPython 3.11) | agent | 완료 |
 | POP_JUMP_BACKWARD_IF_FALSE(175), POP_JUMP_BACKWARD_IF_TRUE(176) — backward 조건 점프 (CPython 3.11) | agent | 완료 |
 | DELETE_GLOBAL(98) — del globals[name], NameError if missing (CPython 3.11) | agent | 완료 |
+| COPY(120) — stack[-depth]를 TOS에 복사 (CPython 3.11) | agent | 완료 |
 
 이 문서는 “어떤 opcode를 구현해야 3.11 지원이 되는지”와 “지금 무엇을 해야 하는지”를 한곳에 정리한 로드맵이다.

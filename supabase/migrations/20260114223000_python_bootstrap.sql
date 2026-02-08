@@ -50,6 +50,7 @@ DECLARE
     ID_BOOL_TYPE   UUID := '00000000-0000-4000-a000-000000000013';
     ID_NOT_IMPLEMENTED_TYPE UUID := '00000000-0000-4000-a000-000000000014';
     ID_NULL_TYPE   UUID := '00000000-0000-4000-a000-000000000015';
+    ID_SLICE_TYPE  UUID := '00000000-0000-4000-a000-000000000016';
 
     -- Singleton IDs
     ID_NONE_OBJ   UUID := '00000000-0000-4000-b000-000000000001';
@@ -84,6 +85,7 @@ DECLARE
     ID_DICT_BOOL_TYPE   UUID := gen_random_uuid();
     ID_DICT_NOT_IMPLEMENTED_TYPE UUID := gen_random_uuid();
     ID_DICT_NULL_TYPE   UUID := gen_random_uuid();
+    ID_DICT_SLICE_TYPE  UUID := gen_random_uuid();
     
     -- Module dict: __builtins__ module's namespace dictionary
     ID_DICT_BUILTINS_MODULE UUID := gen_random_uuid();
@@ -119,6 +121,8 @@ BEGIN
     (ID_NOT_IMPLEMENTED_TYPE, NULL), -- NotImplementedType
     (ID_NULL_TYPE,   NULL),      -- null type (PUSH_NULL stack placeholder)
     (ID_NULL_OBJ,    NULL),      -- null singleton (PUSH_NULL)
+    (ID_SLICE_TYPE,  NULL),      -- slice type
+    (ID_DICT_SLICE_TYPE, NULL),  -- dict for slice type
     (ID_BUILTINS_MODULE, NULL),  -- __builtins__ module
     (ID_TUPLE_BASES_OBJECT, NULL), -- tp_bases tuple: (object,)
     -- Each type object has its own dict for type attributes (tp_dict)
@@ -162,7 +166,8 @@ BEGIN
     (ID_MODULE_TYPE, 'module'),
     (ID_BOOL_TYPE, 'bool'),
     (ID_NOT_IMPLEMENTED_TYPE, 'NotImplementedType'),
-    (ID_NULL_TYPE, 'null');
+    (ID_NULL_TYPE, 'null'),
+    (ID_SLICE_TYPE, 'slice');
 
     -------------------------------------------------------
     -- Phase 3: Resolve Circular References
@@ -171,7 +176,7 @@ BEGIN
     -------------------------------------------------------
     -- All types have 'type' as their ob_type
     UPDATE public.py_object SET ob_type = ID_TYPE_TYPE 
-    WHERE id IN (ID_OBJECT_TYPE, ID_TYPE_TYPE, ID_STR_TYPE, ID_BYTES_TYPE, ID_INT_TYPE, ID_FLOAT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_MODULE_TYPE, ID_BOOL_TYPE, ID_NOT_IMPLEMENTED_TYPE, ID_NULL_TYPE);
+    WHERE id IN (ID_OBJECT_TYPE, ID_TYPE_TYPE, ID_STR_TYPE, ID_BYTES_TYPE, ID_INT_TYPE, ID_FLOAT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_MODULE_TYPE, ID_BOOL_TYPE, ID_NOT_IMPLEMENTED_TYPE, ID_NULL_TYPE, ID_SLICE_TYPE);
     
     -- None instance is a NoneType
     UPDATE public.py_object SET ob_type = ID_NONE_TYPE WHERE id = ID_NONE_OBJ;
@@ -195,7 +200,7 @@ BEGIN
     UPDATE public.py_object SET ob_type = ID_DICT_TYPE 
     WHERE id IN (ID_DICT_OBJECT_TYPE, ID_DICT_TYPE_TYPE, ID_DICT_STR_TYPE, ID_DICT_INT_TYPE, 
                  ID_DICT_FLOAT_TYPE, ID_DICT_LIST_TYPE, ID_DICT_DICT_TYPE, ID_DICT_TUPLE_TYPE, ID_DICT_NONE_TYPE,
-                 ID_DICT_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_DICT_MODULE_TYPE, ID_DICT_BOOL_TYPE, ID_DICT_NOT_IMPLEMENTED_TYPE, ID_DICT_NULL_TYPE, ID_DICT_BUILTINS_MODULE);
+                 ID_DICT_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_DICT_MODULE_TYPE, ID_DICT_BOOL_TYPE, ID_DICT_NOT_IMPLEMENTED_TYPE, ID_DICT_NULL_TYPE, ID_DICT_SLICE_TYPE, ID_DICT_BUILTINS_MODULE);
     
     -- String objects have 'str' as their ob_type
     UPDATE public.py_object SET ob_type = ID_STR_TYPE WHERE id = ID_STR_BUILTINS_MODULE_NAME;
@@ -231,6 +236,7 @@ BEGIN
     (ID_DICT_BOOL_TYPE),   -- dict for bool type
     (ID_DICT_NOT_IMPLEMENTED_TYPE), -- dict for NotImplementedType
     (ID_DICT_NULL_TYPE),   -- dict for null type
+    (ID_DICT_SLICE_TYPE),  -- dict for slice type
     (ID_DICT_BUILTINS_MODULE); -- dict for __builtins__ module
     
     -- Create string object for module name
@@ -250,7 +256,7 @@ BEGIN
     UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_OBJECT WHERE ob_base = ID_TYPE_TYPE;
     -- All other builtin types inherit from object (they share the same tp_bases tuple)
     UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_OBJECT 
-    WHERE ob_base IN (ID_STR_TYPE, ID_INT_TYPE, ID_FLOAT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_MODULE_TYPE, ID_BOOL_TYPE, ID_NOT_IMPLEMENTED_TYPE, ID_NULL_TYPE);
+    WHERE ob_base IN (ID_STR_TYPE, ID_INT_TYPE, ID_FLOAT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_MODULE_TYPE, ID_BOOL_TYPE, ID_NOT_IMPLEMENTED_TYPE, ID_NULL_TYPE, ID_SLICE_TYPE);
 
     -- Set tp_dict for each type object
     -- Each type object has its own dict for storing type attributes (methods, class variables, etc.)
@@ -268,6 +274,7 @@ BEGIN
     UPDATE public.py_type_object SET tp_dict = ID_DICT_BOOL_TYPE WHERE ob_base = ID_BOOL_TYPE;
     UPDATE public.py_type_object SET tp_dict = ID_DICT_NOT_IMPLEMENTED_TYPE WHERE ob_base = ID_NOT_IMPLEMENTED_TYPE;
     UPDATE public.py_type_object SET tp_dict = ID_DICT_NULL_TYPE WHERE ob_base = ID_NULL_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_SLICE_TYPE WHERE ob_base = ID_SLICE_TYPE;
 
     -- Create None Instance
     -- None is a special singleton object in CPython, represented as a PyObject

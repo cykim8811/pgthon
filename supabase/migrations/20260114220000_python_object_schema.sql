@@ -212,6 +212,15 @@ create table public.py_module_object (
   md_name uuid references public.py_object(id) not null
 );
 
+-- 11. py_slice_object (Implements CPython's PySliceObject)
+--     slice(start, stop, step). Used by BUILD_SLICE opcode and BINARY_SUBSCR for slice indexing.
+create table public.py_slice_object (
+  ob_base uuid primary key references public.py_object(id) on delete cascade,
+  ob_start uuid references public.py_object(id),
+  ob_stop uuid references public.py_object(id),
+  ob_step uuid references public.py_object(id)
+);
+
 -- Finalize PyTypeObject relationships
 -- Note: All references point to py_object.id, maintaining CPython's "PyObject*" pointer abstraction.
 -- Type checking (ensuring tp_bases is a tuple and tp_dict is a dict) is done at runtime.
@@ -240,6 +249,7 @@ alter table public.py_bool_object enable row level security;
 alter table public.py_not_implemented_object enable row level security;
 alter table public.py_null_object enable row level security;
 alter table public.py_module_object enable row level security;
+alter table public.py_slice_object enable row level security;
 
 -- Default Policies (Allow authenticated users to read everything for now)
 -- TODO: These policies should be refined as the security model evolves.
@@ -262,3 +272,4 @@ create policy "Authenticated users can view py_bool_object" on public.py_bool_ob
 create policy "Authenticated users can view py_not_implemented_object" on public.py_not_implemented_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_null_object" on public.py_null_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_module_object" on public.py_module_object for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_slice_object" on public.py_slice_object for select using (auth.role() = 'authenticated');

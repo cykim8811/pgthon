@@ -128,6 +128,8 @@ BEGIN
                 PERFORM public.py_opcode_STORE_SUBSCR(frame_id);
             WHEN 61 THEN
                 PERFORM public.py_opcode_DELETE_SUBSCR(frame_id);
+            WHEN 133 THEN
+                PERFORM public.py_opcode_BUILD_SLICE(frame_id, arg);
             WHEN 20 THEN
                 PERFORM public.py_opcode_BINARY_MULTIPLY(frame_id);
             WHEN 122 THEN

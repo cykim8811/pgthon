@@ -130,6 +130,12 @@ BEGIN
                 PERFORM public.py_opcode_BUILD_TUPLE(frame_id, arg);
             WHEN 103 THEN
                 PERFORM public.py_opcode_BUILD_LIST(frame_id, arg);
+            WHEN 82 THEN
+                PERFORM public.py_opcode_LIST_TO_TUPLE(frame_id);
+            WHEN 92 THEN
+                PERFORM public.py_opcode_UNPACK_SEQUENCE(frame_id, arg);
+            WHEN 118 THEN
+                PERFORM public.py_opcode_CONTAINS_OP(frame_id, arg);
             WHEN 106 THEN
                 PERFORM public.py_opcode_LOAD_ATTR(frame_id, arg);
             WHEN 107 THEN
@@ -144,6 +150,10 @@ BEGIN
                 next_i := public.py_opcode_POP_JUMP_FORWARD_IF_FALSE(frame_id, start_i, arg);
             WHEN 115 THEN
                 next_i := public.py_opcode_POP_JUMP_FORWARD_IF_TRUE(frame_id, start_i, arg);
+            WHEN 111 THEN
+                next_i := public.py_opcode_JUMP_IF_FALSE_OR_POP(frame_id, start_i, arg);
+            WHEN 112 THEN
+                next_i := public.py_opcode_JUMP_IF_TRUE_OR_POP(frame_id, start_i, arg);
             WHEN 128 THEN
                 next_i := public.py_opcode_POP_JUMP_FORWARD_IF_NONE(frame_id, start_i, arg);
             WHEN 129 THEN

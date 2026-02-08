@@ -689,6 +689,46 @@ else
     exit 1
 fi
 
+# 62. LIST_TO_TUPLE(82) Opcode (CPython 3.11: list → tuple)
+echo "=== Phase 62: Ceval LIST_TO_TUPLE Opcode ==="
+if run_test "supabase/tests/62_ceval_opcode_list_to_tuple.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ LIST_TO_TUPLE opcode test failed. Cannot continue."
+    exit 1
+fi
+
+# 63. JUMP_IF_FALSE_OR_POP(111) / JUMP_IF_TRUE_OR_POP(112) Opcode (CPython 3.11)
+echo "=== Phase 63: Ceval JUMP_IF_FALSE_OR_POP / JUMP_IF_TRUE_OR_POP Opcode ==="
+if run_test "supabase/tests/63_ceval_opcode_jump_if_false_or_pop.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ JUMP_IF_FALSE_OR_POP/JUMP_IF_TRUE_OR_POP opcode test failed. Cannot continue."
+    exit 1
+fi
+
+# 64. UNPACK_SEQUENCE(92) Opcode (CPython 3.11: unpack tuple/list to stack)
+echo "=== Phase 64: Ceval UNPACK_SEQUENCE Opcode ==="
+if run_test "supabase/tests/64_ceval_opcode_unpack_sequence.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ UNPACK_SEQUENCE opcode test failed. Cannot continue."
+    exit 1
+fi
+
+# 65. CONTAINS_OP(118) Opcode (CPython 3.11: in / not in)
+echo "=== Phase 65: Ceval CONTAINS_OP Opcode ==="
+if run_test "supabase/tests/65_ceval_opcode_contains_op.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ CONTAINS_OP opcode test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -760,8 +800,12 @@ echo "  ✅ 58: POP_JUMP_BACKWARD_IF_NONE(173) / POP_JUMP_BACKWARD_IF_NOT_NONE(1
 echo "  ✅ 59: UNARY_NOT(12) Opcode (CPython 3.11: not x → True/False)"
 echo "  ✅ 60: IS_OP(117) Opcode (CPython 3.11: is / is not, identity comparison)"
 echo "  ✅ 61: POP_JUMP_FORWARD_IF_NONE(128) / POP_JUMP_FORWARD_IF_NOT_NONE(129) Opcode (CPython 3.11)"
+echo "  ✅ 62: LIST_TO_TUPLE(82) Opcode (CPython 3.11: list → tuple)"
+echo "  ✅ 63: JUMP_IF_FALSE_OR_POP(111) / JUMP_IF_TRUE_OR_POP(112) Opcode (CPython 3.11)"
+echo "  ✅ 64: UNPACK_SEQUENCE(92) Opcode (CPython 3.11: unpack tuple/list to stack)"
+echo "  ✅ 65: CONTAINS_OP(118) Opcode (CPython 3.11: in / not in)"
 echo ""
-echo "Total: 61 test suites passed ✨"
+echo "Total: 65 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

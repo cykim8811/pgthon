@@ -61,6 +61,11 @@ opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준
 | 117 | IS_OP | oparg 0 = "is" (push True if left is right), oparg 1 = "is not". Identity = same object (UUID). 240333. |
 | 128 | POP_JUMP_FORWARD_IF_NONE | pop TOS; TOS가 None이면 forward jump (current+2+oparg*2). 240334. |
 | 129 | POP_JUMP_FORWARD_IF_NOT_NONE | pop TOS; TOS가 not None이면 forward jump (current+2+oparg*2). 240335. |
+| 82 | LIST_TO_TUPLE | pop TOS(list); push tuple(동일 요소). 240336. |
+| 111 | JUMP_IF_FALSE_OR_POP | TOS false → jump(leave TOS); else pop. 240337. |
+| 112 | JUMP_IF_TRUE_OR_POP | TOS true → jump(leave TOS); else pop. 240338. |
+| 92 | UNPACK_SEQUENCE | pop TOS(tuple/list); push count elements (first at stack[-count], last at TOS). 240339. |
+| 118 | CONTAINS_OP | oparg 0 = "in", 1 = "not in". container, item → bool. tuple/list 지원. 240340. |
 
 **⚠️ 이항 연산:** CPython 3.11은 BINARY_ADD(23), BINARY_SUBTRACT(24), BINARY_MULTIPLY(20)를 제거하고 **BINARY_OP(122)** + 하위 opcode로 통합했다. Elytra는 현재 23/24/20을 구현해 두었고, 3.11 컴파일러가 생성하는 바이트코드는 122를 쓰므로 **3.11 생성 바이트코드**를 직접 실행하려면 BINARY_OP(122) 구현이 필요하다.
 
@@ -92,22 +97,22 @@ Elytra는 **97**으로 디스패치하지만, CPython 3.11에서는 **96 = DELET
 | 25 | BINARY_SUBSCR | 중 | obj[key]. |
 | 60 | STORE_SUBSCR | 낮음 | obj[key]=v. |
 | 61 | DELETE_SUBSCR | 낮음 | |
-| 92 | UNPACK_SEQUENCE | 중 | 튜플/리스트 언패킹. |
+| 92 | UNPACK_SEQUENCE | — | ✅ 구현됨 (240339). tuple/list → stack. |
 | 104 | BUILD_SET | 낮음 | |
 | 105 | BUILD_MAP | 중 | dict 리터럴. |
 | 108 | IMPORT_NAME | 낮음 | |
 | 109 | IMPORT_FROM | 낮음 | |
-| 111 | JUMP_IF_FALSE_OR_POP | 낮음 | |
-| 112 | JUMP_IF_TRUE_OR_POP | 낮음 | |
+| 111 | JUMP_IF_FALSE_OR_POP | — | ✅ 구현됨 (240337). |
+| 112 | JUMP_IF_TRUE_OR_POP | — | ✅ 구현됨 (240338). |
 | 117 | IS_OP | — | ✅ 구현됨 (240333). oparg 0=is, 1=is not. |
-| 118 | CONTAINS_OP | 낮음 | in / not in. |
+| 118 | CONTAINS_OP | — | ✅ 구현됨 (240340). tuple/list. |
 | 120 | COPY | — | ✅ 구현됨 (240329). |
 | 128–129 | POP_JUMP_FORWARD_IF_NONE/NOT_NONE | — | 128, 129 ✅ 구현됨 (240334, 240335). |
 | 133 | BUILD_SLICE | 낮음 | |
 | 135–139, 148 | MAKE_CELL, LOAD_CLOSURE, *DEREF, LOAD_CLASSDEREF | 낮음 | 클로저/자유 변수. |
 | 140 | JUMP_BACKWARD | — | ✅ 구현됨 (oparg = target instruction offset). |
 | 173–176 | POP_JUMP_BACKWARD_* | — | 173, 174 ✅ 구현됨 (240330, 240331). 175, 176 ✅ 구현됨 (240326, 240327). |
-| 82 | LIST_TO_TUPLE | 낮음 | |
+| 82 | LIST_TO_TUPLE | — | ✅ 구현됨 (240336). |
 | 84–88 | IMPORT_STAR, SETUP_ANNOTATIONS, YIELD_VALUE 등 | 낮음 | 모듈/제너레이터. |
 
 ---
@@ -174,5 +179,9 @@ docs/CACHE_AND_SPECIALIZED_3_11.md: 먼저 기본 opcode를 채우고, 필요 �
 | UNARY_NOT(12) — not x → True/False (CPython 3.11) | agent | 완료 |
 | IS_OP(117) — is / is not, identity comparison (CPython 3.11) | agent | 완료 |
 | POP_JUMP_FORWARD_IF_NONE(128), POP_JUMP_FORWARD_IF_NOT_NONE(129) — forward None 조건 점프 (CPython 3.11) | agent | 완료 |
+| LIST_TO_TUPLE(82) — list → tuple (CPython 3.11) | agent | 완료 |
+| JUMP_IF_FALSE_OR_POP(111), JUMP_IF_TRUE_OR_POP(112) — jump or pop (CPython 3.11) | agent | 완료 |
+| UNPACK_SEQUENCE(92) — tuple/list unpack to stack (CPython 3.11) | agent | 완료 |
+| CONTAINS_OP(118) — in / not in (tuple, list) (CPython 3.11) | agent | 완료 |
 
 이 문서는 “어떤 opcode를 구현해야 3.11 지원이 되는지”와 “지금 무엇을 해야 하는지”를 한곳에 정리한 로드맵이다.

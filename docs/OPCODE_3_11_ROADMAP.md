@@ -141,4 +141,12 @@ docs/CACHE_AND_SPECIALIZED_3_11.md: 먼저 기본 opcode를 채우고, 필요 �
 - **코드 객체 필드:** docs/CODE_OBJECT_3_11.md.  
 - **캐시·특수 opcode:** docs/CACHE_AND_SPECIALIZED_3_11.md.
 
+---
+
+## 6. 진행 중 / 완료 체크
+
+| 작업 | 담당 | 상태 |
+|------|------|------|
+| DELETE_ATTR 96, STORE_GLOBAL 97 (eval_frame·테스트·신규 STORE_GLOBAL) | agent | 완료 |
+
 이 문서는 “어떤 opcode를 구현해야 3.11 지원이 되는지”와 “지금 무엇을 해야 하는지”를 한곳에 정리한 로드맵이다.

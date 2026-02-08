@@ -1,5 +1,5 @@
 -- ============================================================================
--- Migration: Opcode DELETE_ATTR (97) — 240317 (opcode block)
+-- Migration: Opcode DELETE_ATTR (96 in CPython 3.11) — 240317 (opcode block)
 -- Design: docs/DELETE_ATTR_DESIGN.md §3.3. Stack: TOS = owner, pop then delattr(owner, name).
 -- ============================================================================
 CREATE OR REPLACE FUNCTION public.py_opcode_DELETE_ATTR(frame_id UUID, name_index INTEGER)

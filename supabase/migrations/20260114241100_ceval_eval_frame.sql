@@ -96,8 +96,10 @@ BEGIN
                 PERFORM public.py_opcode_STORE_NAME(frame_id, arg);
             WHEN 95 THEN
                 PERFORM public.py_opcode_STORE_ATTR(frame_id, arg);
-            WHEN 97 THEN
+            WHEN 96 THEN
                 PERFORM public.py_opcode_DELETE_ATTR(frame_id, arg);
+            WHEN 97 THEN
+                PERFORM public.py_opcode_STORE_GLOBAL(frame_id, arg);
             WHEN 23 THEN
                 PERFORM public.py_opcode_BINARY_ADD(frame_id);
             WHEN 24 THEN

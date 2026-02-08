@@ -575,7 +575,7 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[inst_id]);
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006100', 'hex'));
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006000', 'hex'));
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars)

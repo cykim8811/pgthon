@@ -2,7 +2,7 @@
 -- Test: DELETE_ATTR Bytecode Integration (del obj.x / del C.x)
 --
 -- Purpose:
---   DELETE_ATTR(97) opcode 검증. CPython: TOS = owner, pop 후 delattr(owner, name).
+--   DELETE_ATTR(96 in CPython 3.11) opcode 검증. CPython: TOS = owner, pop 후 delattr(owner, name).
 --   - Instance: obj.x = 42, bytecode DELETE_ATTR("x"), getattr(obj,"x") → AttributeError
 --   - Class: C.x = 42, bytecode DELETE_ATTR on C ("x"), getattr(C,"x") → AttributeError
 --   - Delete non-existent attribute → AttributeError
@@ -109,8 +109,8 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[inst_id]);
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    -- LOAD_CONST 0 (inst), DELETE_ATTR 0 ("x") — opcode 97 = 0x61
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006100', 'hex'));
+    -- LOAD_CONST 0 (inst), DELETE_ATTR 0 ("x") — opcode 96 = 0x60 (CPython 3.11)
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006000', 'hex'));
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars)
@@ -167,7 +167,7 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[type_c_id]);
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006100', 'hex'));
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006000', 'hex'));
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars)
@@ -221,7 +221,7 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[inst_id]);
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006100', 'hex'));
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64006000', 'hex'));
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars)

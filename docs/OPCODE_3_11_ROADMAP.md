@@ -52,6 +52,8 @@ opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준
 | 126 | DELETE_FAST | f_fastlocals[var_num] → NULL; 스택 미사용. 240325. |
 | 140 | JUMP_BACKWARD | oparg = 목적지 instruction offset (bytes = arg*2). eval_frame 인라인. |
 | 98 | DELETE_GLOBAL | f_globals에서 이름 삭제; 없으면 NameError. 240328. |
+| 173 | POP_JUMP_BACKWARD_IF_NONE | pop TOS; TOS가 None이면 target instruction offset으로 점프. 240330. |
+| 174 | POP_JUMP_BACKWARD_IF_NOT_NONE | pop TOS; TOS가 not None이면 target instruction offset으로 점프. 240331. |
 | 175 | POP_JUMP_BACKWARD_IF_FALSE | pop TOS; false면 target instruction offset으로 점프. 240326. |
 | 176 | POP_JUMP_BACKWARD_IF_TRUE | pop TOS; true면 target instruction offset으로 점프. 240327. |
 | 120 | COPY | stack[-depth]를 TOS에 복사(push). depth≥1, 스택 길이≥depth 검사. 240329. |
@@ -100,7 +102,7 @@ Elytra는 **97**으로 디스패치하지만, CPython 3.11에서는 **96 = DELET
 | 133 | BUILD_SLICE | 낮음 | |
 | 135–139, 148 | MAKE_CELL, LOAD_CLOSURE, *DEREF, LOAD_CLASSDEREF | 낮음 | 클로저/자유 변수. |
 | 140 | JUMP_BACKWARD | — | ✅ 구현됨 (oparg = target instruction offset). |
-| 173–176 | POP_JUMP_BACKWARD_* | — | 175, 176 ✅ 구현됨 (240326, 240327). 173, 174 미구현. |
+| 173–176 | POP_JUMP_BACKWARD_* | — | 173, 174 ✅ 구현됨 (240330, 240331). 175, 176 ✅ 구현됨 (240326, 240327). |
 | 82 | LIST_TO_TUPLE | 낮음 | |
 | 84–88 | IMPORT_STAR, SETUP_ANNOTATIONS, YIELD_VALUE 등 | 낮음 | 모듈/제너레이터. |
 
@@ -164,5 +166,6 @@ docs/CACHE_AND_SPECIALIZED_3_11.md: 먼저 기본 opcode를 채우고, 필요 �
 | POP_JUMP_BACKWARD_IF_FALSE(175), POP_JUMP_BACKWARD_IF_TRUE(176) — backward 조건 점프 (CPython 3.11) | agent | 완료 |
 | DELETE_GLOBAL(98) — del globals[name], NameError if missing (CPython 3.11) | agent | 완료 |
 | COPY(120) — stack[-depth]를 TOS에 복사 (CPython 3.11) | agent | 완료 |
+| POP_JUMP_BACKWARD_IF_NONE(173), POP_JUMP_BACKWARD_IF_NOT_NONE(174) — backward None 조건 점프 (CPython 3.11) | agent | 완료 |
 
 이 문서는 “어떤 opcode를 구현해야 3.11 지원이 되는지”와 “지금 무엇을 해야 하는지”를 한곳에 정리한 로드맵이다.

@@ -759,6 +759,16 @@ else
     exit 1
 fi
 
+# 69. DELETE_SUBSCR(61) Opcode (CPython 3.11: del obj[key] — list, dict; tuple→TypeError)
+echo "=== Phase 69: Ceval DELETE_SUBSCR Opcode ==="
+if run_test "supabase/tests/69_ceval_opcode_delete_subscr.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ DELETE_SUBSCR opcode test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -837,8 +847,9 @@ echo "  ✅ 65: CONTAINS_OP(118) Opcode (CPython 3.11: in / not in)"
 echo "  ✅ 66: BUILD_MAP(105) Opcode (CPython 3.11: build dict from stack)"
 echo "  ✅ 67: BINARY_SUBSCR(25) Opcode (CPython 3.11: obj[key] — tuple, list, dict)"
 echo "  ✅ 68: STORE_SUBSCR(60) Opcode (CPython 3.11: obj[key]=value — list, dict)"
+echo "  ✅ 69: DELETE_SUBSCR(61) Opcode (CPython 3.11: del obj[key] — list, dict)"
 echo ""
-echo "Total: 68 test suites passed ✨"
+echo "Total: 69 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

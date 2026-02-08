@@ -66,6 +66,7 @@ opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준
 | 112 | JUMP_IF_TRUE_OR_POP | TOS true → jump(leave TOS); else pop. 240338. |
 | 92 | UNPACK_SEQUENCE | pop TOS(tuple/list); push count elements (first at stack[-count], last at TOS). 240339. |
 | 118 | CONTAINS_OP | oparg 0 = "in", 1 = "not in". container, item → bool. tuple/list 지원. 240340. |
+| 105 | BUILD_MAP | pop 2*count (key, value per pair; TOS=key). 새 dict push. 240341. |
 
 **⚠️ 이항 연산:** CPython 3.11은 BINARY_ADD(23), BINARY_SUBTRACT(24), BINARY_MULTIPLY(20)를 제거하고 **BINARY_OP(122)** + 하위 opcode로 통합했다. Elytra는 현재 23/24/20을 구현해 두었고, 3.11 컴파일러가 생성하는 바이트코드는 122를 쓰므로 **3.11 생성 바이트코드**를 직접 실행하려면 BINARY_OP(122) 구현이 필요하다.
 
@@ -99,7 +100,7 @@ Elytra는 **97**으로 디스패치하지만, CPython 3.11에서는 **96 = DELET
 | 61 | DELETE_SUBSCR | 낮음 | |
 | 92 | UNPACK_SEQUENCE | — | ✅ 구현됨 (240339). tuple/list → stack. |
 | 104 | BUILD_SET | 낮음 | |
-| 105 | BUILD_MAP | 중 | dict 리터럴. |
+| 105 | BUILD_MAP | — | ✅ 구현됨 (240341). dict 리터럴. |
 | 108 | IMPORT_NAME | 낮음 | |
 | 109 | IMPORT_FROM | 낮음 | |
 | 111 | JUMP_IF_FALSE_OR_POP | — | ✅ 구현됨 (240337). |
@@ -183,5 +184,6 @@ docs/CACHE_AND_SPECIALIZED_3_11.md: 먼저 기본 opcode를 채우고, 필요 �
 | JUMP_IF_FALSE_OR_POP(111), JUMP_IF_TRUE_OR_POP(112) — jump or pop (CPython 3.11) | agent | 완료 |
 | UNPACK_SEQUENCE(92) — tuple/list unpack to stack (CPython 3.11) | agent | 완료 |
 | CONTAINS_OP(118) — in / not in (tuple, list) (CPython 3.11) | agent | 완료 |
+| BUILD_MAP(105) — build dict from stack (CPython 3.11) | agent | 완료 |
 
 이 문서는 “어떤 opcode를 구현해야 3.11 지원이 되는지”와 “지금 무엇을 해야 하는지”를 한곳에 정리한 로드맵이다.

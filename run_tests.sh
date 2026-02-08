@@ -729,6 +729,16 @@ else
     exit 1
 fi
 
+# 66. BUILD_MAP(105) Opcode (CPython 3.11: build dict from stack)
+echo "=== Phase 66: Ceval BUILD_MAP Opcode ==="
+if run_test "supabase/tests/66_ceval_opcode_build_map.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ BUILD_MAP opcode test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -804,8 +814,9 @@ echo "  ✅ 62: LIST_TO_TUPLE(82) Opcode (CPython 3.11: list → tuple)"
 echo "  ✅ 63: JUMP_IF_FALSE_OR_POP(111) / JUMP_IF_TRUE_OR_POP(112) Opcode (CPython 3.11)"
 echo "  ✅ 64: UNPACK_SEQUENCE(92) Opcode (CPython 3.11: unpack tuple/list to stack)"
 echo "  ✅ 65: CONTAINS_OP(118) Opcode (CPython 3.11: in / not in)"
+echo "  ✅ 66: BUILD_MAP(105) Opcode (CPython 3.11: build dict from stack)"
 echo ""
-echo "Total: 65 test suites passed ✨"
+echo "Total: 66 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

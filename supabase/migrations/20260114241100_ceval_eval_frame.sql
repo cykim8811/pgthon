@@ -130,6 +130,8 @@ BEGIN
                 PERFORM public.py_opcode_BUILD_TUPLE(frame_id, arg);
             WHEN 103 THEN
                 PERFORM public.py_opcode_BUILD_LIST(frame_id, arg);
+            WHEN 105 THEN
+                PERFORM public.py_opcode_BUILD_MAP(frame_id, arg);
             WHEN 82 THEN
                 PERFORM public.py_opcode_LIST_TO_TUPLE(frame_id);
             WHEN 92 THEN

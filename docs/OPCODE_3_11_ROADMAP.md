@@ -150,5 +150,7 @@ docs/CACHE_AND_SPECIALIZED_3_11.md: 먼저 기본 opcode를 채우고, 필요 �
 | DELETE_ATTR 96, STORE_GLOBAL 97 (eval_frame·테스트·신규 STORE_GLOBAL) | agent | 완료 |
 | PUSH_NULL(2) — 호출 규약 Phase 3 (NULL 싱글턴·opcode·CALL 연동) | agent-blue-seven-quick-fox | 완료 |
 | RESUME(151) — no-op, 3.11 바이트코드 맨 앞 대응 | agent-blue-seven-quick-fox | 완료 |
+| LOAD_FAST(124), STORE_FAST(125) — 빠른 로컬 슬롯·opcode·eval_frame | agent-amber-five-bold-hawk | 완료 |
+| LOAD_GLOBAL(116) — globals+builtins, opcode·eval_frame | agent-silver-three-swift-wolf | 진행 중 |
 
 이 문서는 “어떤 opcode를 구현해야 3.11 지원이 되는지”와 “지금 무엇을 해야 하는지”를 한곳에 정리한 로드맵이다.

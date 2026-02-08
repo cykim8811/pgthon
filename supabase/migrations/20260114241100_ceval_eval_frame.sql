@@ -87,6 +87,12 @@ BEGIN
                 PERFORM public.py_opcode_LOAD_CONST(frame_id, arg);
             WHEN 101 THEN
                 PERFORM public.py_opcode_LOAD_NAME(frame_id, arg);
+            WHEN 116 THEN
+                PERFORM public.py_opcode_LOAD_GLOBAL(frame_id, arg);
+            WHEN 124 THEN
+                PERFORM public.py_opcode_LOAD_FAST(frame_id, arg);
+            WHEN 125 THEN
+                PERFORM public.py_opcode_STORE_FAST(frame_id, arg);
             WHEN 166 THEN
                 PERFORM public.py_opcode_PRECALL(frame_id, arg);
             WHEN 171 THEN

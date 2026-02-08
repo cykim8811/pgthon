@@ -282,6 +282,11 @@ create table public.py_frame_object (
   -- and pop results from it.
   f_valuestack uuid[] default array[]::uuid[],
   
+  -- f_fastlocals: Fast local variable slots (co_varnames index → PyObject ID)
+  -- CPython 3.11: LOAD_FAST/STORE_FAST use this array by index, not f_locals dict lookup.
+  -- 1-based indexing: slot for var_num is f_fastlocals[var_num + 1]. Extended on demand by STORE_FAST.
+  f_fastlocals uuid[] default array[]::uuid[],
+  
   -- f_lasti: Last instruction executed (byte offset)
   -- Byte offset of the last bytecode instruction that was executed. Used to track
   -- execution progress and for exception handling. -1 means no instruction executed yet.

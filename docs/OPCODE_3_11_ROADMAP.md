@@ -51,6 +51,9 @@ opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준
 | 9 | NOP | no-op; f_lasti 갱신 (CACHE 0과 구분). eval_frame 인라인. |
 | 126 | DELETE_FAST | f_fastlocals[var_num] → NULL; 스택 미사용. 240325. |
 | 140 | JUMP_BACKWARD | oparg = 목적지 instruction offset (bytes = arg*2). eval_frame 인라인. |
+| 98 | DELETE_GLOBAL | f_globals에서 이름 삭제; 없으면 NameError. 240328. |
+| 175 | POP_JUMP_BACKWARD_IF_FALSE | pop TOS; false면 target instruction offset으로 점프. 240326. |
+| 176 | POP_JUMP_BACKWARD_IF_TRUE | pop TOS; true면 target instruction offset으로 점프. 240327. |
 
 **⚠️ 이항 연산:** CPython 3.11은 BINARY_ADD(23), BINARY_SUBTRACT(24), BINARY_MULTIPLY(20)를 제거하고 **BINARY_OP(122)** + 하위 opcode로 통합했다. Elytra는 현재 23/24/20을 구현해 두었고, 3.11 컴파일러가 생성하는 바이트코드는 122를 쓰므로 **3.11 생성 바이트코드**를 직접 실행하려면 BINARY_OP(122) 구현이 필요하다.
 
@@ -68,7 +71,7 @@ Elytra는 **97**으로 디스패치하지만, CPython 3.11에서는 **96 = DELET
 | 151 | RESUME | 중 | 함수 진입 시 no-op. 3.11 컴파일러가 맨 앞에 넣음. |
 | 96 | DELETE_ATTR | 높음 | 3.11은 96. Elytra는 현재 97에 DELETE_ATTR 매핑 → 96으로 옮기고 97은 STORE_GLOBAL. |
 | 97 | STORE_GLOBAL | 중 | 3.11에서 97. 전역 이름 저장. |
-| 98 | DELETE_GLOBAL | 낮음 | |
+| 98 | DELETE_GLOBAL | — | ✅ 구현됨 (240328). |
 | 124 | LOAD_FAST | 높음 | 로컬 변수 인덱스. 3.11 기본 로딩. |
 | 125 | STORE_FAST | 높음 | |
 | 126 | DELETE_FAST | — | ✅ 구현됨 (240325). |
@@ -96,7 +99,7 @@ Elytra는 **97**으로 디스패치하지만, CPython 3.11에서는 **96 = DELET
 | 133 | BUILD_SLICE | 낮음 | |
 | 135–139, 148 | MAKE_CELL, LOAD_CLOSURE, *DEREF, LOAD_CLASSDEREF | 낮음 | 클로저/자유 변수. |
 | 140 | JUMP_BACKWARD | — | ✅ 구현됨 (oparg = target instruction offset). |
-| 173–176 | POP_JUMP_BACKWARD_* | 낮음 | |
+| 173–176 | POP_JUMP_BACKWARD_* | — | 175, 176 ✅ 구현됨 (240326, 240327). 173, 174 미구현. |
 | 82 | LIST_TO_TUPLE | 낮음 | |
 | 84–88 | IMPORT_STAR, SETUP_ANNOTATIONS, YIELD_VALUE 등 | 낮음 | 모듈/제너레이터. |
 
@@ -157,5 +160,7 @@ docs/CACHE_AND_SPECIALIZED_3_11.md: 먼저 기본 opcode를 채우고, 필요 �
 | LOAD_GLOBAL(116) — globals+builtins, opcode·eval_frame | agent-silver-three-swift-wolf | 완료 |
 | BINARY_OP(122) — 3.11 이항 연산 통합 (NB_* 디스패치) | agent-crimson-nine-nimble-otter | 완료 |
 | NOP(9), JUMP_BACKWARD(140), DELETE_FAST(126) — no-op·backward jump·fast local 삭제 (CPython 3.11) | agent | 완료 |
+| POP_JUMP_BACKWARD_IF_FALSE(175), POP_JUMP_BACKWARD_IF_TRUE(176) — backward 조건 점프 (CPython 3.11) | agent | 완료 |
+| DELETE_GLOBAL(98) — del globals[name], NameError if missing (CPython 3.11) | agent | 완료 |
 
 이 문서는 “어떤 opcode를 구현해야 3.11 지원이 되는지”와 “지금 무엇을 해야 하는지”를 한곳에 정리한 로드맵이다.

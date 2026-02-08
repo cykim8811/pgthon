@@ -112,6 +112,8 @@ BEGIN
                 PERFORM public.py_opcode_DELETE_ATTR(frame_id, arg);
             WHEN 97 THEN
                 PERFORM public.py_opcode_STORE_GLOBAL(frame_id, arg);
+            WHEN 98 THEN
+                PERFORM public.py_opcode_DELETE_GLOBAL(frame_id, arg);
             WHEN 23 THEN
                 PERFORM public.py_opcode_BINARY_ADD(frame_id);
             WHEN 24 THEN

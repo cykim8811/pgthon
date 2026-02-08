@@ -44,7 +44,9 @@ create table public.py_number_methods (
   nb_absolute regproc,
   nb_add regproc,
   nb_subtract regproc,
-  nb_multiply regproc
+  nb_multiply regproc,
+  nb_negative regproc,
+  nb_positive regproc
 );
 
 -- 2. py_type_object (Implements CPython's PyTypeObject: defines types)

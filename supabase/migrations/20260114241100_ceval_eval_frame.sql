@@ -116,6 +116,10 @@ BEGIN
                 PERFORM public.py_opcode_DELETE_GLOBAL(frame_id, arg);
             WHEN 120 THEN
                 PERFORM public.py_opcode_COPY(frame_id, arg);
+            WHEN 10 THEN
+                PERFORM public.py_opcode_UNARY_POSITIVE(frame_id);
+            WHEN 11 THEN
+                PERFORM public.py_opcode_UNARY_NEGATIVE(frame_id);
             WHEN 12 THEN
                 PERFORM public.py_opcode_UNARY_NOT(frame_id);
             WHEN 23 THEN

@@ -789,6 +789,25 @@ else
     exit 1
 fi
 
+# 72. UNARY_NEGATIVE(11) Opcode (CPython 3.11: -x via nb_negative)
+echo "=== Phase 72: Ceval UNARY_NEGATIVE Opcode ==="
+if run_test "supabase/tests/72_ceval_opcode_unary_negative.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ UNARY_NEGATIVE opcode test failed. Cannot continue."
+    exit 1
+fi
+
+echo "=== Phase 73: Ceval UNARY_POSITIVE Opcode ==="
+if run_test "supabase/tests/73_ceval_opcode_unary_positive.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ UNARY_POSITIVE opcode test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -870,8 +889,10 @@ echo "  ✅ 68: STORE_SUBSCR(60) Opcode (CPython 3.11: obj[key]=value — list, 
 echo "  ✅ 69: DELETE_SUBSCR(61) Opcode (CPython 3.11: del obj[key] — list, dict)"
 echo "  ✅ 70: BUILD_SLICE(133) Opcode (CPython 3.11: slice(start, stop [, step]))"
 echo "  ✅ 71: MAKE_FUNCTION(132) Opcode (CPython 3.11: def statement + user function call)"
+echo "  ✅ 72: UNARY_NEGATIVE(11) Opcode (CPython 3.11: -x via nb_negative)"
+echo "  ✅ 73: UNARY_POSITIVE(10) Opcode (CPython 3.11: +x via nb_positive)"
 echo ""
-echo "Total: 71 test suites passed ✨"
+echo "Total: 73 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

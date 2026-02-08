@@ -144,6 +144,10 @@ BEGIN
                 next_i := public.py_opcode_POP_JUMP_FORWARD_IF_FALSE(frame_id, start_i, arg);
             WHEN 115 THEN
                 next_i := public.py_opcode_POP_JUMP_FORWARD_IF_TRUE(frame_id, start_i, arg);
+            WHEN 128 THEN
+                next_i := public.py_opcode_POP_JUMP_FORWARD_IF_NONE(frame_id, start_i, arg);
+            WHEN 129 THEN
+                next_i := public.py_opcode_POP_JUMP_FORWARD_IF_NOT_NONE(frame_id, start_i, arg);
             WHEN 173 THEN
                 next_i := public.py_opcode_POP_JUMP_BACKWARD_IF_NONE(frame_id, arg);
             WHEN 174 THEN

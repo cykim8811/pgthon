@@ -679,6 +679,16 @@ else
     exit 1
 fi
 
+# 61. POP_JUMP_FORWARD_IF_NONE(128) / POP_JUMP_FORWARD_IF_NOT_NONE(129) Opcode (CPython 3.11)
+echo "=== Phase 61: Ceval POP_JUMP_FORWARD IF_NONE/IF_NOT_NONE Opcode ==="
+if run_test "supabase/tests/61_ceval_opcode_pop_jump_forward_if_none.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ POP_JUMP_FORWARD IF_NONE/IF_NOT_NONE opcode test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -749,8 +759,9 @@ echo "  ✅ 57: COPY(120) Opcode (CPython 3.11: copy stack[-depth] to top)"
 echo "  ✅ 58: POP_JUMP_BACKWARD_IF_NONE(173) / POP_JUMP_BACKWARD_IF_NOT_NONE(174) Opcode (CPython 3.11)"
 echo "  ✅ 59: UNARY_NOT(12) Opcode (CPython 3.11: not x → True/False)"
 echo "  ✅ 60: IS_OP(117) Opcode (CPython 3.11: is / is not, identity comparison)"
+echo "  ✅ 61: POP_JUMP_FORWARD_IF_NONE(128) / POP_JUMP_FORWARD_IF_NOT_NONE(129) Opcode (CPython 3.11)"
 echo ""
-echo "Total: 60 test suites passed ✨"
+echo "Total: 61 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

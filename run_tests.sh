@@ -739,6 +739,26 @@ else
     exit 1
 fi
 
+# 67. BINARY_SUBSCR(25) Opcode (CPython 3.11: obj[key] — tuple, list, dict)
+echo "=== Phase 67: Ceval BINARY_SUBSCR Opcode ==="
+if run_test "supabase/tests/67_ceval_opcode_binary_subscr.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ BINARY_SUBSCR opcode test failed. Cannot continue."
+    exit 1
+fi
+
+# 68. STORE_SUBSCR(60) Opcode (CPython 3.11: obj[key]=value — list, dict; tuple→TypeError)
+echo "=== Phase 68: Ceval STORE_SUBSCR Opcode ==="
+if run_test "supabase/tests/68_ceval_opcode_store_subscr.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ STORE_SUBSCR opcode test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -815,8 +835,10 @@ echo "  ✅ 63: JUMP_IF_FALSE_OR_POP(111) / JUMP_IF_TRUE_OR_POP(112) Opcode (CPy
 echo "  ✅ 64: UNPACK_SEQUENCE(92) Opcode (CPython 3.11: unpack tuple/list to stack)"
 echo "  ✅ 65: CONTAINS_OP(118) Opcode (CPython 3.11: in / not in)"
 echo "  ✅ 66: BUILD_MAP(105) Opcode (CPython 3.11: build dict from stack)"
+echo "  ✅ 67: BINARY_SUBSCR(25) Opcode (CPython 3.11: obj[key] — tuple, list, dict)"
+echo "  ✅ 68: STORE_SUBSCR(60) Opcode (CPython 3.11: obj[key]=value — list, dict)"
 echo ""
-echo "Total: 66 test suites passed ✨"
+echo "Total: 68 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

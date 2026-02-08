@@ -130,3 +130,45 @@ BEGIN
   PERFORM public.py_err_set_object(attribute_error_type_id, inst_id);
 END;
 $$;
+
+-- ----------------------------------------------------------------------------
+-- py_err_set_index_error: set IndexError(message) as current exception
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.py_err_set_index_error(p_message text)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  index_error_type_id uuid := '00000000-0000-4000-a000-000000000028';
+  msg_id uuid;
+  args_id uuid;
+  inst_id uuid := gen_random_uuid();
+BEGIN
+  msg_id := public.py_str_from_text(p_message);
+  args_id := public.py_tuple_from_1(msg_id);
+  INSERT INTO public.py_object (id, ob_type) VALUES (inst_id, index_error_type_id);
+  INSERT INTO public.py_base_exception_object (ob_base, ob_args) VALUES (inst_id, args_id);
+  PERFORM public.py_err_set_object(index_error_type_id, inst_id);
+END;
+$$;
+
+-- ----------------------------------------------------------------------------
+-- py_err_set_key_error: set KeyError(message) as current exception
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.py_err_set_key_error(p_message text)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  key_error_type_id uuid := '00000000-0000-4000-a000-000000000029';
+  msg_id uuid;
+  args_id uuid;
+  inst_id uuid := gen_random_uuid();
+BEGIN
+  msg_id := public.py_str_from_text(p_message);
+  args_id := public.py_tuple_from_1(msg_id);
+  INSERT INTO public.py_object (id, ob_type) VALUES (inst_id, key_error_type_id);
+  INSERT INTO public.py_base_exception_object (ob_base, ob_args) VALUES (inst_id, args_id);
+  PERFORM public.py_err_set_object(key_error_type_id, inst_id);
+END;
+$$;

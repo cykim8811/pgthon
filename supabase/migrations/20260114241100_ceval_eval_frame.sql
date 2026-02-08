@@ -122,6 +122,10 @@ BEGIN
                 PERFORM public.py_opcode_BINARY_ADD(frame_id);
             WHEN 24 THEN
                 PERFORM public.py_opcode_BINARY_SUBTRACT(frame_id);
+            WHEN 25 THEN
+                PERFORM public.py_opcode_BINARY_SUBSCR(frame_id);
+            WHEN 60 THEN
+                PERFORM public.py_opcode_STORE_SUBSCR(frame_id);
             WHEN 20 THEN
                 PERFORM public.py_opcode_BINARY_MULTIPLY(frame_id);
             WHEN 122 THEN

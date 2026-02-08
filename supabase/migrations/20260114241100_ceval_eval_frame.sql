@@ -193,6 +193,8 @@ BEGIN
                 PERFORM public.py_opcode_RERAISE(frame_id);
             WHEN 130 THEN
                 PERFORM public.py_opcode_RAISE_VARARGS(frame_id, arg);
+            WHEN 132 THEN
+                PERFORM public.py_opcode_MAKE_FUNCTION(frame_id, arg);
             ELSE
                 RAISE EXCEPTION 'Unknown opcode: % at byte offset %', opcode, i;
         END CASE;

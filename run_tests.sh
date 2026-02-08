@@ -779,6 +779,16 @@ else
     exit 1
 fi
 
+# 71. MAKE_FUNCTION(132) Opcode + py_call_function (user-defined function def + call)
+echo "=== Phase 71: Ceval MAKE_FUNCTION Opcode ==="
+if run_test "supabase/tests/71_ceval_opcode_make_function.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ MAKE_FUNCTION opcode test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -859,8 +869,9 @@ echo "  ✅ 67: BINARY_SUBSCR(25) Opcode (CPython 3.11: obj[key] — tuple, list
 echo "  ✅ 68: STORE_SUBSCR(60) Opcode (CPython 3.11: obj[key]=value — list, dict)"
 echo "  ✅ 69: DELETE_SUBSCR(61) Opcode (CPython 3.11: del obj[key] — list, dict)"
 echo "  ✅ 70: BUILD_SLICE(133) Opcode (CPython 3.11: slice(start, stop [, step]))"
+echo "  ✅ 71: MAKE_FUNCTION(132) Opcode (CPython 3.11: def statement + user function call)"
 echo ""
-echo "Total: 70 test suites passed ✨"
+echo "Total: 71 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

@@ -30,6 +30,7 @@ RETURNS VOID AS $$
 DECLARE
     ID_STR_TYPE UUID := '00000000-0000-4000-a000-000000000003';
     ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
+    ID_NULL_OBJ UUID := '00000000-0000-4000-b000-000000000030';
     func_obj_id UUID;
     args UUID[];
     kwargs_dict_id UUID;
@@ -43,6 +44,8 @@ DECLARE
     i INTEGER;
     j INTEGER;
     name_ob_type UUID;
+    current_stack uuid[];
+    stack_len INTEGER;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
         RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
@@ -85,6 +88,13 @@ BEGIN
         args := array_prepend(public.py_stack_pop(frame_id), args);
     END LOOP;
     func_obj_id := public.py_stack_pop(frame_id);
+
+    -- CPython 3.11 PUSH_NULL: if TOS is the null placeholder, pop it (bound method call).
+    SELECT f_valuestack INTO current_stack FROM public.py_frame_object WHERE ob_base = frame_id;
+    stack_len := array_length(current_stack, 1);
+    IF stack_len IS NOT NULL AND stack_len >= 1 AND current_stack[stack_len] = ID_NULL_OBJ THEN
+        UPDATE public.py_frame_object SET f_valuestack = current_stack[1:stack_len - 1] WHERE ob_base = frame_id;
+    END IF;
 
     result_id := public.py_object_call(func_obj_id, args, kwargs_dict_id);
 

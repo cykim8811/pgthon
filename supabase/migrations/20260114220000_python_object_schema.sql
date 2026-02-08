@@ -183,6 +183,13 @@ create table public.py_not_implemented_object (
   ob_base uuid primary key references public.py_object(id) on delete cascade
 );
 
+-- 9d. py_null_object (CPython 3.11 PUSH_NULL: stack-only placeholder for calls)
+--     Used by PUSH_NULL(2) for bound method / method call protocol. Not exposed to Python;
+--     distinct from Py_None. Bootstrap creates exactly one row.
+create table public.py_null_object (
+  ob_base uuid primary key references public.py_object(id) on delete cascade
+);
+
 -- 10. py_module_object (Implements CPython's PyModuleObject)
 --     Module objects represent Python modules. Each module has a namespace
 --     dictionary (md_dict) that stores the module's attributes and a name (md_name).
@@ -231,6 +238,7 @@ alter table public.py_instance_object enable row level security;
 alter table public.py_none_object enable row level security;
 alter table public.py_bool_object enable row level security;
 alter table public.py_not_implemented_object enable row level security;
+alter table public.py_null_object enable row level security;
 alter table public.py_module_object enable row level security;
 
 -- Default Policies (Allow authenticated users to read everything for now)
@@ -252,4 +260,5 @@ create policy "Authenticated users can view py_instance_object" on public.py_ins
 create policy "Authenticated users can view py_none_object" on public.py_none_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_bool_object" on public.py_bool_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_not_implemented_object" on public.py_not_implemented_object for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_null_object" on public.py_null_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_module_object" on public.py_module_object for select using (auth.role() = 'authenticated');

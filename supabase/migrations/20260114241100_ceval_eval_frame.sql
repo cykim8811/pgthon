@@ -81,6 +81,8 @@ BEGIN
                 NULL;  -- CACHE (3.11): 2-byte no-op, do not update f_lasti
             WHEN 1 THEN
                 PERFORM public.py_opcode_POP_TOP(frame_id);
+            WHEN 2 THEN
+                PERFORM public.py_opcode_PUSH_NULL(frame_id);
             WHEN 100 THEN
                 PERFORM public.py_opcode_LOAD_CONST(frame_id, arg);
             WHEN 101 THEN
@@ -120,6 +122,8 @@ BEGIN
                 next_i := public.py_opcode_POP_JUMP_FORWARD_IF_FALSE(frame_id, start_i, arg);
             WHEN 115 THEN
                 next_i := public.py_opcode_POP_JUMP_FORWARD_IF_TRUE(frame_id, start_i, arg);
+            WHEN 151 THEN
+                PERFORM public.py_opcode_RESUME(frame_id, arg);
             WHEN 35 THEN
                 PERFORM public.py_opcode_PUSH_EXC_INFO(frame_id);
             WHEN 36 THEN

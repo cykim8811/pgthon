@@ -152,6 +152,8 @@ BEGIN
                 PERFORM public.py_opcode_CONTAINS_OP(frame_id, arg);
             WHEN 106 THEN
                 PERFORM public.py_opcode_LOAD_ATTR(frame_id, arg);
+            WHEN 160 THEN
+                PERFORM public.py_opcode_LOAD_METHOD(frame_id, arg);
             WHEN 107 THEN
                 PERFORM public.py_opcode_COMPARE_OP(frame_id, arg);
             WHEN 117 THEN

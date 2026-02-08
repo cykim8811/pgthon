@@ -76,6 +76,7 @@ opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준
 | 97 | STORE_GLOBAL | globals[name] = value. 240318. |
 | 10 | UNARY_POSITIVE | +x via nb_positive (int/float: same object). 235502·240348. |
 | 11 | UNARY_NEGATIVE | -x via nb_negative (int/float). 235501·240347. |
+| 160 | LOAD_METHOD | pop obj; getattr(obj, name). Bound method → push 1; else → push NULL, push callable. 240349. |
 
 **⚠️ 이항 연산:** CPython 3.11은 BINARY_ADD(23), BINARY_SUBTRACT(24), BINARY_MULTIPLY(20)를 제거하고 **BINARY_OP(122)** + 하위 opcode로 통합했다. Elytra는 현재 23/24/20을 구현해 두었고, 3.11 컴파일러가 생성하는 바이트코드는 122를 쓰므로 **3.11 생성 바이트코드**를 직접 실행하려면 BINARY_OP(122) 구현이 필요하다.
 
@@ -98,7 +99,7 @@ eval_frame에서 **96 = DELETE_ATTR**, **97 = STORE_GLOBAL**로 이미 반영됨
 | 126 | DELETE_FAST | — | ✅ 구현됨 (240325). |
 | 116 | LOAD_GLOBAL | 높음 | globals+builtins. LOAD_NAME과 유사하나 3.11에서 별도. |
 | 122 | BINARY_OP | 중 | 3.11 통합 이항 연산. 하위 opcode로 +, -, * 등. |
-| 160 | LOAD_METHOD | 중 | 메서드 로드(bound/unbound). CALL 전에 사용. |
+| 160 | LOAD_METHOD | — | ✅ 구현됨 (240349). bound → 1 value; slot → NULL + callable. |
 | 142 | CALL_FUNCTION_EX | 낮음 | *args/**kwargs 확장 호출. |
 | 132 | MAKE_FUNCTION | — | ✅ 구현됨 (240346·234100). |
 | 9 | NOP | — | ✅ 구현됨 (eval_frame 인라인). |
@@ -200,5 +201,6 @@ docs/CACHE_AND_SPECIALIZED_3_11.md: 먼저 기본 opcode를 채우고, 필요 �
 | MAKE_FUNCTION(132) — 함수 객체 생성, py_call_function 사용자 정의 함수 호출 (CPython 3.11) | agent | 완료 |
 | UNARY_NEGATIVE(11) — -x via nb_negative (int/float) (CPython 3.11) | agent | 완료 |
 | UNARY_POSITIVE(10) — +x via nb_positive (int/float, same object) (CPython 3.11) | agent | 완료 |
+| LOAD_METHOD(160) — method/slot, push 1 (bound method) or NULL+callable (CPython 3.11) | agent | 완료 |
 
 이 문서는 “어떤 opcode를 구현해야 3.11 지원이 되는지”와 “지금 무엇을 해야 하는지”를 한곳에 정리한 로드맵이다.

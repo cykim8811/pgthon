@@ -808,6 +808,15 @@ else
     exit 1
 fi
 
+echo "=== Phase 74: Ceval LOAD_METHOD Opcode ==="
+if run_test "supabase/tests/74_ceval_opcode_load_method.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ LOAD_METHOD opcode test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -891,8 +900,9 @@ echo "  ✅ 70: BUILD_SLICE(133) Opcode (CPython 3.11: slice(start, stop [, step
 echo "  ✅ 71: MAKE_FUNCTION(132) Opcode (CPython 3.11: def statement + user function call)"
 echo "  ✅ 72: UNARY_NEGATIVE(11) Opcode (CPython 3.11: -x via nb_negative)"
 echo "  ✅ 73: UNARY_POSITIVE(10) Opcode (CPython 3.11: +x via nb_positive)"
+echo "  ✅ 74: LOAD_METHOD(160) Opcode (CPython 3.11: method/slot, 1 or 2 values)"
 echo ""
-echo "Total: 73 test suites passed ✨"
+echo "Total: 74 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

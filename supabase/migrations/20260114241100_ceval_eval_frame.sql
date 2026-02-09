@@ -235,6 +235,20 @@ BEGIN
                 PERFORM public.py_opcode_FORMAT_VALUE(frame_id, arg);
             WHEN 157 THEN
                 PERFORM public.py_opcode_BUILD_STRING(frame_id, arg);
+            WHEN 94 THEN
+                PERFORM public.py_opcode_UNPACK_EX(frame_id, arg);
+            WHEN 142 THEN
+                PERFORM public.py_opcode_CALL_FUNCTION_EX(frame_id, arg);
+            WHEN 156 THEN
+                PERFORM public.py_opcode_BUILD_CONST_KEY_MAP(frame_id, arg);
+            WHEN 162 THEN
+                PERFORM public.py_opcode_LIST_EXTEND(frame_id, arg);
+            WHEN 163 THEN
+                PERFORM public.py_opcode_SET_UPDATE(frame_id, arg);
+            WHEN 164 THEN
+                PERFORM public.py_opcode_DICT_UPDATE(frame_id, arg);
+            WHEN 165 THEN
+                PERFORM public.py_opcode_DICT_MERGE(frame_id, arg);
             ELSE
                 RAISE EXCEPTION 'Unknown opcode: % at byte offset %', opcode, i;
         END CASE;

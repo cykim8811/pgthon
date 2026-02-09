@@ -917,6 +917,16 @@ else
     exit 1
 fi
 
+# 85. Star-Unpacking Opcodes (LIST_EXTEND, SET_UPDATE, DICT_UPDATE, DICT_MERGE, CALL_FUNCTION_EX, UNPACK_EX, BUILD_CONST_KEY_MAP)
+echo "=== Phase 85: Star-Unpacking Opcodes ==="
+if run_test "supabase/tests/85_star_unpacking.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Star-unpacking opcodes test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -1011,8 +1021,9 @@ echo "  ✅ 81: Type Constructors (int/str/float/bool/list/tuple/dict)"
 echo "  ✅ 82: Common Builtins (isinstance, hasattr, getattr, setattr, id)"
 echo "  ✅ 83: Extended Binary/Unary Ops (/, //, %, **, &, |, ^, <<, >>, ~, inplace)"
 echo "  ✅ 84: SWAP, Comprehension Opcodes (BUILD_SET, LIST_APPEND, SET_ADD, MAP_ADD), F-String (FORMAT_VALUE, BUILD_STRING)"
+echo "  ✅ 85: Star-Unpacking Opcodes (LIST_EXTEND, SET_UPDATE, DICT_UPDATE, DICT_MERGE, CALL_FUNCTION_EX, UNPACK_EX, BUILD_CONST_KEY_MAP)"
 echo ""
-echo "Total: 84 test suites passed ✨"
+echo "Total: 85 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

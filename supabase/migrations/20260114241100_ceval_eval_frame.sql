@@ -122,6 +122,8 @@ BEGIN
                 PERFORM public.py_opcode_UNARY_NEGATIVE(frame_id);
             WHEN 12 THEN
                 PERFORM public.py_opcode_UNARY_NOT(frame_id);
+            WHEN 15 THEN
+                PERFORM public.py_opcode_UNARY_INVERT(frame_id);
             WHEN 23 THEN
                 PERFORM public.py_opcode_BINARY_ADD(frame_id);
             WHEN 24 THEN

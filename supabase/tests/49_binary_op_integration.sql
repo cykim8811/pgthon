@@ -218,10 +218,12 @@ BEGIN
     pass_count := pass_count + 1;
 
     -- -------------------------------------------------------------------------
-    -- Test 4: BINARY_OP(1) NB_AND — 미지원 sub-op → TypeError
+    -- Test 4: BINARY_OP(4) NB_MATRIX_MULTIPLY — unsupported sub-op → TypeError
+    -- bytecode: LOAD_CONST(0) LOAD_CONST(1) BINARY_OP(4) RETURN_VALUE
+    --   = 0x6400 6401 7a04 5300
     -- -------------------------------------------------------------------------
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 4: bytecode BINARY_OP(1) unsupported sub-op raises TypeError...';
+    RAISE NOTICE 'Test 4: bytecode BINARY_OP(4) unsupported sub-op raises TypeError...';
     test_count := test_count + 1;
 
     const0_id := gen_random_uuid();
@@ -238,7 +240,7 @@ BEGIN
 
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x640064017a015300'::bytea);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x640064017a045300'::bytea);
 
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
@@ -246,14 +248,14 @@ BEGIN
     PERFORM public.py_err_clear();
     result_id := public.py_eval_frame(frame_id);
     IF result_id IS NOT NULL OR NOT public.py_err_occurred() THEN
-        RAISE EXCEPTION 'FAIL: BINARY_OP(1) should raise TypeError, got result_id=%', result_id;
+        RAISE EXCEPTION 'FAIL: BINARY_OP(4) should raise TypeError, got result_id=%', result_id;
     END IF;
     SELECT g.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() g LIMIT 1;
     IF exc_type_id IS DISTINCT FROM '00000000-0000-4000-a000-000000000022' THEN
-        RAISE EXCEPTION 'FAIL: BINARY_OP(1) should set TypeError, got exc_type_id %', exc_type_id;
+        RAISE EXCEPTION 'FAIL: BINARY_OP(4) should set TypeError, got exc_type_id %', exc_type_id;
     END IF;
     PERFORM public.py_err_clear();
-    RAISE NOTICE '  ✓ BINARY_OP(1) raises TypeError';
+    RAISE NOTICE '  ✓ BINARY_OP(4) raises TypeError';
     pass_count := pass_count + 1;
 
     -- -------------------------------------------------------------------------

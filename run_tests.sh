@@ -897,6 +897,16 @@ else
     exit 1
 fi
 
+# 83. Extended Binary/Unary Ops (/, //, %, **, &, |, ^, <<, >>, ~, inplace)
+echo "=== Phase 83: Extended Binary/Unary Ops ==="
+if run_test "supabase/tests/83_binary_ops_extended.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Extended binary/unary ops test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -989,8 +999,9 @@ echo "  ✅ 79: Class Construction (LOAD_BUILD_CLASS + __build_class__ + class F
 echo "  ✅ 80: Instance Creation (py_type_tp_call, __init__, Dog(\"Rex\").name)"
 echo "  ✅ 81: Type Constructors (int/str/float/bool/list/tuple/dict)"
 echo "  ✅ 82: Common Builtins (isinstance, hasattr, getattr, setattr, id)"
+echo "  ✅ 83: Extended Binary/Unary Ops (/, //, %, **, &, |, ^, <<, >>, ~, inplace)"
 echo ""
-echo "Total: 82 test suites passed ✨"
+echo "Total: 83 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

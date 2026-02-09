@@ -46,7 +46,17 @@ create table public.py_number_methods (
   nb_subtract regproc,
   nb_multiply regproc,
   nb_negative regproc,
-  nb_positive regproc
+  nb_positive regproc,
+  nb_floor_divide regproc,
+  nb_true_divide regproc,
+  nb_remainder regproc,
+  nb_power regproc,
+  nb_and regproc,
+  nb_or regproc,
+  nb_xor regproc,
+  nb_lshift regproc,
+  nb_rshift regproc,
+  nb_invert regproc
 );
 
 -- 2. py_type_object (Implements CPython's PyTypeObject: defines types)

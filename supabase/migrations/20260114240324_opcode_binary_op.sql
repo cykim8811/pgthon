@@ -24,19 +24,57 @@ BEGIN
     left_id  := public.py_stack_pop(frame_id);
 
     CASE oparg
-        WHEN 0 THEN
-            -- NB_ADD
+        WHEN 0 THEN   -- NB_ADD
             result_id := public.py_object_add(left_id, right_id);
-        WHEN 10 THEN
-            -- NB_SUBTRACT
-            result_id := public.py_object_subtract(left_id, right_id);
-        WHEN 5 THEN
-            -- NB_MULTIPLY
+        WHEN 1 THEN   -- NB_AND
+            result_id := public.py_object_and(left_id, right_id);
+        WHEN 2 THEN   -- NB_FLOOR_DIVIDE
+            result_id := public.py_object_floor_divide(left_id, right_id);
+        WHEN 3 THEN   -- NB_LSHIFT
+            result_id := public.py_object_lshift(left_id, right_id);
+        WHEN 5 THEN   -- NB_MULTIPLY
             result_id := public.py_object_multiply(left_id, right_id);
+        WHEN 6 THEN   -- NB_REMAINDER
+            result_id := public.py_object_remainder(left_id, right_id);
+        WHEN 7 THEN   -- NB_OR
+            result_id := public.py_object_or(left_id, right_id);
+        WHEN 8 THEN   -- NB_POWER
+            result_id := public.py_object_power(left_id, right_id);
+        WHEN 9 THEN   -- NB_RSHIFT
+            result_id := public.py_object_rshift(left_id, right_id);
+        WHEN 10 THEN  -- NB_SUBTRACT
+            result_id := public.py_object_subtract(left_id, right_id);
+        WHEN 11 THEN  -- NB_TRUE_DIVIDE
+            result_id := public.py_object_true_divide(left_id, right_id);
+        WHEN 12 THEN  -- NB_XOR
+            result_id := public.py_object_xor(left_id, right_id);
+        -- Inplace ops: delegate to non-inplace (correct for immutable int/float/str)
+        WHEN 13 THEN  -- NB_INPLACE_ADD
+            result_id := public.py_object_add(left_id, right_id);
+        WHEN 14 THEN  -- NB_INPLACE_AND
+            result_id := public.py_object_and(left_id, right_id);
+        WHEN 15 THEN  -- NB_INPLACE_FLOOR_DIVIDE
+            result_id := public.py_object_floor_divide(left_id, right_id);
+        WHEN 16 THEN  -- NB_INPLACE_LSHIFT
+            result_id := public.py_object_lshift(left_id, right_id);
+        WHEN 18 THEN  -- NB_INPLACE_MULTIPLY
+            result_id := public.py_object_multiply(left_id, right_id);
+        WHEN 19 THEN  -- NB_INPLACE_REMAINDER
+            result_id := public.py_object_remainder(left_id, right_id);
+        WHEN 20 THEN  -- NB_INPLACE_OR
+            result_id := public.py_object_or(left_id, right_id);
+        WHEN 21 THEN  -- NB_INPLACE_POWER
+            result_id := public.py_object_power(left_id, right_id);
+        WHEN 22 THEN  -- NB_INPLACE_RSHIFT
+            result_id := public.py_object_rshift(left_id, right_id);
+        WHEN 23 THEN  -- NB_INPLACE_SUBTRACT
+            result_id := public.py_object_subtract(left_id, right_id);
+        WHEN 24 THEN  -- NB_INPLACE_TRUE_DIVIDE
+            result_id := public.py_object_true_divide(left_id, right_id);
+        WHEN 25 THEN  -- NB_INPLACE_XOR
+            result_id := public.py_object_xor(left_id, right_id);
         ELSE
-            -- NB_AND(1), NB_FLOOR_DIVIDE(2), NB_LSHIFT(3), NB_MATRIX_MULTIPLY(4),
-            -- NB_REMAINDER(6), NB_OR(7), NB_POWER(8), NB_RSHIFT(9), NB_TRUE_DIVIDE(11),
-            -- NB_XOR(12), NB_INPLACE_*(13..25): not implemented → TypeError
+            -- NB_MATRIX_MULTIPLY(4), NB_INPLACE_MATRIX_MULTIPLY(17): not commonly used
             PERFORM public.py_err_set_type_error('unsupported operand type(s) for binary op: sub-op ' || oparg);
             RETURN;
     END CASE;

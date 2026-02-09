@@ -907,6 +907,16 @@ else
     exit 1
 fi
 
+# 84. SWAP, Comprehension Opcodes, F-String Opcodes
+echo "=== Phase 84: SWAP, Comprehension, F-String Opcodes ==="
+if run_test "supabase/tests/84_swap_comprehensions_fstrings.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ SWAP/Comprehension/F-String opcodes test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -1000,8 +1010,9 @@ echo "  ✅ 80: Instance Creation (py_type_tp_call, __init__, Dog(\"Rex\").name)
 echo "  ✅ 81: Type Constructors (int/str/float/bool/list/tuple/dict)"
 echo "  ✅ 82: Common Builtins (isinstance, hasattr, getattr, setattr, id)"
 echo "  ✅ 83: Extended Binary/Unary Ops (/, //, %, **, &, |, ^, <<, >>, ~, inplace)"
+echo "  ✅ 84: SWAP, Comprehension Opcodes (BUILD_SET, LIST_APPEND, SET_ADD, MAP_ADD), F-String (FORMAT_VALUE, BUILD_STRING)"
 echo ""
-echo "Total: 83 test suites passed ✨"
+echo "Total: 84 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

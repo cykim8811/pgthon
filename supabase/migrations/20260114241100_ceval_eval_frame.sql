@@ -221,6 +221,20 @@ BEGIN
                 PERFORM public.py_opcode_COPY_FREE_VARS(frame_id, arg);
             WHEN 71 THEN
                 PERFORM public.py_opcode_LOAD_BUILD_CLASS(frame_id);
+            WHEN 99 THEN
+                PERFORM public.py_opcode_SWAP(frame_id, arg);
+            WHEN 104 THEN
+                PERFORM public.py_opcode_BUILD_SET(frame_id, arg);
+            WHEN 145 THEN
+                PERFORM public.py_opcode_LIST_APPEND(frame_id, arg);
+            WHEN 146 THEN
+                PERFORM public.py_opcode_SET_ADD(frame_id, arg);
+            WHEN 147 THEN
+                PERFORM public.py_opcode_MAP_ADD(frame_id, arg);
+            WHEN 155 THEN
+                PERFORM public.py_opcode_FORMAT_VALUE(frame_id, arg);
+            WHEN 157 THEN
+                PERFORM public.py_opcode_BUILD_STRING(frame_id, arg);
             ELSE
                 RAISE EXCEPTION 'Unknown opcode: % at byte offset %', opcode, i;
         END CASE;

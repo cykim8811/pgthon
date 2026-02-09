@@ -141,6 +141,14 @@ create table public.py_list_object (
   ob_item uuid[] -- Array of PyObject IDs (elements of the list)
 );
 
+-- 5b. py_set_object (Implements CPython's PySetObject)
+--     Set objects. ob_item is an array of PyObject IDs (elements).
+--     Note: Deduplication is not enforced at storage level.
+create table public.py_set_object (
+  ob_base uuid primary key references public.py_object(id) on delete cascade,
+  ob_item uuid[] -- Array of PyObject IDs (elements of the set)
+);
+
 -- 6. py_dict_object (Implements CPython's PyDictObject)
 --    Dictionary/mapping objects. Key-value pairs are stored in py_dict_entry.
 create table public.py_dict_object (
@@ -252,6 +260,7 @@ alter table public.py_long_object enable row level security;
 alter table public.py_float_object enable row level security;
 alter table public.py_tuple_object enable row level security;
 alter table public.py_list_object enable row level security;
+alter table public.py_set_object enable row level security;
 alter table public.py_dict_object enable row level security;
 alter table public.py_dict_entry enable row level security;
 alter table public.py_sequence_methods enable row level security;
@@ -275,6 +284,7 @@ create policy "Authenticated users can view py_long_object" on public.py_long_ob
 create policy "Authenticated users can view py_float_object" on public.py_float_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_tuple_object" on public.py_tuple_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_list_object" on public.py_list_object for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can view py_set_object" on public.py_set_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_dict_object" on public.py_dict_object for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_dict_entry" on public.py_dict_entry for select using (auth.role() = 'authenticated');
 create policy "Authenticated users can view py_sequence_methods" on public.py_sequence_methods for select using (auth.role() = 'authenticated');

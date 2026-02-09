@@ -867,6 +867,36 @@ else
     exit 1
 fi
 
+# 80. Instance Creation (py_type_tp_call, __init__, Dog("Rex").name)
+echo "=== Phase 80: Instance Creation ==="
+if run_test "supabase/tests/80_instance_creation.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Instance creation test failed. Cannot continue."
+    exit 1
+fi
+
+# 81. Type Constructors (int/str/float/bool/list/tuple/dict)
+echo "=== Phase 81: Type Constructors ==="
+if run_test "supabase/tests/81_type_constructors.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Type constructors test failed. Cannot continue."
+    exit 1
+fi
+
+# 82. Common Builtins (isinstance, hasattr, getattr, setattr, id)
+echo "=== Phase 82: Common Builtins ==="
+if run_test "supabase/tests/82_common_builtins.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Common builtins test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -956,8 +986,11 @@ echo "  ✅ 76: Closure Opcodes (MAKE_CELL, LOAD_CLOSURE, LOAD_DEREF, STORE_DERE
 echo "  ✅ 77: print() Builtin + py_object_str (str/repr/print via RAISE NOTICE)"
 echo "  ✅ 78: range() Builtin (range(5), range(1,10,2), range(0) via for loop)"
 echo "  ✅ 79: Class Construction (LOAD_BUILD_CLASS + __build_class__ + class Foo: x=42)"
+echo "  ✅ 80: Instance Creation (py_type_tp_call, __init__, Dog(\"Rex\").name)"
+echo "  ✅ 81: Type Constructors (int/str/float/bool/list/tuple/dict)"
+echo "  ✅ 82: Common Builtins (isinstance, hasattr, getattr, setattr, id)"
 echo ""
-echo "Total: 79 test suites passed ✨"
+echo "Total: 82 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

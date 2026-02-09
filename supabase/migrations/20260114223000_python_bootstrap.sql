@@ -52,6 +52,10 @@ DECLARE
     ID_NULL_TYPE   UUID := '00000000-0000-4000-a000-000000000015';
     ID_SLICE_TYPE  UUID := '00000000-0000-4000-a000-000000000016';
     ID_FUNCTION_TYPE UUID := '00000000-0000-4000-a000-000000000017';
+    ID_LIST_ITERATOR_TYPE UUID := '00000000-0000-4000-a000-000000000031';
+    ID_TUPLE_ITERATOR_TYPE UUID := '00000000-0000-4000-a000-000000000032';
+    ID_DICT_KEYITERATOR_TYPE UUID := '00000000-0000-4000-a000-000000000033';
+    ID_STR_ITERATOR_TYPE UUID := '00000000-0000-4000-a000-000000000034';
 
     -- Singleton IDs
     ID_NONE_OBJ   UUID := '00000000-0000-4000-b000-000000000001';
@@ -88,6 +92,10 @@ DECLARE
     ID_DICT_NULL_TYPE   UUID := gen_random_uuid();
     ID_DICT_SLICE_TYPE  UUID := gen_random_uuid();
     ID_DICT_FUNCTION_TYPE UUID := gen_random_uuid();
+    ID_DICT_LIST_ITERATOR_TYPE UUID := gen_random_uuid();
+    ID_DICT_TUPLE_ITERATOR_TYPE UUID := gen_random_uuid();
+    ID_DICT_DICT_KEYITERATOR_TYPE UUID := gen_random_uuid();
+    ID_DICT_STR_ITERATOR_TYPE UUID := gen_random_uuid();
 
     -- Module dict: __builtins__ module's namespace dictionary
     ID_DICT_BUILTINS_MODULE UUID := gen_random_uuid();
@@ -125,8 +133,16 @@ BEGIN
     (ID_NULL_OBJ,    NULL),      -- null singleton (PUSH_NULL)
     (ID_SLICE_TYPE,  NULL),      -- slice type
     (ID_FUNCTION_TYPE, NULL),    -- function type
+    (ID_LIST_ITERATOR_TYPE, NULL),  -- list_iterator type
+    (ID_TUPLE_ITERATOR_TYPE, NULL), -- tuple_iterator type
+    (ID_DICT_KEYITERATOR_TYPE, NULL), -- dict_keyiterator type
+    (ID_STR_ITERATOR_TYPE, NULL),   -- str_iterator type
     (ID_DICT_SLICE_TYPE, NULL),  -- dict for slice type
     (ID_DICT_FUNCTION_TYPE, NULL), -- dict for function type
+    (ID_DICT_LIST_ITERATOR_TYPE, NULL), -- dict for list_iterator type
+    (ID_DICT_TUPLE_ITERATOR_TYPE, NULL), -- dict for tuple_iterator type
+    (ID_DICT_DICT_KEYITERATOR_TYPE, NULL), -- dict for dict_keyiterator type
+    (ID_DICT_STR_ITERATOR_TYPE, NULL), -- dict for str_iterator type
     (ID_BUILTINS_MODULE, NULL),  -- __builtins__ module
     (ID_TUPLE_BASES_OBJECT, NULL), -- tp_bases tuple: (object,)
     -- Each type object has its own dict for type attributes (tp_dict)
@@ -172,7 +188,11 @@ BEGIN
     (ID_NOT_IMPLEMENTED_TYPE, 'NotImplementedType'),
     (ID_NULL_TYPE, 'null'),
     (ID_SLICE_TYPE, 'slice'),
-    (ID_FUNCTION_TYPE, 'function');
+    (ID_FUNCTION_TYPE, 'function'),
+    (ID_LIST_ITERATOR_TYPE, 'list_iterator'),
+    (ID_TUPLE_ITERATOR_TYPE, 'tuple_iterator'),
+    (ID_DICT_KEYITERATOR_TYPE, 'dict_keyiterator'),
+    (ID_STR_ITERATOR_TYPE, 'str_iterator');
 
     -------------------------------------------------------
     -- Phase 3: Resolve Circular References
@@ -181,7 +201,7 @@ BEGIN
     -------------------------------------------------------
     -- All types have 'type' as their ob_type
     UPDATE public.py_object SET ob_type = ID_TYPE_TYPE 
-    WHERE id IN (ID_OBJECT_TYPE, ID_TYPE_TYPE, ID_STR_TYPE, ID_BYTES_TYPE, ID_INT_TYPE, ID_FLOAT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_MODULE_TYPE, ID_BOOL_TYPE, ID_NOT_IMPLEMENTED_TYPE, ID_NULL_TYPE, ID_SLICE_TYPE, ID_FUNCTION_TYPE);
+    WHERE id IN (ID_OBJECT_TYPE, ID_TYPE_TYPE, ID_STR_TYPE, ID_BYTES_TYPE, ID_INT_TYPE, ID_FLOAT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_MODULE_TYPE, ID_BOOL_TYPE, ID_NOT_IMPLEMENTED_TYPE, ID_NULL_TYPE, ID_SLICE_TYPE, ID_FUNCTION_TYPE, ID_LIST_ITERATOR_TYPE, ID_TUPLE_ITERATOR_TYPE, ID_DICT_KEYITERATOR_TYPE, ID_STR_ITERATOR_TYPE);
     
     -- None instance is a NoneType
     UPDATE public.py_object SET ob_type = ID_NONE_TYPE WHERE id = ID_NONE_OBJ;
@@ -203,9 +223,11 @@ BEGIN
     
     -- All dict objects have 'dict' as their ob_type
     UPDATE public.py_object SET ob_type = ID_DICT_TYPE 
-    WHERE id IN (ID_DICT_OBJECT_TYPE, ID_DICT_TYPE_TYPE, ID_DICT_STR_TYPE, ID_DICT_INT_TYPE, 
+    WHERE id IN (ID_DICT_OBJECT_TYPE, ID_DICT_TYPE_TYPE, ID_DICT_STR_TYPE, ID_DICT_INT_TYPE,
                  ID_DICT_FLOAT_TYPE, ID_DICT_LIST_TYPE, ID_DICT_DICT_TYPE, ID_DICT_TUPLE_TYPE, ID_DICT_NONE_TYPE,
-                 ID_DICT_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_DICT_MODULE_TYPE, ID_DICT_BOOL_TYPE, ID_DICT_NOT_IMPLEMENTED_TYPE, ID_DICT_NULL_TYPE, ID_DICT_SLICE_TYPE, ID_DICT_FUNCTION_TYPE, ID_DICT_BUILTINS_MODULE);
+                 ID_DICT_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_DICT_MODULE_TYPE, ID_DICT_BOOL_TYPE, ID_DICT_NOT_IMPLEMENTED_TYPE, ID_DICT_NULL_TYPE, ID_DICT_SLICE_TYPE, ID_DICT_FUNCTION_TYPE,
+                 ID_DICT_LIST_ITERATOR_TYPE, ID_DICT_TUPLE_ITERATOR_TYPE, ID_DICT_DICT_KEYITERATOR_TYPE, ID_DICT_STR_ITERATOR_TYPE,
+                 ID_DICT_BUILTINS_MODULE);
     
     -- String objects have 'str' as their ob_type
     UPDATE public.py_object SET ob_type = ID_STR_TYPE WHERE id = ID_STR_BUILTINS_MODULE_NAME;
@@ -243,6 +265,10 @@ BEGIN
     (ID_DICT_NULL_TYPE),   -- dict for null type
     (ID_DICT_SLICE_TYPE),  -- dict for slice type
     (ID_DICT_FUNCTION_TYPE), -- dict for function type
+    (ID_DICT_LIST_ITERATOR_TYPE), -- dict for list_iterator type
+    (ID_DICT_TUPLE_ITERATOR_TYPE), -- dict for tuple_iterator type
+    (ID_DICT_DICT_KEYITERATOR_TYPE), -- dict for dict_keyiterator type
+    (ID_DICT_STR_ITERATOR_TYPE), -- dict for str_iterator type
     (ID_DICT_BUILTINS_MODULE); -- dict for __builtins__ module
     
     -- Create string object for module name
@@ -262,7 +288,7 @@ BEGIN
     UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_OBJECT WHERE ob_base = ID_TYPE_TYPE;
     -- All other builtin types inherit from object (they share the same tp_bases tuple)
     UPDATE public.py_type_object SET tp_bases = ID_TUPLE_BASES_OBJECT 
-    WHERE ob_base IN (ID_STR_TYPE, ID_INT_TYPE, ID_FLOAT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_MODULE_TYPE, ID_BOOL_TYPE, ID_NOT_IMPLEMENTED_TYPE, ID_NULL_TYPE, ID_SLICE_TYPE, ID_FUNCTION_TYPE);
+    WHERE ob_base IN (ID_STR_TYPE, ID_INT_TYPE, ID_FLOAT_TYPE, ID_LIST_TYPE, ID_DICT_TYPE, ID_TUPLE_TYPE, ID_NONE_TYPE, ID_BUILTIN_FUNCTION_OR_METHOD_TYPE, ID_MODULE_TYPE, ID_BOOL_TYPE, ID_NOT_IMPLEMENTED_TYPE, ID_NULL_TYPE, ID_SLICE_TYPE, ID_FUNCTION_TYPE, ID_LIST_ITERATOR_TYPE, ID_TUPLE_ITERATOR_TYPE, ID_DICT_KEYITERATOR_TYPE, ID_STR_ITERATOR_TYPE);
 
     -- Set tp_dict for each type object
     -- Each type object has its own dict for storing type attributes (methods, class variables, etc.)
@@ -282,6 +308,10 @@ BEGIN
     UPDATE public.py_type_object SET tp_dict = ID_DICT_NULL_TYPE WHERE ob_base = ID_NULL_TYPE;
     UPDATE public.py_type_object SET tp_dict = ID_DICT_SLICE_TYPE WHERE ob_base = ID_SLICE_TYPE;
     UPDATE public.py_type_object SET tp_dict = ID_DICT_FUNCTION_TYPE WHERE ob_base = ID_FUNCTION_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_LIST_ITERATOR_TYPE WHERE ob_base = ID_LIST_ITERATOR_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_TUPLE_ITERATOR_TYPE WHERE ob_base = ID_TUPLE_ITERATOR_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_DICT_KEYITERATOR_TYPE WHERE ob_base = ID_DICT_KEYITERATOR_TYPE;
+    UPDATE public.py_type_object SET tp_dict = ID_DICT_STR_ITERATOR_TYPE WHERE ob_base = ID_STR_ITERATOR_TYPE;
 
     -- Create None Instance
     -- None is a special singleton object in CPython, represented as a PyObject

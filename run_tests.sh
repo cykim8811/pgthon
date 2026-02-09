@@ -817,6 +817,56 @@ else
     exit 1
 fi
 
+# 75. GET_ITER(68) + FOR_ITER(93) Opcode (CPython 3.11: iteration protocol)
+echo "=== Phase 75: Ceval GET_ITER / FOR_ITER Opcode ==="
+if run_test "supabase/tests/75_ceval_opcode_get_iter_for_iter.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ GET_ITER / FOR_ITER opcode test failed. Cannot continue."
+    exit 1
+fi
+
+# 76. Closure Opcodes (MAKE_CELL, LOAD_CLOSURE, LOAD_DEREF, STORE_DEREF, COPY_FREE_VARS)
+echo "=== Phase 76: Ceval Closure Opcodes ==="
+if run_test "supabase/tests/76_ceval_opcode_closures.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Closure opcode test failed. Cannot continue."
+    exit 1
+fi
+
+# 77. print() Builtin + py_object_str()
+echo "=== Phase 77: print() Builtin ==="
+if run_test "supabase/tests/77_builtin_print.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ print builtin test failed. Cannot continue."
+    exit 1
+fi
+
+# 78. range() Builtin + Range Iterator
+echo "=== Phase 78: range() Builtin ==="
+if run_test "supabase/tests/78_builtin_range.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ range builtin test failed. Cannot continue."
+    exit 1
+fi
+
+# 79. Class Construction (LOAD_BUILD_CLASS + __build_class__)
+echo "=== Phase 79: Class Construction ==="
+if run_test "supabase/tests/79_class_construction.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ Class construction test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -901,8 +951,13 @@ echo "  ✅ 71: MAKE_FUNCTION(132) Opcode (CPython 3.11: def statement + user fu
 echo "  ✅ 72: UNARY_NEGATIVE(11) Opcode (CPython 3.11: -x via nb_negative)"
 echo "  ✅ 73: UNARY_POSITIVE(10) Opcode (CPython 3.11: +x via nb_positive)"
 echo "  ✅ 74: LOAD_METHOD(160) Opcode (CPython 3.11: method/slot, 1 or 2 values)"
+echo "  ✅ 75: GET_ITER(68) + FOR_ITER(93) Opcode (CPython 3.11: iteration protocol)"
+echo "  ✅ 76: Closure Opcodes (MAKE_CELL, LOAD_CLOSURE, LOAD_DEREF, STORE_DEREF, COPY_FREE_VARS)"
+echo "  ✅ 77: print() Builtin + py_object_str (str/repr/print via RAISE NOTICE)"
+echo "  ✅ 78: range() Builtin (range(5), range(1,10,2), range(0) via for loop)"
+echo "  ✅ 79: Class Construction (LOAD_BUILD_CLASS + __build_class__ + class Foo: x=42)"
 echo ""
-echo "Total: 74 test suites passed ✨"
+echo "Total: 79 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

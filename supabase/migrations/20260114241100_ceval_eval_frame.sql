@@ -201,6 +201,24 @@ BEGIN
                 PERFORM public.py_opcode_RAISE_VARARGS(frame_id, arg);
             WHEN 132 THEN
                 PERFORM public.py_opcode_MAKE_FUNCTION(frame_id, arg);
+            WHEN 68 THEN
+                PERFORM public.py_opcode_GET_ITER(frame_id);
+            WHEN 93 THEN
+                next_i := public.py_opcode_FOR_ITER(frame_id, start_i, arg);
+            WHEN 135 THEN
+                PERFORM public.py_opcode_MAKE_CELL(frame_id, arg);
+            WHEN 136 THEN
+                PERFORM public.py_opcode_LOAD_CLOSURE(frame_id, arg);
+            WHEN 137 THEN
+                PERFORM public.py_opcode_LOAD_DEREF(frame_id, arg);
+            WHEN 138 THEN
+                PERFORM public.py_opcode_STORE_DEREF(frame_id, arg);
+            WHEN 139 THEN
+                PERFORM public.py_opcode_DELETE_DEREF(frame_id, arg);
+            WHEN 149 THEN
+                PERFORM public.py_opcode_COPY_FREE_VARS(frame_id, arg);
+            WHEN 71 THEN
+                PERFORM public.py_opcode_LOAD_BUILD_CLASS(frame_id);
             ELSE
                 RAISE EXCEPTION 'Unknown opcode: % at byte offset %', opcode, i;
         END CASE;

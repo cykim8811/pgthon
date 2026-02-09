@@ -153,6 +153,27 @@ END;
 $$;
 
 -- ----------------------------------------------------------------------------
+-- py_err_set_stop_iteration: set StopIteration as current exception
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.py_err_set_stop_iteration()
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  stop_iteration_type_id uuid := '00000000-0000-4000-a000-00000000002a';
+  msg_id uuid;
+  args_id uuid;
+  inst_id uuid := gen_random_uuid();
+BEGIN
+  msg_id := public.py_str_from_text('');
+  args_id := public.py_tuple_from_1(msg_id);
+  INSERT INTO public.py_object (id, ob_type) VALUES (inst_id, stop_iteration_type_id);
+  INSERT INTO public.py_base_exception_object (ob_base, ob_args) VALUES (inst_id, args_id);
+  PERFORM public.py_err_set_object(stop_iteration_type_id, inst_id);
+END;
+$$;
+
+-- ----------------------------------------------------------------------------
 -- py_err_set_key_error: set KeyError(message) as current exception
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.py_err_set_key_error(p_message text)

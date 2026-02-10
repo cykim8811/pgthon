@@ -68,7 +68,9 @@ BEGIN
     SELECT str_value INTO func_name FROM public.py_unicode_object WHERE ob_base = ml_name_id;
 
     -- Reject kwargs for conventions that do not accept keyword arguments (METH_KEYWORDS = 2 does accept)
-    IF kwargs_id IS NOT NULL THEN
+    -- Match CPython: check PyDict_GET_SIZE(kwargs) != 0, not just kwargs != NULL
+    IF kwargs_id IS NOT NULL
+       AND EXISTS (SELECT 1 FROM public.py_dict_entry WHERE dict_id = kwargs_id LIMIT 1) THEN
         IF (ml_flags & 2) = 0 AND ((ml_flags & 8) != 0 OR (ml_flags & 4) != 0 OR (ml_flags & 1) != 0) THEN
             -- CPython: "len() takes no keyword arguments" — Python 예외로 보고, NULL 반환
             PERFORM public.py_err_set_type_error(COALESCE(func_name, 'builtin') || '() takes no keyword arguments');

@@ -245,10 +245,10 @@ BEGIN
 
     -- =========================================================================
     -- Test 3: DICT_UPDATE: {**{'a':1}, **{'b':2}} → {'a':1, 'b':2}
-    -- BUILD_MAP(0) LOAD_CONST(1=1) LOAD_CONST(0='a') BUILD_MAP(1) DICT_UPDATE(1)
-    -- LOAD_CONST(3=2) LOAD_CONST(2='b') BUILD_MAP(1) DICT_UPDATE(1) RETURN_VALUE
-    -- Note: BUILD_MAP pops key (TOS) then value (TOS-1), so push value first
-    -- hex: 97006900640164006901a401640364026901a4015300
+    -- BUILD_MAP(0) LOAD_CONST(0='a') LOAD_CONST(1=1) BUILD_MAP(1) DICT_UPDATE(1)
+    -- LOAD_CONST(2='b') LOAD_CONST(3=2) BUILD_MAP(1) DICT_UPDATE(1) RETURN_VALUE
+    -- Note: BUILD_MAP pops value (TOS) then key (TOS-1), so push key first
+    -- hex: 97006900640064016901a401640264036901a4015300
     -- =========================================================================
     RAISE NOTICE 'Test 3: DICT_UPDATE — {**{"a":1}, **{"b":2}} → {"a":1, "b":2}...';
     test_count := test_count + 1;
@@ -275,7 +275,7 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[const0_id, const1_id, const2_id, const3_id]);
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('97006900640164006901a401640364026901a4015300', 'hex'));
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('97006900640064016901a401640264036901a4015300', 'hex'));
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
@@ -305,9 +305,9 @@ BEGIN
     -- =========================================================================
     -- Test 4: DICT_UPDATE duplicate key overwrites silently
     -- {**{'x':1}, **{'x':99}} → {'x':99}
-    -- BUILD_MAP(0) LOAD_CONST(1=1) LOAD_CONST(0='x') BUILD_MAP(1) DICT_UPDATE(1)
-    -- LOAD_CONST(2=99) LOAD_CONST(0='x') BUILD_MAP(1) DICT_UPDATE(1) RETURN_VALUE
-    -- hex: 97006900640164006901a401640264006901a4015300
+    -- BUILD_MAP(0) LOAD_CONST(0='x') LOAD_CONST(1=1) BUILD_MAP(1) DICT_UPDATE(1)
+    -- LOAD_CONST(0='x') LOAD_CONST(2=99) BUILD_MAP(1) DICT_UPDATE(1) RETURN_VALUE
+    -- hex: 97006900640064016901a401640064026901a4015300
     -- =========================================================================
     RAISE NOTICE 'Test 4: DICT_UPDATE duplicate overwrite — {"x":99}...';
     test_count := test_count + 1;
@@ -328,7 +328,7 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[const0_id, const1_id, const2_id]);
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('97006900640164006901a401640264006901a4015300', 'hex'));
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('97006900640064016901a401640064026901a4015300', 'hex'));
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
@@ -352,9 +352,9 @@ BEGIN
     -- =========================================================================
     -- Test 5: DICT_MERGE no duplicates → success
     -- {**{'a':1}} merge {**{'b':2}} → {'a':1, 'b':2}
-    -- BUILD_MAP(0) LOAD_CONST(1=1) LOAD_CONST(0='a') BUILD_MAP(1) DICT_MERGE(1)
-    -- LOAD_CONST(3=2) LOAD_CONST(2='b') BUILD_MAP(1) DICT_MERGE(1) RETURN_VALUE
-    -- hex: 97006900640164006901a501640364026901a5015300
+    -- BUILD_MAP(0) LOAD_CONST(0='a') LOAD_CONST(1=1) BUILD_MAP(1) DICT_MERGE(1)
+    -- LOAD_CONST(2='b') LOAD_CONST(3=2) BUILD_MAP(1) DICT_MERGE(1) RETURN_VALUE
+    -- hex: 97006900640064016901a501640264036901a5015300
     -- =========================================================================
     RAISE NOTICE 'Test 5: DICT_MERGE no duplicates → {"a":1, "b":2}...';
     test_count := test_count + 1;
@@ -377,7 +377,7 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[const0_id, const1_id, const2_id, const3_id]);
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('97006900640164006901a501640364026901a5015300', 'hex'));
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('97006900640064016901a501640264036901a5015300', 'hex'));
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
@@ -394,9 +394,9 @@ BEGIN
     -- =========================================================================
     -- Test 6: DICT_MERGE duplicate key → TypeError
     -- {**{'x':1}} merge {**{'x':99}} → TypeError
-    -- BUILD_MAP(0) LOAD_CONST(1=1) LOAD_CONST(0='x') BUILD_MAP(1) DICT_MERGE(1)
-    -- LOAD_CONST(2=99) LOAD_CONST(0='x') BUILD_MAP(1) DICT_MERGE(1) RETURN_VALUE
-    -- hex: 97006900640164006901a501640264006901a5015300
+    -- BUILD_MAP(0) LOAD_CONST(0='x') LOAD_CONST(1=1) BUILD_MAP(1) DICT_MERGE(1)
+    -- LOAD_CONST(0='x') LOAD_CONST(2=99) BUILD_MAP(1) DICT_MERGE(1) RETURN_VALUE
+    -- hex: 97006900640064016901a501640064026901a5015300
     -- =========================================================================
     RAISE NOTICE 'Test 6: DICT_MERGE duplicate → TypeError...';
     test_count := test_count + 1;
@@ -416,7 +416,7 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, ARRAY[const0_id, const1_id, const2_id]);
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('97006900640164006901a501640264006901a5015300', 'hex'));
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('97006900640064016901a501640064026901a5015300', 'hex'));
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();

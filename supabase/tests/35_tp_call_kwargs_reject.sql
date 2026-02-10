@@ -28,7 +28,8 @@ BEGIN
     RAISE NOTICE '========================================';
     RAISE NOTICE '';
 
-    -- Setup: one positional arg for len/abs, one empty dict as kwargs
+    -- Setup: one positional arg for len/abs, one non-empty dict as kwargs
+    -- CPython ignores empty kwargs (PyDict_GET_SIZE == 0), so use a non-empty dict
     arg_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (arg_id, ID_STR_TYPE);
     INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (arg_id, 'hello');
@@ -36,6 +37,19 @@ BEGIN
     kwargs_dict_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (kwargs_dict_id, ID_DICT_TYPE);
     INSERT INTO public.py_dict_object (ob_base) VALUES (kwargs_dict_id);
+    -- Add a dummy kwarg to make it non-empty
+    DECLARE
+        kw_key_id UUID;
+        kw_val_id UUID;
+    BEGIN
+        kw_key_id := gen_random_uuid();
+        INSERT INTO public.py_object (id, ob_type) VALUES (kw_key_id, ID_STR_TYPE);
+        INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (kw_key_id, 'foo');
+        kw_val_id := gen_random_uuid();
+        INSERT INTO public.py_object (id, ob_type) VALUES (kw_val_id, ID_STR_TYPE);
+        INSERT INTO public.py_unicode_object (ob_base, str_value) VALUES (kw_val_id, 'bar');
+        PERFORM public.py_dict_set_item(kwargs_dict_id, kw_key_id, kw_val_id);
+    END;
 
     len_func_id := ID_LEN_FUNCTION;
     abs_func_id := ID_ABS_FUNCTION;

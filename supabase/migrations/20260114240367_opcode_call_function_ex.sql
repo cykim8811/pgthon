@@ -54,13 +54,6 @@ BEGIN
         END IF;
     END IF;
 
-    -- If kwargs dict is empty, pass NULL (avoids spurious "takes no keyword arguments" errors)
-    IF kwargs_id IS NOT NULL THEN
-        IF NOT EXISTS (SELECT 1 FROM public.py_dict_entry WHERE dict_id = kwargs_id) THEN
-            kwargs_id := NULL;
-        END IF;
-    END IF;
-
     -- Call the function
     result_id := public.py_object_call(func_obj_id, args, kwargs_id);
 

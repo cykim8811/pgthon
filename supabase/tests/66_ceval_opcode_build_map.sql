@@ -102,13 +102,13 @@ BEGIN
     RAISE NOTICE '  ✓ py_opcode_BUILD_MAP exists';
     pass_count := pass_count + 1;
 
-    -- Test 2: BUILD_MAP 1 — stack: value, key; BUILD_MAP 1 → dict[key]=value. Return dict, verify dict[key]=value.
-    -- Bytecode: LOAD_CONST 1 (value), LOAD_CONST 0 (key), BUILD_MAP 1, RETURN. 100,1 100,0 105,1 83,0. 105=0x69.
+    -- Test 2: BUILD_MAP 1 — stack: key, value; BUILD_MAP 1 → dict[key]=value. Return dict, verify dict[key]=value.
+    -- Bytecode: LOAD_CONST 0 (key), LOAD_CONST 1 (value), BUILD_MAP 1, RETURN. 100,0 100,1 105,1 83,0. 105=0x69.
     test_count := test_count + 1;
     UPDATE public.py_tuple_object SET ob_item = ARRAY[key_str_id, val_id] WHERE ob_base = co_consts_id;
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x6401640069015300'::bytea);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x6400640169015300'::bytea);
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_code_object (

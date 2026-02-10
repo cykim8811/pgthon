@@ -2,7 +2,7 @@
 -- Migration: Opcode BUILD_MAP (105) — CPython 3.11
 -- 20260114240341
 --
--- Pops 2*count items: for each pair, value then key (TOS = key, then value).
+-- Pops 2*count items: for each pair, value then key (TOS = value, then key).
 -- Builds a new dict and pushes it. oparg = count (number of key-value pairs).
 -- Depends: ceval_core (py_stack_pop, py_stack_push), py_dict_object, py_dict_set_item.
 -- ============================================================================
@@ -25,8 +25,8 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (dict_id, ID_DICT_TYPE);
     INSERT INTO public.py_dict_object (ob_base) VALUES (dict_id);
     FOR i IN 1..count LOOP
-        key_id := public.py_stack_pop(frame_id);
         value_id := public.py_stack_pop(frame_id);
+        key_id := public.py_stack_pop(frame_id);
         IF key_id IS NULL OR value_id IS NULL THEN
             RAISE EXCEPTION 'BUILD_MAP: stack underflow';
         END IF;

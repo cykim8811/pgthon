@@ -14,6 +14,7 @@ SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-00000000003
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
+    ID_CODE_TYPE UUID := '00000000-0000-4000-a000-000000000019';
     ID_INT_TYPE UUID := '00000000-0000-4000-a000-000000000004';
     ID_DICT_TYPE UUID := '00000000-0000-4000-a000-000000000006';
     ID_BYTES_TYPE UUID := '00000000-0000-4000-a000-000000000012';
@@ -72,7 +73,7 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (co_consts_id, array[]::uuid[]);
 
     code_obj_id := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_CODE_TYPE);
     INSERT INTO public.py_code_object (
         ob_base, co_code, co_consts, co_names, co_filename, co_name,
         co_argcount, co_varnames, co_cellvars, co_freevars
@@ -133,7 +134,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('6e02640253006400ad0464015300', 'hex'));
 
     code_obj_id := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_CODE_TYPE);
     INSERT INTO public.py_code_object (
         ob_base, co_code, co_consts, co_names, co_filename, co_name,
         co_argcount, co_varnames, co_cellvars, co_freevars
@@ -169,7 +170,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('6e02640253006400ae0464015300', 'hex'));
 
     code_obj_id := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_CODE_TYPE);
     INSERT INTO public.py_code_object (
         ob_base, co_code, co_consts, co_names, co_filename, co_name,
         co_argcount, co_varnames, co_cellvars, co_freevars

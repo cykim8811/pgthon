@@ -105,8 +105,8 @@ CREATE OR REPLACE FUNCTION public.py_create_code_object(p_code JSONB)
 RETURNS UUID AS $$
 DECLARE
     ID_BYTES_TYPE  UUID := '00000000-0000-4000-a000-000000000012';
-    ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
     ID_TUPLE_TYPE  UUID := '00000000-0000-4000-a000-000000000007';
+    ID_CODE_TYPE   UUID := '00000000-0000-4000-a000-000000000019';
 
     v_co_code_id UUID;
     v_co_consts_id UUID;
@@ -195,7 +195,7 @@ BEGIN
 
     -- INSERT code object
     v_code_obj_id := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (v_code_obj_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_object (id, ob_type) VALUES (v_code_obj_id, ID_CODE_TYPE);
     INSERT INTO public.py_code_object (
         ob_base, co_code, co_consts, co_names, co_filename, co_name,
         co_argcount, co_varnames, co_cellvars, co_freevars,

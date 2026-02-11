@@ -18,6 +18,7 @@ SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-00000000003
 DO $$
 DECLARE
     ID_INT_TYPE    uuid := '00000000-0000-4000-a000-000000000004';
+    ID_CODE_TYPE UUID := '00000000-0000-4000-a000-000000000019';
     ID_BYTES_TYPE  uuid := '00000000-0000-4000-a000-000000000012';
     ID_DICT_TYPE   uuid := '00000000-0000-4000-a000-000000000006';
     ID_OBJECT_TYPE uuid := '00000000-0000-4000-a000-000000000001';
@@ -158,7 +159,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (inner_co_code_id, decode('9501970089005300', 'hex'));
 
     inner_code_obj_id := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (inner_code_obj_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_object (id, ob_type) VALUES (inner_code_obj_id, ID_CODE_TYPE);
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars, co_nlocals)
     VALUES (inner_code_obj_id, inner_co_code_id, inner_co_consts_id, inner_co_names_id, empty_str_id, empty_str_id, 0, inner_co_varnames_id, inner_co_cellvars_id, inner_co_freevars_id, 0);
 
@@ -191,7 +192,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (outer_co_code_id, decode('8700970064008a0088006601640184087d0002007c00a600ab005300', 'hex'));
 
     outer_code_obj_id := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (outer_code_obj_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_object (id, ob_type) VALUES (outer_code_obj_id, ID_CODE_TYPE);
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars, co_nlocals)
     VALUES (outer_code_obj_id, outer_co_code_id, outer_co_consts_id, outer_co_names_id, empty_str_id, empty_str_id, 0, outer_co_varnames_id, outer_co_cellvars_id, outer_co_freevars_id, 1);
 

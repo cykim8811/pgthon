@@ -25,6 +25,7 @@ DECLARE
     ID_DICT_TYPE   UUID := '00000000-0000-4000-a000-000000000006';
     ID_BYTES_TYPE  UUID := '00000000-0000-4000-a000-000000000012';
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
+    ID_CODE_TYPE UUID := '00000000-0000-4000-a000-000000000019';
     ID_NONE_OBJ    UUID := '00000000-0000-4000-b000-000000000001';
     ID_TRUE_OBJ    UUID := '00000000-0000-4000-b000-000000000010';
     ID_FALSE_OBJ   UUID := '00000000-0000-4000-b000-000000000011';
@@ -336,7 +337,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('9700020065006400a601ab015300', 'hex'));
 
     code_obj_id := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_CODE_TYPE);
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars, co_nlocals)
     VALUES (code_obj_id, co_code_id, co_consts_id, co_names_id, empty_str_id, empty_str_id, 0, co_varnames_id, co_cellvars_id, co_freevars_id, 0);
 

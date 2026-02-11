@@ -101,7 +101,7 @@ BEGIN
         decode('650064016401ac00a601ab015300', 'hex'));
 
     code_obj_id := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, (SELECT ob_base FROM public.py_type_object WHERE tp_name = 'type' LIMIT 1));
+    INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, '00000000-0000-4000-a000-000000000019');
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars)
     VALUES (code_obj_id, co_code_id, co_consts_id, co_names_id, empty_str_id, empty_str_id, 0, empty_tuple_id, empty_tuple_id, empty_tuple_id);
 

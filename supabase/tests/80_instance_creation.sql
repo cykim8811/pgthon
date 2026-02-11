@@ -18,6 +18,7 @@ DECLARE
     ID_DICT_TYPE   UUID := '00000000-0000-4000-a000-000000000006';
     ID_TUPLE_TYPE  UUID := '00000000-0000-4000-a000-000000000007';
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
+    ID_CODE_TYPE UUID := '00000000-0000-4000-a000-000000000019';
     ID_TYPE_TYPE   UUID := '00000000-0000-4000-a000-000000000002';
     ID_NONE_OBJ    UUID := '00000000-0000-4000-b000-000000000001';
     ID_BUILTINS_MODULE UUID := '00000000-0000-4000-b000-000000000002';
@@ -205,7 +206,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (init_co_code_id, decode('97007c017c005f0064005300', 'hex'));
 
     init_code_obj_id := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (init_code_obj_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_object (id, ob_type) VALUES (init_code_obj_id, ID_CODE_TYPE);
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars, co_nlocals)
     VALUES (init_code_obj_id, init_co_code_id, init_co_consts_id, init_co_names_id, empty_str_id, str_init_id, 2, init_co_varnames_id, co_cellvars_id, co_freevars_id, 2);
 
@@ -227,7 +228,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (body_co_code_id, decode('9700640084005a0064015300', 'hex'));
 
     body_code_obj_id := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (body_code_obj_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_object (id, ob_type) VALUES (body_code_obj_id, ID_CODE_TYPE);
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars, co_nlocals)
     VALUES (body_code_obj_id, body_co_code_id, body_co_consts_id, body_co_names_id, empty_str_id, str_dog_id, 0, co_varnames_id, co_cellvars_id, co_freevars_id, 0);
 
@@ -253,7 +254,7 @@ BEGIN
         decode('970002004700640084006401a602ab025a00020065006402a601ab015a0165016a025300', 'hex'));
 
     outer_code_obj_id := gen_random_uuid();
-    INSERT INTO public.py_object (id, ob_type) VALUES (outer_code_obj_id, ID_OBJECT_TYPE);
+    INSERT INTO public.py_object (id, ob_type) VALUES (outer_code_obj_id, ID_CODE_TYPE);
     INSERT INTO public.py_code_object (ob_base, co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars, co_nlocals)
     VALUES (outer_code_obj_id, outer_co_code_id, outer_co_consts_id, outer_co_names_id, empty_str_id, empty_str_id, 0, co_varnames_id, co_cellvars_id, co_freevars_id, 0);
 

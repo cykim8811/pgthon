@@ -47,6 +47,7 @@ export default function PlaygroundView() {
   const [loading, setLoading] = useState(false);
   const [output, setOutput] = useState<RunResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [codeJson, setCodeJson] = useState<any>(null);
 
   // Load Pyodide on mount
   useEffect(() => {
@@ -92,14 +93,16 @@ export default function PlaygroundView() {
     setLoading(true);
     setError(null);
     setOutput(null);
+    setCodeJson(null);
 
     try {
       // Compile in browser via Pyodide
-      const codeJson = await compilePython(source);
+      const compiled = await compilePython(source);
+      setCodeJson(compiled);
 
       // Execute on Elytra VM via Supabase RPC
       const { data, error: rpcError } = await supabase.rpc("py_run", {
-        p_code: codeJson,
+        p_code: compiled,
       });
 
       if (rpcError) {
@@ -189,6 +192,14 @@ export default function PlaygroundView() {
                   ))}
                 </div>
               )}
+            {codeJson && (
+              <div>
+                <div className="text-gray-500 text-xs mb-1">Code JSON</div>
+                <pre className="text-gray-400 text-xs whitespace-pre-wrap break-all bg-gray-950 rounded p-2 max-h-[300px] overflow-auto">
+                  {JSON.stringify(codeJson, null, 2)}
+                </pre>
+              </div>
+            )}
             {!error && !output && !loading && (
               <div className="text-gray-600 italic">
                 Press Run to execute Python code on the Elytra VM.

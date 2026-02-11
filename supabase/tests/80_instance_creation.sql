@@ -213,18 +213,18 @@ BEGIN
     -- co_consts: (init_code, 'Dog.__init__' qualname, None)
     body_co_consts_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (body_co_consts_id, ID_OBJECT_TYPE);
-    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (body_co_consts_id, ARRAY[init_code_obj_id, str_init_qualname_id, ID_NONE_OBJ]);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (body_co_consts_id, ARRAY[init_code_obj_id, ID_NONE_OBJ]);
 
     -- co_names: (__init__,)
     body_co_names_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (body_co_names_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (body_co_names_id, ARRAY[str_init_id]);
 
-    -- Bytecode: RESUME 0 | LOAD_CONST 0 | LOAD_CONST 1 | MAKE_FUNCTION 0 | STORE_NAME 0 | LOAD_CONST 2 | RETURN_VALUE
-    -- Hex: 97006400640184005a0064025300
+    -- Bytecode: RESUME 0 | LOAD_CONST 0 | MAKE_FUNCTION 0 | STORE_NAME 0 | LOAD_CONST 1 | RETURN_VALUE
+    -- Hex: 9700640084005a0064015300
     body_co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (body_co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (body_co_code_id, decode('97006400640184005a0064025300', 'hex'));
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (body_co_code_id, decode('9700640084005a0064015300', 'hex'));
 
     body_code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (body_code_obj_id, ID_OBJECT_TYPE);
@@ -232,25 +232,25 @@ BEGIN
     VALUES (body_code_obj_id, body_co_code_id, body_co_consts_id, body_co_names_id, empty_str_id, str_dog_id, 0, co_varnames_id, co_cellvars_id, co_freevars_id, 0);
 
     -- Build outer code object
-    -- co_consts: (body_code, 'Dog' qualname, 'Dog' name, 'Rex')
+    -- co_consts: (body_code, 'Dog' name, 'Rex')
     outer_co_consts_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (outer_co_consts_id, ID_OBJECT_TYPE);
-    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (outer_co_consts_id, ARRAY[body_code_obj_id, str_dog_id, str_dog_id, str_rex_id]);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (outer_co_consts_id, ARRAY[body_code_obj_id, str_dog_id, str_rex_id]);
 
     -- co_names: (Dog, d, name)
     outer_co_names_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (outer_co_names_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (outer_co_names_id, ARRAY[str_dog_id, str_d_id, str_name_id]);
 
-    -- Bytecode (38 bytes):
+    -- Bytecode (36 bytes):
     -- RESUME 0 | PUSH_NULL | LOAD_BUILD_CLASS |
-    -- LOAD_CONST 0 | LOAD_CONST 1 | MAKE_FUNCTION 0 | LOAD_CONST 2 | PRECALL 2 | CALL 2 | STORE_NAME 0 |
-    -- PUSH_NULL | LOAD_NAME 0 | LOAD_CONST 3 | PRECALL 1 | CALL 1 | STORE_NAME 1 |
+    -- LOAD_CONST 0 | MAKE_FUNCTION 0 | LOAD_CONST 1 | PRECALL 2 | CALL 2 | STORE_NAME 0 |
+    -- PUSH_NULL | LOAD_NAME 0 | LOAD_CONST 2 | PRECALL 1 | CALL 1 | STORE_NAME 1 |
     -- LOAD_NAME 1 | LOAD_ATTR 2 | RETURN_VALUE
     outer_co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (outer_co_code_id, ID_BYTES_TYPE);
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (outer_co_code_id,
-        decode('9700020047006400640184006402a602ab025a00020065006403a601ab015a0165016a025300', 'hex'));
+        decode('970002004700640084006401a602ab025a00020065006402a601ab015a0165016a025300', 'hex'));
 
     outer_code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (outer_code_obj_id, ID_OBJECT_TYPE);

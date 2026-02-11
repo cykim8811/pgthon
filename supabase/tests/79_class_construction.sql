@@ -129,10 +129,10 @@ BEGIN
     --
     -- Outer bytecode:
     --   RESUME 0 | PUSH_NULL | LOAD_BUILD_CLASS |
-    --   LOAD_CONST 0 (body_code) | LOAD_CONST 1 ("Foo" qualname) | MAKE_FUNCTION 0 |
-    --   LOAD_CONST 2 ("Foo" name) | PRECALL 2 | CALL 2 |
+    --   LOAD_CONST 0 (body_code) | MAKE_FUNCTION 0 |
+    --   LOAD_CONST 1 ("Foo" name) | PRECALL 2 | CALL 2 |
     --   STORE_NAME 0 ("Foo") | LOAD_NAME 0 ("Foo") | LOAD_ATTR 1 ("x") | RETURN_VALUE
-    -- Hex: 9700020047006400640184006402a602ab025a0065006a015300
+    -- Hex: 970002004700640084006401a602ab025a0065006a015300
     -- ================================================================
     test_count := test_count + 1;
     PERFORM public.py_err_clear();
@@ -156,12 +156,10 @@ BEGIN
     VALUES (body_code_obj_id, body_co_code_id, body_co_consts_id, body_co_names_id, empty_str_id, str_foo_id, 0, co_varnames_id, co_cellvars_id, co_freevars_id, 0);
 
     -- Build outer code object
-    -- co_consts: (body_code, "Foo" qualname, "Foo" name str)
-    -- Note: LOAD_CONST 1 is the qualname for MAKE_FUNCTION, LOAD_CONST 2 is the name arg
-    -- We can reuse str_foo_id for both
+    -- co_consts: (body_code, "Foo" name str)
     outer_co_consts_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (outer_co_consts_id, ID_OBJECT_TYPE);
-    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (outer_co_consts_id, ARRAY[body_code_obj_id, str_foo_id, str_foo_id]);
+    INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (outer_co_consts_id, ARRAY[body_code_obj_id, str_foo_id]);
 
     outer_co_names_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (outer_co_names_id, ID_OBJECT_TYPE);
@@ -169,7 +167,7 @@ BEGIN
 
     outer_co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (outer_co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (outer_co_code_id, decode('9700020047006400640184006402a602ab025a0065006a015300', 'hex'));
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (outer_co_code_id, decode('970002004700640084006401a602ab025a0065006a015300', 'hex'));
 
     outer_code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (outer_code_obj_id, ID_OBJECT_TYPE);

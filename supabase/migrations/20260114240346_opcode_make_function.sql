@@ -4,24 +4,25 @@
 --
 -- Purpose:
 --   MAKE_FUNCTION(flags): Creates a new function object from a code object
---   and qualified name on the stack, with optional defaults, kwdefaults,
---   annotations, and closure.
+--   on the stack, with optional defaults, kwdefaults, annotations, and closure.
 --
 -- CPython 3.11 MAKE_FUNCTION stack layout (TOS first):
---   qualname  <-- TOS
---   codeobj
+--   codeobj   <-- TOS
 --   [closure tuple]      if flags & 0x08
 --   [annotations dict]   if flags & 0x04
 --   [kwdefaults dict]    if flags & 0x02
 --   [defaults tuple]     if flags & 0x01
 --
 -- Pop order:
---   1. Pop qualname (TOS) — string, used as func_qualname (not stored)
---   2. Pop codeobj
---   3. If flags & 0x08: pop closure tuple -> func_closure
---   4. If flags & 0x04: pop annotations dict -> discard (not stored)
---   5. If flags & 0x02: pop kwdefaults dict -> func_kwdefaults
---   6. If flags & 0x01: pop defaults tuple -> func_defaults
+--   1. Pop codeobj (TOS)
+--   2. If flags & 0x08: pop closure tuple -> func_closure
+--   3. If flags & 0x04: pop annotations dict -> discard (not stored)
+--   4. If flags & 0x02: pop kwdefaults dict -> func_kwdefaults
+--   5. If flags & 0x01: pop defaults tuple -> func_defaults
+--
+-- Note: In CPython 3.11.0, qualname was also on the stack (TOS above code).
+-- This was removed in later 3.11.x releases; qualname is now obtained from
+-- the code object's co_qualname attribute. We follow the newer convention.
 --
 -- Depends: ceval_core (py_stack_push/pop), function_object_schema, bootstrap
 -- ============================================================================
@@ -31,7 +32,6 @@ RETURNS VOID AS $$
 DECLARE
     ID_FUNCTION_TYPE UUID := '00000000-0000-4000-a000-000000000017';
 
-    v_qualname UUID;
     v_codeobj UUID;
     v_closure UUID := NULL;
     v_annotations UUID := NULL;
@@ -41,10 +41,7 @@ DECLARE
     v_func_globals UUID;
     v_func_id UUID;
 BEGIN
-    -- Pop qualname (TOS)
-    v_qualname := public.py_stack_pop(frame_id);
-
-    -- Pop code object
+    -- Pop code object (TOS)
     v_codeobj := public.py_stack_pop(frame_id);
 
     -- Pop optional components based on flags (CPython 3.11 order)

@@ -30,7 +30,8 @@ BEGIN
         FROM public.py_tuple_object WHERE ob_base = v_co_varnames;
     END IF;
 
-    v_slot := v_co_nlocals + arg + 1; -- 1-based
+    -- CPython 3.11: arg is absolute fastlocals index
+    v_slot := arg + 1; -- 1-based
 
     SELECT f_fastlocals INTO v_fastlocals FROM public.py_frame_object WHERE ob_base = frame_id;
 

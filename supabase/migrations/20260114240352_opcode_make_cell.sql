@@ -42,7 +42,8 @@ BEGIN
 
     -- Check if the corresponding local variable already has a value
     -- (e.g., a function parameter that's also a cell var)
-    v_slot := v_co_nlocals + arg + 1; -- 1-based index
+    -- CPython 3.11: arg is absolute fastlocals index (not offset from nlocals)
+    v_slot := arg + 1; -- 1-based
     SELECT f_fastlocals INTO v_fastlocals FROM public.py_frame_object WHERE ob_base = frame_id;
 
     IF v_slot <= COALESCE(array_length(v_fastlocals, 1), 0) THEN

@@ -184,12 +184,13 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (outer_co_freevars_id, ID_OBJECT_TYPE);
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (outer_co_freevars_id, array[]::uuid[]);
 
-    -- outer bytecode: MAKE_CELL 0 | RESUME 0 | LOAD_CONST 0 | STORE_DEREF 0 |
-    --   LOAD_CLOSURE 0 | BUILD_TUPLE 1 | LOAD_CONST 1 |
+    -- outer bytecode: MAKE_CELL 1 | RESUME 0 | LOAD_CONST 0 | STORE_DEREF 1 |
+    --   LOAD_CLOSURE 1 | BUILD_TUPLE 1 | LOAD_CONST 1 |
     --   MAKE_FUNCTION 8 | STORE_FAST 0 | PUSH_NULL | LOAD_FAST 0 | PRECALL 0 | CALL 0 | RETURN_VALUE
+    -- (CPython 3.11: args are absolute fastlocals indices; x cell is at nlocals+0 = 1)
     outer_co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (outer_co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (outer_co_code_id, decode('8700970064008a0088006601640184087d0002007c00a600ab005300', 'hex'));
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (outer_co_code_id, decode('8701970064008a0188016601640184087d0002007c00a600ab005300', 'hex'));
 
     outer_code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (outer_code_obj_id, ID_CODE_TYPE);

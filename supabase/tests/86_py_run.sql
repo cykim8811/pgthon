@@ -270,15 +270,17 @@ BEGIN
     -- ================================================================
     -- Test 7: Closure — make_adder(5)(10) → result = 15
     --
-    -- adder(x): COPY_FREE_VARS 1, RESUME 0, LOAD_FAST 0, LOAD_DEREF 0, BINARY_OP 0, RETURN_VALUE
+    -- adder(x): COPY_FREE_VARS 1, RESUME 0, LOAD_FAST 0, LOAD_DEREF 1, BINARY_OP 0, RETURN_VALUE
     --   co_varnames=('x',), co_freevars=('n',), co_argcount=1, co_nlocals=1
-    --   Hex: 950197007c0089007a005300
+    --   Hex: 950197007c0089017a005300
+    --   (LOAD_DEREF 1: cell for n at absolute index 1 = nlocals+cellvars+0)
     --
-    -- make_adder(n): MAKE_CELL 0, RESUME 0, LOAD_FAST 0(n), STORE_DEREF 0(cell←n),
+    -- make_adder(n): MAKE_CELL 0, RESUME 0,
     --   LOAD_CLOSURE 0, BUILD_TUPLE 1, LOAD_CONST 0(adder code), MAKE_FUNCTION 8(closure),
     --   STORE_FAST 1(adder), LOAD_FAST 1(adder), RETURN_VALUE
     --   co_varnames=('n','adder'), co_cellvars=('n',), co_argcount=1, co_nlocals=2
-    --   Hex: 870097007c008a0088006601640084087d017c015300
+    --   Hex: 8700970088006601640084087d017c015300
+    --   (MAKE_CELL 0: wraps param n in-place at index 0; LOAD_CLOSURE 0: pushes cell from index 0)
     --
     -- Module: RESUME 0, LOAD_CONST 0(make_adder code), MAKE_FUNCTION 0, STORE_NAME 0,
     --   PUSH_NULL, LOAD_NAME 0(make_adder), LOAD_CONST 1(5), PRECALL 1, CALL 1,
@@ -292,11 +294,11 @@ BEGIN
         'consts', jsonb_build_array(
             -- const 0: make_adder code object
             jsonb_build_object('type', 'code', 'value', jsonb_build_object(
-                'bytecode', '870097007c008a0088006601640084087d017c015300',
+                'bytecode', '8700970088006601640084087d017c015300',
                 'consts', jsonb_build_array(
                     -- const 0 of make_adder: adder code object
                     jsonb_build_object('type', 'code', 'value', jsonb_build_object(
-                        'bytecode', '950197007c0089007a005300',
+                        'bytecode', '950197007c0089017a005300',
                         'consts', '[]'::jsonb,
                         'names', '[]'::jsonb,
                         'varnames', jsonb_build_array('x'),

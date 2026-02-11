@@ -3,9 +3,9 @@
 --            COPY_FREE_VARS(149) — CPython 3.11
 -- 20260114240354
 --
--- LOAD_DEREF(arg): cell = f_fastlocals[co_nlocals + arg]; push cell.ob_ref
--- STORE_DEREF(arg): cell = f_fastlocals[co_nlocals + arg]; cell.ob_ref = pop TOS
--- DELETE_DEREF(arg): cell = f_fastlocals[co_nlocals + arg]; cell.ob_ref = NULL
+-- LOAD_DEREF(arg): cell = f_fastlocals[arg]; push cell.ob_ref  (CPython 3.11: arg is absolute index)
+-- STORE_DEREF(arg): cell = f_fastlocals[arg]; cell.ob_ref = pop TOS
+-- DELETE_DEREF(arg): cell = f_fastlocals[arg]; cell.ob_ref = NULL
 -- COPY_FREE_VARS(count): copy func_closure cells into f_fastlocals at offset
 --   co_nlocals + len(co_cellvars)
 --
@@ -44,7 +44,8 @@ BEGIN
         FROM public.py_tuple_object WHERE ob_base = v_co_varnames;
     END IF;
 
-    v_slot := v_co_nlocals + arg + 1; -- 1-based
+    -- CPython 3.11: arg is absolute fastlocals index
+    v_slot := arg + 1; -- 1-based
 
     SELECT f_fastlocals INTO v_fastlocals FROM public.py_frame_object WHERE ob_base = frame_id;
 
@@ -60,16 +61,16 @@ BEGIN
     SELECT ob_ref INTO v_value FROM public.py_cell_object WHERE ob_base = v_cell_id;
 
     IF v_value IS NULL THEN
-        -- Get variable name for error message
+        -- Get variable name for error message (arg may be in cellvars or freevars range)
         SELECT ob_item INTO v_cellvars_items FROM public.py_tuple_object WHERE ob_base = v_co_cellvars;
         v_cellvars_len := COALESCE(array_length(v_cellvars_items, 1), 0);
 
-        IF arg < v_cellvars_len THEN
-            SELECT str_value INTO v_var_name FROM public.py_unicode_object WHERE ob_base = v_cellvars_items[arg + 1];
+        IF arg >= v_co_nlocals AND (arg - v_co_nlocals) < v_cellvars_len THEN
+            SELECT str_value INTO v_var_name FROM public.py_unicode_object WHERE ob_base = v_cellvars_items[arg - v_co_nlocals + 1];
         ELSE
             SELECT ob_item INTO v_freevars_items FROM public.py_tuple_object WHERE ob_base = v_co_freevars;
-            IF v_freevars_items IS NOT NULL AND (arg - v_cellvars_len + 1) <= array_length(v_freevars_items, 1) THEN
-                SELECT str_value INTO v_var_name FROM public.py_unicode_object WHERE ob_base = v_freevars_items[arg - v_cellvars_len + 1];
+            IF v_freevars_items IS NOT NULL AND (arg - v_co_nlocals - v_cellvars_len) >= 0 THEN
+                SELECT str_value INTO v_var_name FROM public.py_unicode_object WHERE ob_base = v_freevars_items[arg - v_co_nlocals - v_cellvars_len + 1];
             END IF;
         END IF;
 
@@ -99,15 +100,8 @@ DECLARE
 BEGIN
     SELECT f_code INTO v_code_id FROM public.py_frame_object WHERE ob_base = frame_id;
 
-    SELECT co_nlocals, co_varnames INTO v_co_nlocals, v_co_varnames
-    FROM public.py_code_object WHERE ob_base = v_code_id;
-
-    IF v_co_nlocals IS NULL THEN
-        SELECT COALESCE(array_length(ob_item, 1), 0) INTO v_co_nlocals
-        FROM public.py_tuple_object WHERE ob_base = v_co_varnames;
-    END IF;
-
-    v_slot := v_co_nlocals + arg + 1;
+    -- CPython 3.11: arg is absolute fastlocals index
+    v_slot := arg + 1; -- 1-based
 
     -- Pop value from stack
     v_value := public.py_stack_pop(frame_id);
@@ -143,15 +137,8 @@ DECLARE
 BEGIN
     SELECT f_code INTO v_code_id FROM public.py_frame_object WHERE ob_base = frame_id;
 
-    SELECT co_nlocals, co_varnames INTO v_co_nlocals, v_co_varnames
-    FROM public.py_code_object WHERE ob_base = v_code_id;
-
-    IF v_co_nlocals IS NULL THEN
-        SELECT COALESCE(array_length(ob_item, 1), 0) INTO v_co_nlocals
-        FROM public.py_tuple_object WHERE ob_base = v_co_varnames;
-    END IF;
-
-    v_slot := v_co_nlocals + arg + 1;
+    -- CPython 3.11: arg is absolute fastlocals index
+    v_slot := arg + 1; -- 1-based
 
     SELECT f_fastlocals INTO v_fastlocals FROM public.py_frame_object WHERE ob_base = frame_id;
 

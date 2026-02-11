@@ -4,6 +4,7 @@ import { EditorState } from "@codemirror/state";
 import { python } from "@codemirror/lang-python";
 import { basicSetup } from "codemirror";
 import { indentWithTab } from "@codemirror/commands";
+import { oneDark } from "@codemirror/theme-one-dark";
 import { compilePython } from "~/utils/compile-python";
 import { getPyodide } from "~/utils/pyodide";
 import { supabase } from "~/utils/supabase";
@@ -62,6 +63,7 @@ export default function PlaygroundView() {
       doc: "1 + 2",
       extensions: [
         basicSetup,
+        oneDark,
         python(),
         keymap.of([indentWithTab]),
         EditorView.theme({

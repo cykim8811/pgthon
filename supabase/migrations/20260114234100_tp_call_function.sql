@@ -34,8 +34,14 @@ DECLARE
     v_func_kwdefaults UUID;
 
     v_co_argcount INTEGER;
+    v_co_nlocals INTEGER;
     v_co_varnames UUID;
+    v_co_cellvars UUID;
+    v_co_freevars UUID;
     v_varnames_items UUID[];
+    v_cellvars_len INTEGER;
+    v_freevars_len INTEGER;
+    v_total_slots INTEGER;
 
     v_defaults_items UUID[];
     v_defaults_count INTEGER;
@@ -71,8 +77,8 @@ BEGIN
     END IF;
 
     -- Read code object fields
-    SELECT co_argcount, co_varnames
-    INTO v_co_argcount, v_co_varnames
+    SELECT co_argcount, co_nlocals, co_varnames, co_cellvars, co_freevars
+    INTO v_co_argcount, v_co_nlocals, v_co_varnames, v_co_cellvars, v_co_freevars
     FROM public.py_code_object
     WHERE ob_base = v_func_code;
 
@@ -85,9 +91,26 @@ BEGIN
         v_varnames_items := array[]::uuid[];
     END IF;
 
-    -- Initialize f_fastlocals with NULLs for co_argcount slots
-    v_fastlocals := array_fill(NULL::uuid, ARRAY[GREATEST(v_co_argcount, 1)]);
-    IF v_co_argcount = 0 THEN
+    -- co_nlocals = len(co_varnames); fallback to co_argcount
+    IF v_co_nlocals IS NULL THEN
+        v_co_nlocals := COALESCE(array_length(v_varnames_items, 1), v_co_argcount);
+    END IF;
+
+    -- Calculate total fastlocals size: nlocals + cellvars + freevars
+    SELECT COALESCE(array_length(ob_item, 1), 0) INTO v_cellvars_len
+    FROM public.py_tuple_object WHERE ob_base = v_co_cellvars;
+    v_cellvars_len := COALESCE(v_cellvars_len, 0);
+
+    SELECT COALESCE(array_length(ob_item, 1), 0) INTO v_freevars_len
+    FROM public.py_tuple_object WHERE ob_base = v_co_freevars;
+    v_freevars_len := COALESCE(v_freevars_len, 0);
+
+    v_total_slots := v_co_nlocals + v_cellvars_len + v_freevars_len;
+
+    -- Initialize f_fastlocals with NULLs for all slots (locals + cells + free)
+    IF v_total_slots > 0 THEN
+        v_fastlocals := array_fill(NULL::uuid, ARRAY[v_total_slots]);
+    ELSE
         v_fastlocals := array[]::uuid[];
     END IF;
 

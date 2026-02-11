@@ -8,6 +8,7 @@
 --   4. Nested code object: def add(a,b): return a+b; add(3,4) → result in globals
 --   5. Error handling: 1/0 → error with ZeroDivisionError
 --   6. String concat: 'hello' + ' world' → 'hello world'
+--   7. Closure: make_adder(5)(10) → result=15 (tests py_call_function fastlocals sizing)
 -- ============================================================================
 
 DO $$
@@ -264,6 +265,91 @@ BEGIN
         RAISE EXCEPTION 'FAIL test 6: expected "hello world", got %', v_result->'result'->>'value';
     END IF;
     RAISE NOTICE '  Test 6 PASS: "hello" + " world" → "hello world"';
+    pass_count := pass_count + 1;
+
+    -- ================================================================
+    -- Test 7: Closure — make_adder(5)(10) → result = 15
+    --
+    -- adder(x): COPY_FREE_VARS 1, RESUME 0, LOAD_FAST 0, LOAD_DEREF 0, BINARY_OP 0, RETURN_VALUE
+    --   co_varnames=('x',), co_freevars=('n',), co_argcount=1, co_nlocals=1
+    --   Hex: 950197007c0089007a005300
+    --
+    -- make_adder(n): MAKE_CELL 0, RESUME 0, LOAD_FAST 0(n), STORE_DEREF 0(cell←n),
+    --   LOAD_CLOSURE 0, BUILD_TUPLE 1, LOAD_CONST 0(adder code), MAKE_FUNCTION 8(closure),
+    --   STORE_FAST 1(adder), LOAD_FAST 1(adder), RETURN_VALUE
+    --   co_varnames=('n','adder'), co_cellvars=('n',), co_argcount=1, co_nlocals=2
+    --   Hex: 870097007c008a0088006601640084087d017c015300
+    --
+    -- Module: RESUME 0, LOAD_CONST 0(make_adder code), MAKE_FUNCTION 0, STORE_NAME 0,
+    --   PUSH_NULL, LOAD_NAME 0(make_adder), LOAD_CONST 1(5), PRECALL 1, CALL 1,
+    --   STORE_NAME 1(add5), PUSH_NULL, LOAD_NAME 1(add5), LOAD_CONST 2(10),
+    --   PRECALL 1, CALL 1, STORE_NAME 2(result), LOAD_CONST 3(None), RETURN_VALUE
+    --   Hex: 9700640084005a00020065006401a601ab015a01020065016402a601ab015a0264035300
+    -- ================================================================
+    test_count := test_count + 1;
+    v_input := jsonb_build_object(
+        'bytecode', '9700640084005a00020065006401a601ab015a01020065016402a601ab015a0264035300',
+        'consts', jsonb_build_array(
+            -- const 0: make_adder code object
+            jsonb_build_object('type', 'code', 'value', jsonb_build_object(
+                'bytecode', '870097007c008a0088006601640084087d017c015300',
+                'consts', jsonb_build_array(
+                    -- const 0 of make_adder: adder code object
+                    jsonb_build_object('type', 'code', 'value', jsonb_build_object(
+                        'bytecode', '950197007c0089007a005300',
+                        'consts', '[]'::jsonb,
+                        'names', '[]'::jsonb,
+                        'varnames', jsonb_build_array('x'),
+                        'cellvars', '[]'::jsonb,
+                        'freevars', jsonb_build_array('n'),
+                        'argcount', 1,
+                        'nlocals', 1,
+                        'stacksize', 2,
+                        'flags', 0,
+                        'name', 'adder',
+                        'filename', '<elytra>'
+                    ))
+                ),
+                'names', '[]'::jsonb,
+                'varnames', jsonb_build_array('n', 'adder'),
+                'cellvars', jsonb_build_array('n'),
+                'freevars', '[]'::jsonb,
+                'argcount', 1,
+                'nlocals', 2,
+                'stacksize', 4,
+                'flags', 0,
+                'name', 'make_adder',
+                'filename', '<elytra>'
+            )),
+            -- const 1: int 5
+            jsonb_build_object('type', 'int', 'value', 5),
+            -- const 2: int 10
+            jsonb_build_object('type', 'int', 'value', 10),
+            -- const 3: None
+            jsonb_build_object('type', 'none')
+        ),
+        'names', jsonb_build_array('make_adder', 'add5', 'result'),
+        'varnames', '[]'::jsonb,
+        'cellvars', '[]'::jsonb,
+        'freevars', '[]'::jsonb,
+        'argcount', 0,
+        'flags', 0,
+        'nlocals', 0,
+        'stacksize', 4,
+        'name', '<module>',
+        'filename', '<elytra>',
+        'mode', 'exec'
+    );
+    v_result := public.py_run(v_input);
+
+    IF (v_result->'error') IS DISTINCT FROM 'null'::jsonb THEN
+        RAISE EXCEPTION 'FAIL test 7: expected no error, got %', v_result->'error';
+    END IF;
+    -- Check globals for result=15
+    IF NOT (v_result->>'globals')::text LIKE '%15%' THEN
+        RAISE EXCEPTION 'FAIL test 7: globals does not contain 15, got %', v_result->'globals';
+    END IF;
+    RAISE NOTICE '  Test 7 PASS: make_adder(5)(10) → result=15 (closure via py_call_function)';
     pass_count := pass_count + 1;
 
     -- ================================================================

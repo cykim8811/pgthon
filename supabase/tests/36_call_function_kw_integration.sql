@@ -10,6 +10,8 @@
 -- Design: docs/CALL_PROTOCOL_3_11_DESIGN.md
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_STR_TYPE UUID := '00000000-0000-4000-a000-000000000003';
@@ -110,23 +112,23 @@ BEGIN
 
     -- 명세: kwargs 거부 시 py_call_cfunction는 Python TypeError 세팅 후 NULL 반환; py_eval_frame도 NULL 반환.
     PERFORM public.py_err_clear();
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NOT NULL THEN
         RAISE EXCEPTION 'FAIL: len(..., x=...) should return NULL (TypeError), got result_id %', result_id;
     END IF;
     IF NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: len(..., x=...) should set Python exception';
     END IF;
-    SELECT exc_type_id INTO got_exc_type_id FROM public.py_exception_state WHERE id = (SELECT id FROM public.py_exception_state LIMIT 1);
+    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('elytra.thread_state_id')::uuid;
     IF got_exc_type_id IS DISTINCT FROM ID_TYPE_ERROR_TYPE THEN
         RAISE EXCEPTION 'FAIL: expected TypeError, got exc_type_id %', got_exc_type_id;
     END IF;
     SELECT u.str_value INTO error_message
-    FROM public.py_exception_state e
+    FROM public.py_thread_state e
     JOIN public.py_base_exception_object b ON b.ob_base = e.exc_value_id
     JOIN public.py_tuple_object t ON t.ob_base = b.ob_args
     JOIN public.py_unicode_object u ON u.ob_base = t.ob_item[1]
-    WHERE e.id = (SELECT id FROM public.py_exception_state LIMIT 1);
+    WHERE e.id = current_setting('elytra.thread_state_id')::uuid;
     IF error_message IS NULL OR error_message NOT LIKE '%len() takes no keyword arguments%' THEN
         RAISE EXCEPTION 'FAIL: expected "len() takes no keyword arguments", got: %', error_message;
     END IF;

@@ -9,6 +9,8 @@
 --   Run after migrations. If any assertion fails, an exception is raised.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -127,13 +129,13 @@ BEGIN
     );
     UPDATE public.py_frame_object SET f_code = code_obj_id, f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: IS_OP(0) same object returned NULL'; END IF;
     IF result_id != ID_TRUE_OBJ THEN RAISE EXCEPTION 'FAIL: Expected True (same object), got %', result_id; END IF;
 
     UPDATE public.py_tuple_object SET ob_item = ARRAY[obj_a_id, obj_b_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: IS_OP(0) different object returned NULL'; END IF;
     IF result_id != ID_FALSE_OBJ THEN RAISE EXCEPTION 'FAIL: Expected False (different object), got %', result_id; END IF;
 
@@ -158,13 +160,13 @@ BEGIN
     UPDATE public.py_frame_object SET f_code = code_obj_id, f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
     UPDATE public.py_tuple_object SET ob_item = ARRAY[obj_a_id, obj_b_id] WHERE ob_base = co_consts_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: IS_OP(1) different object returned NULL'; END IF;
     IF result_id != ID_TRUE_OBJ THEN RAISE EXCEPTION 'FAIL: Expected True (is not, different), got %', result_id; END IF;
 
     UPDATE public.py_tuple_object SET ob_item = ARRAY[obj_a_id, obj_a_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: IS_OP(1) same object returned NULL'; END IF;
     IF result_id != ID_FALSE_OBJ THEN RAISE EXCEPTION 'FAIL: Expected False (is not, same), got %', result_id; END IF;
 

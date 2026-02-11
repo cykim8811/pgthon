@@ -17,6 +17,8 @@
 --  13. BUILD_CONST_KEY_MAP(0): empty dict
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE uuid := '00000000-0000-4000-a000-000000000001';
@@ -166,7 +168,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: LIST_EXTEND returned NULL'; END IF;
     SELECT ob_type INTO result_type FROM public.py_object WHERE id = result_id;
     IF result_type <> ID_LIST_TYPE THEN
@@ -230,7 +232,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: SET_UPDATE returned NULL'; END IF;
     SELECT ob_type INTO result_type FROM public.py_object WHERE id = result_id;
     IF result_type <> ID_SET_TYPE THEN
@@ -280,7 +282,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: DICT_UPDATE returned NULL'; END IF;
     SELECT ob_type INTO result_type FROM public.py_object WHERE id = result_id;
     IF result_type <> ID_DICT_TYPE THEN
@@ -333,7 +335,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: DICT_UPDATE overwrite returned NULL'; END IF;
     SELECT count(*) INTO result_count FROM public.py_dict_entry WHERE dict_id = result_id;
     IF result_count <> 1 THEN
@@ -382,7 +384,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: DICT_MERGE returned NULL'; END IF;
     SELECT count(*) INTO result_count FROM public.py_dict_entry WHERE dict_id = result_id;
     IF result_count <> 2 THEN
@@ -421,14 +423,14 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NOT NULL THEN
         RAISE EXCEPTION 'FAIL: DICT_MERGE should return NULL on duplicate';
     END IF;
     -- Check that TypeError is set
     SELECT exc_type_id INTO v_exc_type
-    FROM public.py_exception_state
-    WHERE id = '00000000-0000-4000-e000-000000000001';
+    FROM public.py_thread_state
+    WHERE id = current_setting('elytra.thread_state_id')::uuid;
     IF v_exc_type IS NULL THEN
         RAISE EXCEPTION 'FAIL: DICT_MERGE no exception set';
     END IF;
@@ -477,7 +479,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: CALL_FUNCTION_EX returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int <> 5 THEN
@@ -507,7 +509,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: CALL_FUNCTION_EX(1) returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int <> 5 THEN
@@ -579,7 +581,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0, f_fastlocals = array[]::uuid[] WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: UNPACK_EX returned NULL'; END IF;
     -- result_id = a = 1
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
@@ -663,7 +665,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0, f_fastlocals = array[]::uuid[] WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: UNPACK_EX a,*b returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int <> 1 THEN
@@ -718,13 +720,13 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NOT NULL THEN
         RAISE EXCEPTION 'FAIL: UNPACK_EX too few should return NULL';
     END IF;
     SELECT exc_type_id INTO v_exc_type
-    FROM public.py_exception_state
-    WHERE id = '00000000-0000-4000-e000-000000000001';
+    FROM public.py_thread_state
+    WHERE id = current_setting('elytra.thread_state_id')::uuid;
     IF v_exc_type IS NULL THEN
         RAISE EXCEPTION 'FAIL: UNPACK_EX no exception set';
     END IF;
@@ -776,7 +778,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: BUILD_CONST_KEY_MAP returned NULL'; END IF;
     SELECT ob_type INTO result_type FROM public.py_object WHERE id = result_id;
     IF result_type <> ID_DICT_TYPE THEN
@@ -830,7 +832,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: BUILD_CONST_KEY_MAP(0) returned NULL'; END IF;
     SELECT ob_type INTO result_type FROM public.py_object WHERE id = result_id;
     IF result_type <> ID_DICT_TYPE THEN

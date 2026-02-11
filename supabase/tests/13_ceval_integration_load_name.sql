@@ -17,6 +17,8 @@
 --   If any assertion fails, an exception will be raised with details.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     -- Builtin Type IDs (from bootstrap)
@@ -201,7 +203,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify result
     IF result_id != const0_id THEN
@@ -247,7 +249,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_locals = locals_dict_id, f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify result
     IF result_id != const0_id THEN
@@ -300,7 +302,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_locals = locals_dict_id, f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify result
     IF result_id != const0_id THEN
@@ -350,7 +352,7 @@ BEGIN
     WHERE ob_base = frame_id;
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify result is len function
     IF result_id != ID_LEN_FUNCTION THEN
@@ -406,7 +408,7 @@ BEGIN
     WHERE ob_base = frame_id;
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify result is from locals (not globals)
     IF result_id != const0_id THEN

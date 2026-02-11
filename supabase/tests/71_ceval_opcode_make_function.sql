@@ -9,6 +9,8 @@
 --   4. Function with default args overridden: greet(5) = 5
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -177,7 +179,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
 
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL Test 1: f() returned NULL';
@@ -247,7 +249,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
 
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL Test 2: add(10, 20) returned NULL';
@@ -317,7 +319,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
 
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL Test 3: greet() returned NULL';
@@ -368,7 +370,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
 
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL Test 4: greet(5) returned NULL';

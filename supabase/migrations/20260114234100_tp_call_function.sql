@@ -178,7 +178,10 @@ BEGIN
     VALUES (v_new_frame_id, v_func_code, v_func_globals, v_new_locals_id, v_builtins_dict_id, v_fastlocals);
 
     -- Execute the function body
-    v_result := public.py_eval_frame(v_new_frame_id);
+    v_result := public.py_eval_frame(
+      current_setting('elytra.thread_state_id')::uuid,
+      v_new_frame_id
+    );
 
     RETURN v_result;
 END;

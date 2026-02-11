@@ -6,6 +6,8 @@
 --   Stack: ... start, stop [ , step ] → ... slice.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -95,7 +97,7 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[start_id, stop_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_bytes_object SET bytes_value = E'\\x6400640185025300'::bytea WHERE ob_base = co_code_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: BUILD_SLICE(2) returned NULL'; END IF;
     IF NOT EXISTS (SELECT 1 FROM public.py_slice_object WHERE ob_base = result_id) THEN RAISE EXCEPTION 'FAIL: expected slice object'; END IF;
     SELECT ob_start, ob_stop, ob_step INTO r_start, r_stop, r_step FROM public.py_slice_object WHERE ob_base = result_id;
@@ -108,7 +110,7 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[start_id, stop_id, step_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_bytes_object SET bytes_value = E'\\x64006401640285035300'::bytea WHERE ob_base = co_code_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: BUILD_SLICE(3) returned NULL'; END IF;
     SELECT ob_start, ob_stop, ob_step INTO r_start, r_stop, r_step FROM public.py_slice_object WHERE ob_base = result_id;
     IF r_start != start_id OR r_stop != stop_id OR r_step != step_id THEN RAISE EXCEPTION 'FAIL: slice(0,3,1) wrong fields'; END IF;

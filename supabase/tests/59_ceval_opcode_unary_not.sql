@@ -8,6 +8,8 @@
 --   Run after migrations. If any assertion fails, an exception is raised.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -115,7 +117,7 @@ BEGIN
     );
     UPDATE public.py_frame_object SET f_code = code_obj_id, f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: UNARY_NOT(False) returned NULL'; END IF;
     IF result_id != ID_TRUE_OBJ THEN RAISE EXCEPTION 'FAIL: Expected True (not False), got %', result_id; END IF;
     RAISE NOTICE '  ✓ UNARY_NOT(False) → True';
@@ -128,7 +130,7 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[ID_TRUE_OBJ] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: UNARY_NOT(True) returned NULL'; END IF;
     IF result_id != ID_FALSE_OBJ THEN RAISE EXCEPTION 'FAIL: Expected False (not True), got %', result_id; END IF;
     RAISE NOTICE '  ✓ UNARY_NOT(True) → False';

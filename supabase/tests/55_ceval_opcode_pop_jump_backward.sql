@@ -9,6 +9,8 @@
 --   Run after migrations. If any assertion fails, an exception is raised.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -139,7 +141,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_code = code_obj_id, f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
     UPDATE public.py_code_object SET co_consts = co_consts_id WHERE ob_base = code_obj_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: POP_JUMP_BACKWARD_IF_FALSE (False) returned NULL'; END IF;
     IF result_id != const2_id THEN RAISE EXCEPTION 'FAIL: Expected const2 (jump when False), got %', result_id; END IF;
 
@@ -147,7 +149,7 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[ID_TRUE_OBJ, const1_id, const2_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: POP_JUMP_BACKWARD_IF_FALSE (True) returned NULL'; END IF;
     IF result_id != const1_id THEN RAISE EXCEPTION 'FAIL: Expected const1 (no jump when True), got %', result_id; END IF;
 
@@ -179,14 +181,14 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[ID_TRUE_OBJ, const1_id, const2_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_code = code_obj_id, f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: POP_JUMP_BACKWARD_IF_TRUE (True) returned NULL'; END IF;
     IF result_id != const2_id THEN RAISE EXCEPTION 'FAIL: Expected const2 (jump when True), got %', result_id; END IF;
 
     UPDATE public.py_tuple_object SET ob_item = ARRAY[ID_FALSE_OBJ, const1_id, const2_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: POP_JUMP_BACKWARD_IF_TRUE (False) returned NULL'; END IF;
     IF result_id != const1_id THEN RAISE EXCEPTION 'FAIL: Expected const1 (no jump when False), got %', result_id; END IF;
 

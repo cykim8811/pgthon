@@ -7,6 +7,8 @@
 --   IndexError / KeyError / TypeError.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -151,7 +153,7 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[tuple_id, int1_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_bytes_object SET bytes_value = E'\\x6400640119005300'::bytea WHERE ob_base = co_code_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: tuple[1] returned NULL'; END IF;
     IF result_id != elem_b_id THEN RAISE EXCEPTION 'FAIL: tuple[1] expected elem_b, got %', result_id; END IF;
     RAISE NOTICE '  ✓ tuple[1] → second element';
@@ -161,7 +163,7 @@ BEGIN
     test_count := test_count + 1;
     UPDATE public.py_tuple_object SET ob_item = ARRAY[list_id, int0_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: list[0] returned NULL'; END IF;
     IF result_id != elem_a_id THEN RAISE EXCEPTION 'FAIL: list[0] expected elem_a, got %', result_id; END IF;
     RAISE NOTICE '  ✓ list[0] → first element';
@@ -171,7 +173,7 @@ BEGIN
     test_count := test_count + 1;
     UPDATE public.py_tuple_object SET ob_item = ARRAY[dict_id, key_str_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: dict[key] returned NULL'; END IF;
     IF result_id != val_id THEN RAISE EXCEPTION 'FAIL: dict[key] expected 42, got %', result_id; END IF;
     RAISE NOTICE '  ✓ dict[key] → value';
@@ -182,7 +184,7 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[tuple_id, int99_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NOT NULL THEN RAISE EXCEPTION 'FAIL: tuple[99] should raise IndexError'; END IF;
     IF NOT public.py_err_occurred() THEN RAISE EXCEPTION 'FAIL: expected exception'; END IF;
     SELECT e.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() e;
@@ -197,7 +199,7 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[tuple_id, int_minus1_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: tuple[-1] returned NULL'; END IF;
     IF result_id != elem_b_id THEN RAISE EXCEPTION 'FAIL: tuple[-1] expected elem_b, got %', result_id; END IF;
     RAISE NOTICE '  ✓ tuple[-1] → last element';
@@ -208,7 +210,7 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[dict_id, missing_key_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NOT NULL THEN RAISE EXCEPTION 'FAIL: dict[missing] should raise'; END IF;
     IF NOT public.py_err_occurred() THEN RAISE EXCEPTION 'FAIL: expected exception'; END IF;
     SELECT e.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() e;
@@ -223,7 +225,7 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[int1_id, int0_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NOT NULL THEN RAISE EXCEPTION 'FAIL: int[0] should raise'; END IF;
     IF NOT public.py_err_occurred() THEN RAISE EXCEPTION 'FAIL: expected TypeError'; END IF;
     SELECT e.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() e;

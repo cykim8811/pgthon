@@ -12,6 +12,8 @@
 --   Run this file after migrations to verify LOAD_GLOBAL integration.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -151,7 +153,7 @@ BEGIN
     UPDATE public.py_code_object SET co_code = co_code_id, co_names = co_names_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id != const0_id THEN
         RAISE EXCEPTION 'FAIL: LOAD_GLOBAL + RETURN_VALUE returned %, expected % (from globals)', result_id, const0_id;
     END IF;
@@ -181,7 +183,7 @@ BEGIN
         f_valuestack = array[]::uuid[], f_lasti = 0
     WHERE ob_base = frame_id;
     
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id != ID_LEN_FUNCTION THEN
         RAISE EXCEPTION 'FAIL: LOAD_GLOBAL from builtins returned %, expected ID_LEN_FUNCTION', result_id;
     END IF;
@@ -219,7 +221,7 @@ BEGIN
         f_valuestack = array[]::uuid[], f_lasti = 0
     WHERE ob_base = frame_id;
     
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id != const1_id THEN
         RAISE EXCEPTION 'FAIL: LOAD_GLOBAL should return global value (100), got %', result_id;
     END IF;
@@ -256,7 +258,7 @@ BEGIN
         f_valuestack = array[]::uuid[], f_lasti = 0
     WHERE ob_base = frame_id;
     
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: len("hello") via LOAD_GLOBAL returned NULL';
     END IF;
@@ -300,7 +302,7 @@ BEGIN
         f_valuestack = array[]::uuid[], f_lasti = 0
     WHERE ob_base = frame_id;
     
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id != const1_id THEN
         RAISE EXCEPTION 'FAIL: LOAD_GLOBAL after STORE_NAME should return global (100), got %', result_id;
     END IF;

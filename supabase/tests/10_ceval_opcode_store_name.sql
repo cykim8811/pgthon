@@ -15,6 +15,8 @@
 --   If any assertion fails, an exception will be raised with details.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     -- Builtin Type IDs (from bootstrap)
@@ -448,7 +450,7 @@ BEGIN
             -- We'll test that STORE_NAME worked by checking locals dict
             error_occurred := FALSE;
             BEGIN
-                PERFORM public.py_eval_frame(test_frame_id);
+                PERFORM public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, test_frame_id);
                 error_occurred := FALSE;
             EXCEPTION
                 WHEN OTHERS THEN

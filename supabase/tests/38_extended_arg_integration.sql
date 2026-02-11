@@ -11,6 +11,8 @@
 --   Run after migrations. If any assertion fails, exception is raised.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE uuid := '00000000-0000-4000-a000-000000000001';
@@ -110,7 +112,7 @@ BEGIN
     RAISE NOTICE 'Test 1: EXTENDED_ARG 0 + LOAD_CONST 1 returns consts[1] (20)...';
     test_count := test_count + 1;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: EXTENDED_ARG bytecode returned NULL';
     END IF;
@@ -148,7 +150,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('900164005300', 'hex'));
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: Test 2 EXTENDED_ARG 1 + LOAD_CONST 0 returned NULL';
     END IF;
@@ -179,7 +181,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('640090006E0364000100640064015300', 'hex'));
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: Test 3 EXTENDED_ARG + JUMP_FORWARD returned NULL';
     END IF;
@@ -212,7 +214,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('64009000640117005300', 'hex'));
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: Test 4 integrated bytecode returned NULL';
     END IF;
@@ -248,7 +250,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('9000900164005300', 'hex'));
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: Test 5 two EXTENDED_ARG returned NULL';
     END IF;

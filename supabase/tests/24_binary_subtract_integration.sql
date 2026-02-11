@@ -13,6 +13,8 @@
 --   Run after migrations 238800, 238900. If any assertion fails, exception is raised.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE uuid := '00000000-0000-4000-a000-000000000001';
@@ -121,7 +123,7 @@ BEGIN
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
 
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: 5-3 bytecode returned NULL';
@@ -158,7 +160,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
 
     PERFORM public.py_err_clear();
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NOT NULL OR NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: 1-''a'' bytecode should raise TypeError, got result_id=%', result_id;
     END IF;

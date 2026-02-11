@@ -52,8 +52,8 @@ BEGIN
 
     -- v_value is NULL — check if it's StopIteration
     SELECT exc_type_id INTO v_exc_type
-    FROM public.py_exception_state
-    WHERE id = '00000000-0000-4000-e000-000000000001';
+    FROM public.py_thread_state
+    WHERE id = current_setting('elytra.thread_state_id')::uuid;
 
     IF v_exc_type = ID_STOP_ITERATION_TYPE THEN
         -- StopIteration: clear exception, pop iterator, jump past loop

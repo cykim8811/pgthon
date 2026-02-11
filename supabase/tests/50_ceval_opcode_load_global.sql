@@ -13,6 +13,8 @@
 --   Run this file after migrations to verify LOAD_GLOBAL opcode implementation.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';

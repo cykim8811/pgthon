@@ -8,24 +8,11 @@
 -- 이 스키마·bootstrap이 먼저 적용되어야 함.
 -- ============================================================================
 
--- ----------------------------------------------------------------------------
--- 1. py_exception_state (error indicator, one row per execution context)
--- ----------------------------------------------------------------------------
-create table public.py_exception_state (
-  id uuid primary key default gen_random_uuid(),
-  exc_type_id uuid references public.py_object(id),
-  exc_value_id uuid references public.py_object(id),
-  exc_traceback_id uuid references public.py_object(id)
-);
-
-comment on table public.py_exception_state is 'Current exception (CPython error indicator). exc_type_id NULL = no exception.';
-
--- Single row for single-threaded Elytra (fixed id so callers can UPDATE it)
-insert into public.py_exception_state (id, exc_type_id, exc_value_id, exc_traceback_id)
-values ('00000000-0000-4000-e000-000000000001', null, null, null);
+-- (py_exception_state removed — exception state now lives on py_thread_state,
+--  created in 20260114223500_runtime_state_schema.sql)
 
 -- ----------------------------------------------------------------------------
--- 2. py_base_exception_object (BaseException instance: args)
+-- 1. py_base_exception_object (BaseException instance: args)
 -- ----------------------------------------------------------------------------
 create table public.py_base_exception_object (
   ob_base uuid primary key references public.py_object(id) on delete cascade,
@@ -195,12 +182,9 @@ BEGIN
 END $$;
 
 -- RLS
-alter table public.py_exception_state enable row level security;
 alter table public.py_base_exception_object enable row level security;
 alter table public.py_traceback_object enable row level security;
 
-create policy "Allow read/write py_exception_state"
-  on public.py_exception_state for all using (true) with check (true);
 create policy "Allow read/write py_base_exception_object"
   on public.py_base_exception_object for all using (true) with check (true);
 create policy "Allow read/write py_traceback_object"

@@ -16,6 +16,8 @@
 --   If any assertion fails, an exception will be raised with details.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     -- Builtin Type IDs (from bootstrap)
@@ -171,7 +173,7 @@ BEGIN
     );
     
     -- Execute frame
-    PERFORM public.py_eval_frame(frame_id);
+    PERFORM public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify value is stored in locals dict
     SELECT me_value INTO stored_value_id
@@ -235,7 +237,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_locals = locals_dict_id WHERE ob_base = frame_id;
     
     -- Execute frame
-    PERFORM public.py_eval_frame(frame_id);
+    PERFORM public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify all three variables are stored
     SELECT me_value INTO stored_value_id
@@ -314,7 +316,7 @@ BEGIN
         UPDATE public.py_code_object SET co_code = new_co_code_id, co_consts = new_co_consts_id WHERE ob_base = code_obj_id;
         
         -- Execute frame (reassign variable 'x')
-        PERFORM public.py_eval_frame(frame_id);
+        PERFORM public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
         
         -- Verify value is updated
         SELECT me_value INTO stored_value_id
@@ -403,7 +405,7 @@ BEGIN
         );
         
         -- Execute first frame
-        PERFORM public.py_eval_frame(first_frame_id);
+        PERFORM public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, first_frame_id);
         
         -- Second frame setup (different constant, same name)
         second_co_names_id := gen_random_uuid();
@@ -441,7 +443,7 @@ BEGIN
         );
         
         -- Execute second frame
-        PERFORM public.py_eval_frame(second_frame_id);
+        PERFORM public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, second_frame_id);
         
         -- Verify frame isolation: each frame has its own value
         SELECT me_value INTO first_stored_value
@@ -510,7 +512,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_locals = locals_dict_id WHERE ob_base = frame_id;
     
     -- Execute frame
-    PERFORM public.py_eval_frame(frame_id);
+    PERFORM public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify both variables have the same value
     SELECT me_value INTO stored_value_id

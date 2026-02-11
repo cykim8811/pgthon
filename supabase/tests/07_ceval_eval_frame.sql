@@ -17,6 +17,8 @@
 --   If any assertion fails, an exception will be raised with details.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     -- Builtin Type IDs (from bootstrap)
@@ -85,7 +87,7 @@ BEGIN
     
     error_occurred := FALSE;
     BEGIN
-        result_id := public.py_eval_frame(gen_random_uuid());
+        result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, gen_random_uuid());
         error_occurred := FALSE;
     EXCEPTION
         WHEN OTHERS THEN
@@ -171,7 +173,7 @@ BEGIN
     
     error_occurred := FALSE;
     BEGIN
-        result_id := public.py_eval_frame(frame_id);
+        result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
         error_occurred := FALSE;
     EXCEPTION
         WHEN OTHERS THEN
@@ -219,7 +221,7 @@ BEGIN
     );
     
     -- Execute (should return NULL since no RETURN_VALUE)
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     IF result_id IS NOT NULL THEN
         RAISE EXCEPTION 'FAIL: Empty bytecode should return NULL, got %', result_id;
@@ -263,7 +265,7 @@ BEGIN
     
     error_occurred := FALSE;
     BEGIN
-        result_id := public.py_eval_frame(frame_id);
+        result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
         error_occurred := FALSE;
     EXCEPTION
         WHEN OTHERS THEN
@@ -320,7 +322,7 @@ BEGIN
     PERFORM public.py_stack_push(frame_id, test_const_id);
     
     -- Execute (should handle RETURN_VALUE and return the value)
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     IF result_id != test_const_id THEN
         RAISE EXCEPTION 'FAIL: RETURN_VALUE should return %, got %', test_const_id, result_id;
@@ -366,7 +368,7 @@ BEGIN
     PERFORM public.py_stack_push(frame_id, test_const_id);
     
     -- Execute
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify f_lasti is set to RETURN_VALUE's byte offset (0)
     SELECT f_lasti INTO f_lasti_value
@@ -415,7 +417,7 @@ BEGIN
     
     error_occurred := FALSE;
     BEGIN
-        result_id := public.py_eval_frame(frame_id);
+        result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
         error_occurred := FALSE;
     EXCEPTION
         WHEN OTHERS THEN

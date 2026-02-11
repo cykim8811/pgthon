@@ -13,6 +13,8 @@
 --   If any assertion fails, an exception will be raised with details.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     -- Builtin Type IDs (from bootstrap)
@@ -307,7 +309,7 @@ BEGIN
     );
     
     -- Execute frame (should load constant and return it)
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     IF result_id != const0_id THEN
         RAISE EXCEPTION 'FAIL: py_eval_frame returned %, expected % (const0_id)', result_id, const0_id;

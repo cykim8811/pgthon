@@ -17,6 +17,8 @@
 --   Run after migrations. If any assertion fails, an exception is raised.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -143,7 +145,7 @@ BEGIN
         frame_id, code_obj_id, globals_dict_id, locals_dict_id, real_builtins_dict_id
     );
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL OR result_id != const0_id THEN
         RAISE EXCEPTION 'FAIL: full pipeline (a=1;b=2;return a) expected const0_id (1), got %', result_id;
     END IF;
@@ -162,7 +164,7 @@ BEGIN
     UPDATE public.py_code_object SET co_code = co_code_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: full pipeline (a=1;b=2;return a+b) returned NULL';
     END IF;
@@ -185,7 +187,7 @@ BEGIN
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_names = co_names_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: full pipeline (x=''a'';y=''b'';return x+y) returned NULL';
     END IF;
@@ -209,7 +211,7 @@ BEGIN
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_names = co_names_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: full pipeline (a=1;b=2;return a<b) returned NULL';
     END IF;
@@ -235,7 +237,7 @@ BEGIN
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_names = co_names_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: full pipeline (if a<b return a+b else return 0) returned NULL';
     END IF;

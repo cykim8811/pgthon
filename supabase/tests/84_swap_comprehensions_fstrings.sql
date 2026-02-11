@@ -14,6 +14,8 @@
 --  10. F-string combo: FORMAT_VALUE + BUILD_STRING (f"x={42}")
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE uuid := '00000000-0000-4000-a000-000000000001';
@@ -132,7 +134,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: SWAP(2) returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int <> 10 THEN
@@ -170,7 +172,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: BUILD_SET(3) returned NULL'; END IF;
     SELECT ob_type INTO result_type FROM public.py_object WHERE id = result_id;
     IF result_type <> ID_SET_TYPE THEN
@@ -206,7 +208,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: LIST_APPEND returned NULL'; END IF;
     SELECT ob_type INTO result_type FROM public.py_object WHERE id = result_id;
     IF result_type <> ID_LIST_TYPE THEN
@@ -245,7 +247,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: SET_ADD returned NULL'; END IF;
     SELECT ob_type INTO result_type FROM public.py_object WHERE id = result_id;
     IF result_type <> ID_SET_TYPE THEN
@@ -287,7 +289,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: MAP_ADD returned NULL'; END IF;
     SELECT ob_type INTO result_type FROM public.py_object WHERE id = result_id;
     IF result_type <> ID_DICT_TYPE THEN
@@ -338,7 +340,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: FORMAT_VALUE(0) returned NULL'; END IF;
     SELECT ob_type INTO result_type FROM public.py_object WHERE id = result_id;
     IF result_type <> ID_STR_TYPE THEN
@@ -372,7 +374,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: FORMAT_VALUE(1) returned NULL'; END IF;
     SELECT str_value INTO result_str FROM public.py_unicode_object WHERE ob_base = result_id;
     IF result_str <> '42' THEN
@@ -402,7 +404,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: FORMAT_VALUE(2) returned NULL'; END IF;
     SELECT str_value INTO result_str FROM public.py_unicode_object WHERE ob_base = result_id;
     IF result_str <> '''hello''' THEN
@@ -437,7 +439,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: BUILD_STRING(2) returned NULL'; END IF;
     SELECT str_value INTO result_str FROM public.py_unicode_object WHERE ob_base = result_id;
     IF result_str <> 'hello world' THEN
@@ -472,7 +474,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: F-string combo returned NULL'; END IF;
     SELECT str_value INTO result_str FROM public.py_unicode_object WHERE ob_base = result_id;
     IF result_str <> 'x=42' THEN

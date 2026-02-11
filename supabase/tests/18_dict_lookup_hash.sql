@@ -14,6 +14,8 @@
 --   If any assertion fails, an exception is raised with details.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 <<dict_lookup_test>>
 DECLARE

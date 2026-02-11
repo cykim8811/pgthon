@@ -23,6 +23,8 @@
 --   규칙: 테스트 실패 시 코드 수정 없이 멈추고 사용자에게 실패만 알린다.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE   uuid := '00000000-0000-4000-a000-000000000001';
@@ -183,7 +185,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, real_builtins_dict_id);
 
-    res_id := public.py_eval_frame(frame_id);
+    res_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: Scenario 1 py_eval_frame raised';
     END IF;
@@ -266,7 +268,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, real_builtins_dict_id);
 
-    res_id := public.py_eval_frame(frame_id);
+    res_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: Scenario 3 T.f("hi") raised';
     END IF;
@@ -319,14 +321,14 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, real_builtins_dict_id);
 
-    res_id := public.py_eval_frame(frame_id);
+    res_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF res_id IS NOT NULL THEN
         RAISE EXCEPTION 'FAIL: Scenario 4 inst.f("hi") should return NULL (TypeError), got %', res_id;
     END IF;
     IF NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: Scenario 4 inst.f("hi") should set exception';
     END IF;
-    SELECT exc_type_id INTO got_exc_type_id FROM public.py_exception_state WHERE id = (SELECT id FROM public.py_exception_state LIMIT 1);
+    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('elytra.thread_state_id')::uuid;
     IF got_exc_type_id IS DISTINCT FROM ID_TYPE_ERROR_TYPE THEN
         RAISE EXCEPTION 'FAIL: Scenario 4 expected TypeError, got exc_type_id %', got_exc_type_id;
     END IF;
@@ -443,7 +445,7 @@ BEGIN
     IF NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: getattr(T,"nonexistent") should set exception';
     END IF;
-    SELECT exc_type_id INTO got_exc_type_id FROM public.py_exception_state WHERE id = (SELECT id FROM public.py_exception_state LIMIT 1);
+    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('elytra.thread_state_id')::uuid;
     IF got_exc_type_id IS DISTINCT FROM ID_ATTRIBUTE_ERROR_TYPE THEN
         RAISE EXCEPTION 'FAIL: expected AttributeError, got exc_type_id %', got_exc_type_id;
     END IF;
@@ -490,7 +492,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, real_builtins_dict_id);
 
-    res_id := public.py_eval_frame(frame_id);
+    res_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: Scenario 8 C.x=1 bytecode raised';
     END IF;
@@ -585,7 +587,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, real_builtins_dict_id);
 
-    PERFORM public.py_eval_frame(frame_id);
+    PERFORM public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: Scenario 10 DELETE_ATTR("x") raised';
     END IF;

@@ -15,6 +15,8 @@
 --   If any assertion fails, an exception will be raised with details.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     -- Builtin Type IDs (from bootstrap)
@@ -192,7 +194,7 @@ BEGIN
     WHERE ob_base = frame_id;
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify result
     IF result_id IS NULL THEN
@@ -245,7 +247,7 @@ BEGIN
     WHERE ob_base = frame_id;
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify result
     SELECT long_value INTO result_value
@@ -296,7 +298,7 @@ BEGIN
     WHERE ob_base = frame_id;
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify result (should be len("world") = 5, the last function call result)
     SELECT long_value INTO result_value

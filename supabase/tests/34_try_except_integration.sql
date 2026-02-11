@@ -26,6 +26,8 @@
 -- Design: docs/EXCEPTION_HANDLING_DESIGN.md
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE uuid := '00000000-0000-4000-a000-000000000001';
@@ -136,7 +138,7 @@ BEGIN
     PERFORM public.py_err_clear();
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
 
     IF result_id IS NULL THEN
         RAISE EXCEPTION '✓ 34.1 FAIL: with exception table expected return 777 (handler), got NULL';
@@ -153,7 +155,7 @@ BEGIN
     PERFORM public.py_err_clear();
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
 
     IF result_id IS NOT NULL THEN
         RAISE EXCEPTION '✓ 34.2 FAIL: without exception table expected NULL return, got %', result_id;

@@ -8,6 +8,8 @@
 --   = 0x6400 0f00 5300
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE uuid := '00000000-0000-4000-a000-000000000001';
@@ -116,7 +118,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 7/2 returned NULL'; END IF;
     SELECT ob_fval INTO result_float FROM public.py_float_object WHERE ob_base = result_id;
     IF result_float IS NULL OR result_float <> 3.5 THEN
@@ -148,7 +150,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 7//2 returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int IS NULL OR result_int <> 3 THEN
@@ -180,7 +182,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 7%%3 returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int IS NULL OR result_int <> 1 THEN
@@ -212,7 +214,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 2**10 returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int IS NULL OR result_int <> 1024 THEN
@@ -244,7 +246,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 5&3 returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int IS NULL OR result_int <> 1 THEN
@@ -276,7 +278,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 5|3 returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int IS NULL OR result_int <> 7 THEN
@@ -308,7 +310,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 5^3 returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int IS NULL OR result_int <> 6 THEN
@@ -340,7 +342,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 1<<4 returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int IS NULL OR result_int <> 16 THEN
@@ -372,7 +374,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 16>>2 returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int IS NULL OR result_int <> 4 THEN
@@ -402,7 +404,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: ~5 returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int IS NULL OR result_int <> -6 THEN
@@ -434,7 +436,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 7.5/2.5 returned NULL'; END IF;
     SELECT ob_fval INTO result_float FROM public.py_float_object WHERE ob_base = result_id;
     IF result_float IS NULL OR result_float <> 3.0 THEN
@@ -467,7 +469,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 7.5//2.5 returned NULL'; END IF;
     SELECT ob_fval INTO result_float FROM public.py_float_object WHERE ob_base = result_id;
     IF result_float IS NULL OR result_float <> 3.0 THEN
@@ -500,7 +502,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 7.5%%2.5 returned NULL'; END IF;
     SELECT ob_fval INTO result_float FROM public.py_float_object WHERE ob_base = result_id;
     IF result_float IS NULL OR result_float <> 0.0 THEN
@@ -532,7 +534,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 2.0**3.0 returned NULL'; END IF;
     SELECT ob_fval INTO result_float FROM public.py_float_object WHERE ob_base = result_id;
     IF result_float IS NULL OR result_float <> 8.0 THEN
@@ -564,7 +566,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NOT NULL OR NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: 1/0 should raise ZeroDivisionError, got result_id=%', result_id;
     END IF;
@@ -599,7 +601,7 @@ BEGIN
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 3+=4 returned NULL'; END IF;
     SELECT long_value INTO result_int FROM public.py_long_object WHERE ob_base = result_id;
     IF result_int IS NULL OR result_int <> 7 THEN

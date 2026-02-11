@@ -8,6 +8,8 @@
 --   4. Bytecode: class Dog with __init__(self, name) → d = Dog("Rex") → d.name == "Rex"
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_INT_TYPE    UUID := '00000000-0000-4000-a000-000000000004';
@@ -269,7 +271,7 @@ BEGIN
     VALUES (frame_id, outer_code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
     -- Execute
-    res_id := public.py_eval_frame(frame_id);
+    res_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: Dog() bytecode raised exception';
     END IF;

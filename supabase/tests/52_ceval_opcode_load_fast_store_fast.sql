@@ -15,6 +15,8 @@
 --   Run after migrations. If any assertion fails, an exception is raised.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -326,7 +328,7 @@ BEGIN
     UPDATE public.py_bytes_object SET bytes_value = E'\\x64007d007c005300'::bytea WHERE ob_base = co_code_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_fastlocals = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
 
-    popped_id := public.py_eval_frame(frame_id);
+    popped_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF popped_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: py_eval_frame returned NULL (exception?)';
     END IF;

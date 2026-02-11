@@ -17,6 +17,8 @@
 --   If any assertion fails, an exception will be raised with details.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     -- Builtin Type IDs (from bootstrap)
@@ -156,7 +158,7 @@ BEGIN
     );
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify return value is const2_id (last loaded constant, top of stack)
     IF result_id != const2_id THEN
@@ -209,7 +211,7 @@ BEGIN
     );
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify f_lasti is set to RETURN_VALUE's byte offset (6)
     -- Bytecode: [100, 0, 100, 1, 100, 2, 83, 0]
@@ -252,7 +254,7 @@ BEGIN
     );
     
     -- Execute frame (should return NULL since no RETURN_VALUE)
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     IF result_id IS NOT NULL THEN
         RAISE EXCEPTION 'FAIL: Return value is %, expected NULL (no RETURN_VALUE)', result_id;
@@ -328,7 +330,7 @@ BEGIN
     );
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify return value is const4_id (last loaded constant, top of stack)
     IF result_id != const4_id THEN
@@ -396,7 +398,7 @@ BEGIN
     );
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify return value
     IF result_id != const0_id THEN
@@ -457,7 +459,7 @@ BEGIN
     );
     
     -- Execute frame (no RETURN_VALUE, so it completes normally)
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify f_lasti is set to last instruction's byte offset (4)
     -- Last instruction (LOAD_CONST 2) is at byte offset 4 (0-indexed)
@@ -503,7 +505,7 @@ BEGIN
     );
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify return value is const4_id (last loaded constant, top of stack)
     IF result_id != const4_id THEN
@@ -560,7 +562,7 @@ BEGIN
     -- Execute frame (should raise stack underflow exception)
     error_occurred := FALSE;
     BEGIN
-        result_id := public.py_eval_frame(frame_id);
+        result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
         error_occurred := FALSE;
     EXCEPTION
         WHEN OTHERS THEN
@@ -608,7 +610,7 @@ BEGIN
     PERFORM public.py_stack_push(frame_id, const0_id);
     
     -- Execute frame
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     
     -- Verify return value
     IF result_id != const0_id THEN
@@ -682,7 +684,7 @@ BEGIN
         );
         
         -- Execute first frame
-        first_result_id := public.py_eval_frame(first_frame_id);
+        first_result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, first_frame_id);
         
         -- Verify first frame return value
         IF first_result_id != const0_id THEN
@@ -738,7 +740,7 @@ BEGIN
         );
         
         -- Execute second frame
-        second_result_id := public.py_eval_frame(second_frame_id);
+        second_result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, second_frame_id);
         
         -- Verify second frame return value
         IF second_result_id != const1_id THEN

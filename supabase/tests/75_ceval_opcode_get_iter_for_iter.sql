@@ -15,6 +15,8 @@
 --   5. GET_ITER on int → TypeError
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_INT_TYPE    uuid := '00000000-0000-4000-a000-000000000004';
@@ -174,7 +176,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
-    res_id := public.py_eval_frame(frame_id);
+    res_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: iterate list raised exception';
     END IF;
@@ -229,7 +231,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
-    res_id := public.py_eval_frame(frame_id);
+    res_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: iterate tuple raised exception';
     END IF;
@@ -282,7 +284,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
-    res_id := public.py_eval_frame(frame_id);
+    res_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: empty list iteration raised exception';
     END IF;
@@ -335,11 +337,11 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
-    res_id := public.py_eval_frame(frame_id);
+    res_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: GET_ITER on int should raise TypeError';
     END IF;
-    SELECT exc_type_id INTO exc_type FROM public.py_exception_state WHERE id = '00000000-0000-4000-e000-000000000001';
+    SELECT exc_type_id INTO exc_type FROM public.py_thread_state WHERE id = current_setting('elytra.thread_state_id')::uuid;
     IF exc_type IS DISTINCT FROM ID_TYPE_ERROR_TYPE THEN
         RAISE EXCEPTION 'FAIL: GET_ITER on int expected TypeError, got %', exc_type;
     END IF;

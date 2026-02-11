@@ -14,6 +14,8 @@
 --   Run after migrations. If any assertion fails, exception is raised.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_TYPE_TYPE   uuid := '00000000-0000-4000-a000-000000000002';
@@ -165,7 +167,7 @@ BEGIN
         INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
         VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
-        res_id := public.py_eval_frame(frame_id);
+        res_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
         IF public.py_err_occurred() THEN
             RAISE EXCEPTION 'FAIL: LOAD_CONST LOAD_ATTR("f") raised exception';
         END IF;

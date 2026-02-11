@@ -107,7 +107,10 @@ BEGIN
     VALUES (v_frame_id, v_func_code, v_func_globals, v_namespace_id, v_builtins_dict_id);
 
     -- Execute body — ignore return value (body should populate namespace via STORE_NAME)
-    v_dummy_result := public.py_eval_frame(v_frame_id);
+    v_dummy_result := public.py_eval_frame(
+      current_setting('elytra.thread_state_id')::uuid,
+      v_frame_id
+    );
     IF public.py_err_occurred() THEN
         RETURN NULL;
     END IF;

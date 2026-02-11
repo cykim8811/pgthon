@@ -10,6 +10,8 @@
 --   6. print(1, "two", 3.0) — multiple args joined with space
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_STR_TYPE    uuid := '00000000-0000-4000-a000-000000000003';
@@ -177,7 +179,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
-    v_result := public.py_eval_frame(frame_id);
+    v_result := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: print("hello") raised exception';
     END IF;
@@ -236,7 +238,7 @@ BEGIN
     INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
     VALUES (frame_id, code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
-    v_result := public.py_eval_frame(frame_id);
+    v_result := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: print(1, "two", 3.0) raised exception';
     END IF;

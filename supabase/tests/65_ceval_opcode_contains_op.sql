@@ -6,6 +6,8 @@
 --   Stack: ..., container, item → ..., bool. Supports tuple, list.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -123,7 +125,7 @@ BEGIN
     );
     UPDATE public.py_frame_object SET f_code = code_obj_id, f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: CONTAINS_OP (in, present) returned NULL'; END IF;
     IF result_id != ID_TRUE_OBJ THEN RAISE EXCEPTION 'FAIL: Expected True (const0 in list), got %', result_id; END IF;
 
@@ -143,7 +145,7 @@ BEGIN
         0, empty_tuple_id, empty_tuple_id, empty_tuple_id
     );
     UPDATE public.py_frame_object SET f_code = code_obj_id, f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: CONTAINS_OP (in, absent) returned NULL'; END IF;
     IF result_id != ID_FALSE_OBJ THEN RAISE EXCEPTION 'FAIL: Expected False (const2 not in list), got %', result_id; END IF;
 
@@ -165,7 +167,7 @@ BEGIN
         0, empty_tuple_id, empty_tuple_id, empty_tuple_id
     );
     UPDATE public.py_frame_object SET f_code = code_obj_id, f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id != ID_TRUE_OBJ THEN RAISE EXCEPTION 'FAIL: Expected True (const2 not in list)'; END IF;
 
     UPDATE public.py_tuple_object SET ob_item = ARRAY[const0_id, const1_id] WHERE ob_base = co_consts_id;
@@ -183,7 +185,7 @@ BEGIN
         0, empty_tuple_id, empty_tuple_id, empty_tuple_id
     );
     UPDATE public.py_frame_object SET f_code = code_obj_id, f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id != ID_FALSE_OBJ THEN RAISE EXCEPTION 'FAIL: Expected False (const0 in list, not in → False)'; END IF;
 
     RAISE NOTICE '  ✓ CONTAINS_OP(1): not in → True when absent, False when present';

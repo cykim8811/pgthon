@@ -11,6 +11,8 @@
 --   Run after migrations 239300, 239400.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE uuid := '00000000-0000-4000-a000-000000000001';
@@ -96,7 +98,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x6400640114005300'::bytea);
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 2*3 returned NULL'; END IF;
     SELECT long_value INTO result_num FROM public.py_long_object WHERE ob_base = result_id;
     IF result_num IS NULL OR result_num <> 6 THEN RAISE EXCEPTION 'FAIL: 2*3 result %, expected 6', result_num; END IF;
@@ -121,7 +123,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x6400640114005300'::bytea);
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: ''a''*3 returned NULL'; END IF;
     SELECT str_value INTO result_txt FROM public.py_unicode_object WHERE ob_base = result_id;
     IF result_txt IS NULL OR result_txt <> 'aaa' THEN RAISE EXCEPTION 'FAIL: ''a''*3 result %, expected ''aaa''', COALESCE(result_txt, 'NULL'); END IF;
@@ -146,7 +148,7 @@ BEGIN
     INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x6400640114005300'::bytea);
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: 2*''b'' returned NULL'; END IF;
     SELECT str_value INTO result_txt FROM public.py_unicode_object WHERE ob_base = result_id;
     IF result_txt IS NULL OR result_txt <> 'bb' THEN RAISE EXCEPTION 'FAIL: 2*''b'' result %, expected ''bb''', COALESCE(result_txt, 'NULL'); END IF;
@@ -172,7 +174,7 @@ BEGIN
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = 0 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NOT NULL OR NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: ''a''*''b'' should raise TypeError, got result_id=%', result_id;
     END IF;

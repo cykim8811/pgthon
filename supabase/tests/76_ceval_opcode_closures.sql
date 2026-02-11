@@ -13,6 +13,8 @@
 --   2. Simple closure: outer() { x=10; def inner(): return x; return inner() } → 10
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_INT_TYPE    uuid := '00000000-0000-4000-a000-000000000004';
@@ -209,7 +211,7 @@ BEGIN
     VALUES (frame_id, outer_code_obj_id, globals_dict_id, locals_dict_id, builtins_dict_id);
 
     -- Execute outer
-    res_id := public.py_eval_frame(frame_id);
+    res_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: closure test raised exception';
     END IF;

@@ -6,6 +6,8 @@
 --   list: remove element at index; dict: py_dict_del_item; tuple → TypeError.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -127,7 +129,7 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[list_id, int0_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_bytes_object SET bytes_value = E'\\x640064013D006400640119005300'::bytea WHERE ob_base = co_code_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: del list[0] then list[0] returned NULL'; END IF;
     IF result_id != elem_b_id THEN RAISE EXCEPTION 'FAIL: after del list[0], list[0] expected elem_b, got %', result_id; END IF;
     RAISE NOTICE '  ✓ del list[0]; list[0] → second element';
@@ -139,7 +141,7 @@ BEGIN
     UPDATE public.py_bytes_object SET bytes_value = E'\\x640064013D006400640119005300'::bytea WHERE ob_base = co_code_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NOT NULL THEN RAISE EXCEPTION 'FAIL: after del dict["x"], dict["x"] should raise KeyError'; END IF;
     IF NOT public.py_err_occurred() THEN RAISE EXCEPTION 'FAIL: expected KeyError'; END IF;
     SELECT e.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() e;
@@ -155,7 +157,7 @@ BEGIN
     UPDATE public.py_bytes_object SET bytes_value = E'\\x640064013D005300'::bytea WHERE ob_base = co_code_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NOT NULL THEN RAISE EXCEPTION 'FAIL: del tuple[0] should raise'; END IF;
     IF NOT public.py_err_occurred() THEN RAISE EXCEPTION 'FAIL: expected TypeError'; END IF;
     SELECT e.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() e;

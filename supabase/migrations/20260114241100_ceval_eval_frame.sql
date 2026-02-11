@@ -13,7 +13,7 @@
 -- Before opcode: had_err := py_err_occurred(). After opcode: if NOT had_err AND py_err_occurred()
 -- then traceback + exception table lookup (so handler runs without re-dispatching).
 -- ----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.py_eval_frame(frame_id UUID)
+CREATE OR REPLACE FUNCTION public.py_eval_frame(p_ts_id UUID, frame_id UUID)
 RETURNS UUID AS $$
 DECLARE
     code_obj_id UUID;
@@ -35,6 +35,9 @@ DECLARE
     extended INTEGER;
     pending_kw_names_const_i INTEGER := NULL;
 BEGIN
+    -- Set thread state for this execution context (PostgreSQL TLS equivalent)
+    PERFORM set_config('elytra.thread_state_id', p_ts_id::text, false);
+
     IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
         RAISE EXCEPTION 'Frame with id % does not exist', frame_id;
     END IF;

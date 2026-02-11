@@ -12,6 +12,8 @@
 --   Run after migrations. If any assertion fails, an exception is raised.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -151,7 +153,7 @@ BEGIN
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id, co_varnames = co_varnames_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_fastlocals = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: x=1; return x returned NULL';
     END IF;
@@ -189,7 +191,7 @@ BEGIN
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_fastlocals = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: a=10; b=20; return b returned NULL';
     END IF;
@@ -227,7 +229,7 @@ BEGIN
     UPDATE public.py_code_object SET co_code = co_code_id, co_consts = co_consts_id WHERE ob_base = code_obj_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_fastlocals = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
 
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN
         RAISE EXCEPTION 'FAIL: a=1; b=2; return a+b returned NULL';
     END IF;
@@ -324,8 +326,8 @@ BEGIN
         INSERT INTO public.py_frame_object (ob_base, f_code, f_globals, f_locals, f_builtins)
         VALUES (frame2_id, code2_id, globals_dict_id, locals2_id, real_builtins_dict_id);
 
-        r1_id := public.py_eval_frame(frame1_id);
-        r2_id := public.py_eval_frame(frame2_id);
+        r1_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame1_id);
+        r2_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame2_id);
 
         IF r1_id IS NULL OR r2_id IS NULL THEN
             RAISE EXCEPTION 'FAIL: One of the frames returned NULL';

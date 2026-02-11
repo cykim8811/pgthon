@@ -6,6 +6,8 @@
 --   list: in-place update by index; dict: py_dict_set_item; tuple → TypeError.
 -- ============================================================================
 
+SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+
 DO $$
 DECLARE
     ID_OBJECT_TYPE UUID := '00000000-0000-4000-a000-000000000001';
@@ -130,7 +132,7 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[list_id, int0_id, val_99_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_bytes_object SET bytes_value = E'\\x6400640164023C006400640119005300'::bytea WHERE ob_base = co_code_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: list[0]=99 then list[0] returned NULL'; END IF;
     IF result_id != val_99_id THEN RAISE EXCEPTION 'FAIL: list[0] expected 99, got %', result_id; END IF;
     RAISE NOTICE '  ✓ list[0] = 99; list[0] → 99';
@@ -140,7 +142,7 @@ BEGIN
     test_count := test_count + 1;
     UPDATE public.py_tuple_object SET ob_item = ARRAY[dict_id, key_str_id, val_99_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: dict["x"]=99 then dict["x"] returned NULL'; END IF;
     IF result_id != val_99_id THEN RAISE EXCEPTION 'FAIL: dict["x"] expected 99, got %', result_id; END IF;
     RAISE NOTICE '  ✓ dict["x"] = 99; dict["x"] → 99';
@@ -151,7 +153,7 @@ BEGIN
     UPDATE public.py_tuple_object SET ob_item = ARRAY[tuple_id, int0_id, val_99_id] WHERE ob_base = co_consts_id;
     UPDATE public.py_frame_object SET f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
     PERFORM public.py_err_clear();
-    result_id := public.py_eval_frame(frame_id);
+    result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NOT NULL THEN RAISE EXCEPTION 'FAIL: tuple[0]=99 should raise'; END IF;
     IF NOT public.py_err_occurred() THEN RAISE EXCEPTION 'FAIL: expected TypeError'; END IF;
     SELECT e.exc_type_id INTO exc_type_id FROM public.py_err_get_raised() e;

@@ -135,9 +135,9 @@ BEGIN
 
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    -- Note: JUMP_BACKWARD uses absolute target (arg*2 = byte offset)
-    -- FOR_ITER at byte 18 → JUMP_BACKWARD needs arg=9 (9*2=18)
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('970064007d00020065006401a601ab0144005d067d017c007c017a007d008c097c005300', 'hex'));
+    -- JUMP_BACKWARD uses relative backward jump: arg = (start_i + 2 - target) / 2
+    -- JUMP_BACKWARD at byte 30, target byte 18 → arg = (30+2-18)/2 = 7
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('970064007d00020065006401a601ab0144005d067d017c007c017a007d008c077c005300', 'hex'));
 
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
@@ -190,9 +190,8 @@ BEGIN
 
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    -- Note: JUMP_BACKWARD uses absolute target (arg*2 = byte offset)
-    -- FOR_ITER at byte 22 → JUMP_BACKWARD needs arg=11 (11*2=22)
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('970064007d0002006500640164026403a603ab0344005d067d017c007c017a007d008c0b7c005300', 'hex'));
+    -- JUMP_BACKWARD at byte 34, target byte 22 → arg = (34+2-22)/2 = 7
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('970064007d0002006500640164026403a603ab0344005d067d017c007c017a007d008c077c005300', 'hex'));
 
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
@@ -239,8 +238,8 @@ BEGIN
 
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    -- Same bytecode as test 2 (JUMP_BACKWARD arg=9 for absolute target byte 18)
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('970064007d00020065006401a601ab0144005d067d017c007c017a007d008c097c005300', 'hex'));
+    -- Same bytecode as test 2 (JUMP_BACKWARD arg=7 for relative backward jump)
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('970064007d00020065006401a601ab0144005d067d017c007c017a007d008c077c005300', 'hex'));
 
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);

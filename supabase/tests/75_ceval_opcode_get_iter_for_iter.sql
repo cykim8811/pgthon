@@ -153,7 +153,7 @@ BEGIN
     -- co_code
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('970064007d00640164026403670344005d067d017c007c0117007d008c087c005300', 'hex'));
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('970064007d00640164026403670344005d067d017c007c0117007d008c077c005300', 'hex'));
 
     -- code object
     code_obj_id := gen_random_uuid();

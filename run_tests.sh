@@ -927,6 +927,16 @@ else
     exit 1
 fi
 
+# 86. py_run RPC (Elytra Python Playground)
+echo "=== Phase 86: py_run RPC ==="
+if run_test "supabase/tests/86_py_run.sql"; then
+    echo ""
+else
+    echo ""
+    echo "❌ py_run RPC test failed. Cannot continue."
+    exit 1
+fi
+
 # ===================================================
 # Summary
 # ===================================================
@@ -1022,8 +1032,9 @@ echo "  ✅ 82: Common Builtins (isinstance, hasattr, getattr, setattr, id)"
 echo "  ✅ 83: Extended Binary/Unary Ops (/, //, %, **, &, |, ^, <<, >>, ~, inplace)"
 echo "  ✅ 84: SWAP, Comprehension Opcodes (BUILD_SET, LIST_APPEND, SET_ADD, MAP_ADD), F-String (FORMAT_VALUE, BUILD_STRING)"
 echo "  ✅ 85: Star-Unpacking Opcodes (LIST_EXTEND, SET_UPDATE, DICT_UPDATE, DICT_MERGE, CALL_FUNCTION_EX, UNPACK_EX, BUILD_CONST_KEY_MAP)"
+echo "  ✅ 86: py_run RPC (Elytra Python Playground)"
 echo ""
-echo "Total: 85 test suites passed ✨"
+echo "Total: 86 test suites passed ✨"
 echo ""
 echo "Note: Additional tests can be added to supabase/tests/ directory"
 echo ""

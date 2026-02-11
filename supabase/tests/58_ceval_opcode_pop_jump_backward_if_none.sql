@@ -110,9 +110,16 @@ BEGIN
     INSERT INTO public.py_object (id, ob_type) VALUES (const2_id, ID_INT_TYPE);
     INSERT INTO public.py_long_object (ob_base, long_value) VALUES (const2_id, 2);
 
-    -- Test 2: POP_JUMP_BACKWARD_IF_NONE — TOS None → jump to target (const2); TOS not None → no jump (const1)
-    -- Bytecode: LOAD_CONST 0, POP_JUMP_BACKWARD_IF_NONE 4, LOAD_CONST 1, RETURN, LOAD_CONST 2, RETURN.
-    -- 100,0 173,4 100,1 83,0 100,2 83,0 = \x6400ad046401530064025300 (173=0xAD)
+    -- Test 2: POP_JUMP_BACKWARD_IF_NONE — TOS None → jump backward (const2); TOS not None → no jump (const1)
+    -- CPython 3.11: relative backward jump; target = start_i + 2 - arg * 2
+    -- Layout:
+    --   offset 0: JUMP_FORWARD 2  (6e02) → skip to offset 6
+    --   offset 2: LOAD_CONST 2    (6402) ← backward jump target
+    --   offset 4: RETURN_VALUE    (5300)
+    --   offset 6: LOAD_CONST 0    (6400) → push None or non-None
+    --   offset 8: POP_JUMP_BACKWARD_IF_NONE 4  (ad04) → target = 8+2-4*2 = 2
+    --   offset 10: LOAD_CONST 1   (6401) → fallthrough
+    --   offset 12: RETURN_VALUE   (5300)
     RAISE NOTICE '';
     RAISE NOTICE 'Test 2: POP_JUMP_BACKWARD_IF_NONE — None jumps, non-None does not...';
     test_count := test_count + 1;
@@ -123,7 +130,7 @@ BEGIN
 
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x6400ad046401530064025300'::bytea);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('6e02640253006400ad0464015300', 'hex'));
 
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
@@ -136,7 +143,6 @@ BEGIN
     );
 
     UPDATE public.py_frame_object SET f_code = code_obj_id, f_valuestack = array[]::uuid[], f_lasti = -1 WHERE ob_base = frame_id;
-    UPDATE public.py_code_object SET co_consts = co_consts_id WHERE ob_base = code_obj_id;
 
     result_id := public.py_eval_frame('00000000-0000-4000-e000-000000000030'::uuid, frame_id);
     IF result_id IS NULL THEN RAISE EXCEPTION 'FAIL: POP_JUMP_BACKWARD_IF_NONE (None) returned NULL'; END IF;
@@ -152,16 +158,15 @@ BEGIN
     RAISE NOTICE '  ✓ POP_JUMP_BACKWARD_IF_NONE: None→jump→const2, non-None→no jump→const1';
     pass_count := pass_count + 1;
 
-    -- Test 3: POP_JUMP_BACKWARD_IF_NOT_NONE — TOS not None → jump (const2); TOS None → no jump (const1)
-    -- Bytecode: LOAD_CONST 0, POP_JUMP_BACKWARD_IF_NOT_NONE 4, LOAD_CONST 1, RETURN, LOAD_CONST 2, RETURN.
-    -- 100,0 174,4 100,1 83,0 100,2 83,0 = \x6400ae046401530064025300 (174=0xAE)
+    -- Test 3: POP_JUMP_BACKWARD_IF_NOT_NONE — TOS not None → jump backward (const2); TOS None → no jump (const1)
+    -- Same layout but opcode 174 (0xae) instead of 173 (0xad)
     RAISE NOTICE '';
     RAISE NOTICE 'Test 3: POP_JUMP_BACKWARD_IF_NOT_NONE — non-None jumps, None does not...';
     test_count := test_count + 1;
 
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x6400ae046401530064025300'::bytea);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('6e02640253006400ae0464015300', 'hex'));
 
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);

@@ -217,12 +217,18 @@ BEGIN
     pass_count := pass_count + 1;
 
     -- ========================================================================
-    -- Test 5: py_eval_frame with JUMP_BACKWARD — LOAD_CONST 0, JUMP_BACKWARD 2, LOAD_CONST 1, RETURN → const1
-    -- CPython 3.11: JUMP_BACKWARD oparg = target instruction offset. So arg=2 → byte offset 4.
-    -- Bytecode: 100,0 (0-1) 140,2 (2-3) 100,1 (4-5) 83,0 (6-7) = \x64008c0264015300
+    -- Test 5: py_eval_frame with JUMP_BACKWARD — relative backward jump
+    -- CPython 3.11: JUMP_BACKWARD oparg = relative backward offset in instructions.
+    -- target = start_i + 2 - arg * 2
+    -- Bytecode: JUMP_FORWARD 2 (0-1) | LOAD_CONST 1 (2-3) | RETURN_VALUE (4-5) |
+    --           LOAD_CONST 0 (6-7) | JUMP_BACKWARD 4 (8-9)
+    -- Flow: 0→6→8→2→4(return const1=99)
+    -- JUMP_FORWARD arg=2: next_i = 0+2+2*2 = 6
+    -- JUMP_BACKWARD arg=4: next_i = 8+2-4*2 = 2
+    -- Hex: 6e02 6401 5300 6400 8c04
     -- ========================================================================
     RAISE NOTICE '';
-    RAISE NOTICE 'Test 5: py_eval_frame with JUMP_BACKWARD(140) jumps to target, returns const1...';
+    RAISE NOTICE 'Test 5: py_eval_frame with JUMP_BACKWARD(140) relative backward jump...';
     test_count := test_count + 1;
 
     const0_id := gen_random_uuid();
@@ -239,7 +245,7 @@ BEGIN
 
     co_code_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (co_code_id, ID_BYTES_TYPE);
-    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, E'\\x64008c0264015300'::bytea);
+    INSERT INTO public.py_bytes_object (ob_base, bytes_value) VALUES (co_code_id, decode('6e026401530064008c04', 'hex'));
 
     code_obj_id := gen_random_uuid();
     INSERT INTO public.py_object (id, ob_type) VALUES (code_obj_id, ID_OBJECT_TYPE);
@@ -261,7 +267,7 @@ BEGIN
         RAISE EXCEPTION 'FAIL: py_eval_frame with JUMP_BACKWARD returned %, expected const1 %', result_id, const1_id;
     END IF;
 
-    RAISE NOTICE '  ✓ JUMP_BACKWARD(140) jumps to target instruction offset; returns correct value';
+    RAISE NOTICE '  ✓ JUMP_BACKWARD(140) relative backward jump; returns correct value';
     pass_count := pass_count + 1;
 
     -- ========================================================================

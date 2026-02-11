@@ -166,7 +166,7 @@ BEGIN
             WHEN 110 THEN
                 next_i := start_i + 2 + arg * 2;
             WHEN 140 THEN
-                next_i := arg * 2;  -- JUMP_BACKWARD (3.11): oparg = target instruction offset (bytes = arg*2)
+                next_i := start_i + 2 - arg * 2;  -- JUMP_BACKWARD (3.11): relative backward jump
             WHEN 114 THEN
                 next_i := public.py_opcode_POP_JUMP_FORWARD_IF_FALSE(frame_id, start_i, arg);
             WHEN 115 THEN
@@ -180,13 +180,13 @@ BEGIN
             WHEN 129 THEN
                 next_i := public.py_opcode_POP_JUMP_FORWARD_IF_NOT_NONE(frame_id, start_i, arg);
             WHEN 173 THEN
-                next_i := public.py_opcode_POP_JUMP_BACKWARD_IF_NONE(frame_id, arg);
+                next_i := public.py_opcode_POP_JUMP_BACKWARD_IF_NONE(frame_id, start_i, arg);
             WHEN 174 THEN
-                next_i := public.py_opcode_POP_JUMP_BACKWARD_IF_NOT_NONE(frame_id, arg);
+                next_i := public.py_opcode_POP_JUMP_BACKWARD_IF_NOT_NONE(frame_id, start_i, arg);
             WHEN 175 THEN
-                next_i := public.py_opcode_POP_JUMP_BACKWARD_IF_FALSE(frame_id, arg);
+                next_i := public.py_opcode_POP_JUMP_BACKWARD_IF_FALSE(frame_id, start_i, arg);
             WHEN 176 THEN
-                next_i := public.py_opcode_POP_JUMP_BACKWARD_IF_TRUE(frame_id, arg);
+                next_i := public.py_opcode_POP_JUMP_BACKWARD_IF_TRUE(frame_id, start_i, arg);
             WHEN 151 THEN
                 PERFORM public.py_opcode_RESUME(frame_id, arg);
             WHEN 35 THEN

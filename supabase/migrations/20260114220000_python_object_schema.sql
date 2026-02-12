@@ -33,11 +33,14 @@ create table public.py_sequence_methods (
   id uuid primary key default gen_random_uuid(),
   sq_length regproc,
   sq_concat regproc,
-  sq_repeat regproc
+  sq_repeat regproc,
+  sq_contains regproc
 );
 create table public.py_mapping_methods (
   id uuid primary key default gen_random_uuid(),
-  mp_length regproc
+  mp_length regproc,
+  mp_subscript regproc,
+  mp_ass_subscript regproc
 );
 create table public.py_number_methods (
   id uuid primary key default gen_random_uuid(),
@@ -56,7 +59,8 @@ create table public.py_number_methods (
   nb_xor regproc,
   nb_lshift regproc,
   nb_rshift regproc,
-  nb_invert regproc
+  nb_invert regproc,
+  nb_bool regproc
 );
 
 -- 2. py_type_object (Implements CPython's PyTypeObject: defines types)
@@ -72,6 +76,8 @@ create table public.py_type_object (
   tp_call regproc,       -- CPython ternaryfunc tp_call; NULL = not callable. See 234000.
   tp_hash regproc,       -- CPython hashfunc tp_hash; NULL = unhashable. See 235000.
   tp_richcompare regproc, -- CPython richcmpfunc tp_richcompare; NULL = not implemented. See 234900.
+  tp_str regproc,            -- CPython reprfunc tp_str; NULL = use default. See 236000.
+  tp_repr regproc,           -- CPython reprfunc tp_repr; NULL = use default. See 236000.
   tp_iter regproc,           -- CPython getiterfunc tp_iter; NULL = not iterable. Returns an iterator.
   tp_iternext regproc,       -- CPython iternextfunc tp_iternext; NULL = not an iterator. Returns next value or sets StopIteration.
   tp_as_sequence uuid references public.py_sequence_methods(id),

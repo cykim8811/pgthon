@@ -54,7 +54,7 @@
    - `py_err_occurred()` = true, `exc_type_id` = TypeError, 예외 메시지에 `object is not callable` 포함 여부 검사.
 
 **메시지 형식:**  
-CPython은 `"'%.200s' object is not callable"` (타입 이름). Elytra도 타입 이름만 넣어 동일하게 맞춘다.  
+CPython은 `"'%.200s' object is not callable"` (타입 이름). Pgthon도 타입 이름만 넣어 동일하게 맞춘다.  
 `py_err_set_type_error` 인자는 한 개(text)이므로 `'''' || func_type_name || ''' object is not callable'` 형태로 전달 (따옴표 이스케이프는 PL/pgSQL 규칙에 맞게).
 
 ---

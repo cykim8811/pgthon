@@ -1,6 +1,6 @@
 # BUILD_TUPLE / BUILD_LIST opcode 설계 — CPython 고증·임시구현 없음
 
-CPython의 **BUILD_TUPLE**(opcode 102)·**BUILD_LIST**(opcode 103)를 Elytra VM에서 구현하기 위한 설계 문서다.  
+CPython의 **BUILD_TUPLE**(opcode 102)·**BUILD_LIST**(opcode 103)를 Pgthon VM에서 구현하기 위한 설계 문서다.  
 **임시방편 금지**: `tp_name`/타입 이름 문자열 분기 없이, 기존 스키마·부트스트랩만 사용한다.
 
 ---
@@ -9,7 +9,7 @@ CPython의 **BUILD_TUPLE**(opcode 102)·**BUILD_LIST**(opcode 103)를 Elytra VM�
 
 ### 1.1 Opcode 시맨틱
 
-| Opcode | CPython | Elytra 대응 |
+| Opcode | CPython | Pgthon 대응 |
 |--------|--------|-------------|
 | **BUILD_TUPLE** 102 | operand = count. 스택에서 count개 pop (TOS가 튜플의 **마지막** 원소). 새 `PyTupleObject` 생성 후 push. | `py_opcode_BUILD_TUPLE(frame_id, count)`: count개 pop → `py_tuple_object` 행 생성 → push |
 | **BUILD_LIST** 103 | operand = count. 스택에서 count개 pop (TOS가 리스트의 **마지막** 원소). 새 `PyListObject` 생성 후 push. | `py_opcode_BUILD_LIST(frame_id, count)`: count개 pop → `py_list_object` 행 생성 → push |
@@ -24,7 +24,7 @@ CPython의 **BUILD_TUPLE**(opcode 102)·**BUILD_LIST**(opcode 103)를 Elytra VM�
 
 ---
 
-## 2. 현재 Elytra 상태
+## 2. 현재 Pgthon 상태
 
 | 항목 | 상태 |
 |------|------|

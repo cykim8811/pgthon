@@ -1,6 +1,6 @@
 # LOAD_ATTR / 속성 조회 설계 — CPython 고증·임시구현 없음
 
-CPython의 **LOAD_ATTR** opcode 및 **PyObject_GetAttr**에 해당하는 속성 조회를 Elytra에서 구현하기 위한 설계 문서다.  
+CPython의 **LOAD_ATTR** opcode 및 **PyObject_GetAttr**에 해당하는 속성 조회를 Pgthon에서 구현하기 위한 설계 문서다.  
 **임시방편 금지**: `tp_name`/타입 이름 문자열로 분기하지 않고, **테이블 존재·tp_dict·슬롯·디스크립터 프로토콜**만 사용한다.
 
 ---
@@ -9,7 +9,7 @@ CPython의 **LOAD_ATTR** opcode 및 **PyObject_GetAttr**에 해당하는 속성 
 
 ### 1.1 LOAD_ATTR opcode
 
-| 항목 | CPython | Elytra 대응 |
+| 항목 | CPython | Pgthon 대응 |
 |------|--------|-------------|
 | **opcode** | LOAD_ATTR (Python 3.10 기준 opcode 106) | opcode 106 처리 |
 | **operand** | name index → `co_names[namei]` (속성 이름 str) | `name_index` → co_names[name_index]로 이름 str id 획득 |
@@ -22,7 +22,7 @@ CPython의 **LOAD_ATTR** opcode 및 **PyObject_GetAttr**에 해당하는 속성 
 
 - **순서**: CPython은 `type(obj).__getattribute__(obj, name)` → 실패 시 `type(obj).__getattr__(obj, name)`.
 - **일반 경로**: 인스턴스 `__dict__` → 타입 및 MRO의 `tp_dict`에서 name 조회 → 발견 시 **디스크립터**: `__get__` 있으면 `descriptor.__get__(obj, type)` 호출 후 그 결과 반환.
-- **Elytra Phase 1 범위**:
+- **Pgthon Phase 1 범위**:
   - **타입 쪽만**: `type(obj).tp_dict`에서 name으로 조회. (인스턴스 `__dict__`·타입 순회는 Phase 2 이후.)
   - **Phase 2 타입 순회**: 전체 MRO(C3) 대신 **단순 tp_bases 순회**만 사용하는 **의도적 축소**. (§7 참고.)
   - **디스크립터**: 조회 결과가 `__get__`를 가지면(해당 타입의 `tp_dict["__get__"]` 존재) `__get__(obj, type)` 호출, 아니면 조회값 그대로 반환.
@@ -32,17 +32,17 @@ CPython의 **LOAD_ATTR** opcode 및 **PyObject_GetAttr**에 해당하는 속성 
 
 - `descriptor.__get__(self, obj, type=None)`  
   - obj = 속성 접근 대상 객체, type = `type(obj)`.  
-  - Elytra: `py_object_call(__get__id, [descriptor_id, obj_id, type_id], NULL)`로 호출. (인자 순서·개수는 CPython과 동일.)
+  - Pgthon: `py_object_call(__get__id, [descriptor_id, obj_id, type_id], NULL)`로 호출. (인자 순서·개수는 CPython과 동일.)
 - “`__get__`가 있다”의 판별: **속성으로 나온 값의 타입**에 대해, 그 타입의 `tp_dict`에 `"__get__"` 키로 뭔가 들어있는지로만 판단. (타입 이름 분기 금지.)
 
 ### 1.4 AttributeError
 
 - 속성을 찾지 못하면 CPython은 **AttributeError**를 설정.
-- Elytra: **AttributeError** 예외 타입·인스턴스·`py_err_set_attribute_error(message)` 를 추가하고, 조회 실패 시 이 setter만 사용. (임시로 TypeError 등으로 대체하지 않음.)
+- Pgthon: **AttributeError** 예외 타입·인스턴스·`py_err_set_attribute_error(message)` 를 추가하고, 조회 실패 시 이 setter만 사용. (임시로 TypeError 등으로 대체하지 않음.)
 
 ---
 
-## 2. 현재 Elytra 상태
+## 2. 현재 Pgthon 상태
 
 | 항목 | 상태 |
 |------|------|
@@ -181,7 +181,7 @@ Phase 2는 **py_object_getattr**를 확장해 (1) 인스턴스 `__dict__` 먼저
 ### 7.1 CPython과의 대응·축소
 
 - **CPython**: `object.__getattribute__`는 (1) MRO에서 data descriptor, (2) 인스턴스 `__dict__`, (3) MRO에서 나머지, (4) `__getattr__` 순서다.
-- **Elytra Phase 2**: (1) 인스턴스 `__dict__`, (2) 타입 + **단순 tp_bases 순회**로 `tp_dict` 조회, 발견 시 디스크립터 `__get__` 호출. Data descriptor / non-data 구분 및 `__getattr__`는 Phase 2 범위 밖(의도적 축소).
+- **Pgthon Phase 2**: (1) 인스턴스 `__dict__`, (2) 타입 + **단순 tp_bases 순회**로 `tp_dict` 조회, 발견 시 디스크립터 `__get__` 호출. Data descriptor / non-data 구분 및 `__getattr__`는 Phase 2 범위 밖(의도적 축소).
 
 ### 7.2 스키마 (기존만 사용)
 

@@ -1,6 +1,6 @@
 # STORE_ATTR / 속성 저장 설계 — CPython 고증·임시구현 없음
 
-CPython의 **STORE_ATTR** opcode 및 **PyObject_SetAttr**에 해당하는 속성 저장을 Elytra에서 구현하기 위한 설계 문서다.  
+CPython의 **STORE_ATTR** opcode 및 **PyObject_SetAttr**에 해당하는 속성 저장을 Pgthon에서 구현하기 위한 설계 문서다.  
 **임시방편 금지**: `tp_name`/타입 이름 문자열로 분기하지 않고, **테이블 존재·tp_dict·디스크립터 프로토콜**만 사용한다.
 
 ---
@@ -9,7 +9,7 @@ CPython의 **STORE_ATTR** opcode 및 **PyObject_SetAttr**에 해당하는 속성
 
 ### 1.1 STORE_ATTR opcode
 
-| 항목 | CPython | Elytra 대응 |
+| 항목 | CPython | Pgthon 대응 |
 |------|--------|-------------|
 | **opcode** | STORE_ATTR (Python 3.10 기준 opcode **95**) | opcode 95 처리 |
 | **operand** | name index → `co_names[namei]` (속성 이름 str) | `name_index` → co_names[name_index]로 이름 str id 획득 |
@@ -24,7 +24,7 @@ CPython의 **STORE_ATTR** opcode 및 **PyObject_SetAttr**에 해당하는 속성
   1. **MRO에서 해당 이름의 data descriptor** (타입에 `__set__` 있는 것) 조회 → 있으면 `descriptor.__set__(obj, value)` 호출 후 종료.
   2. 그렇지 않으면 **인스턴스 `__dict__`** 에 저장: `obj.__dict__[name] = value`. (인스턴스에 `__dict__`가 없거나 읽기 전용이면 에러.)
 
-- **Elytra 범위** (의도적 축소 포함):
+- **Pgthon 범위** (의도적 축소 포함):
   - **타입·bases**: LOAD_ATTR과 동일하게 **단순 tp_bases 순회**만 사용 (MRO/C3 미사용).
   - **디스크립터**: 타입(또는 bases)의 tp_dict에서 name으로 조회한 값이 **`__set__`** 를 가지면 `descriptor.__set__(obj, value)` 호출. (인자 2개: self, value; CPython은 `__set__(self, obj, value)`.)
   - **인스턴스 __dict__**: descriptor가 없으면 `py_instance_object.in_dict`에 `py_dict_set_item(in_dict, name_str_id, value_id)`. 인스턴스에 `py_instance_object` 행이 없거나 `in_dict`가 NULL이면 **최초 저장 시 빈 dict 생성 후 in_dict로 설정** (CPython의 “인스턴스에 __dict__ 있음”에 대응).
@@ -34,17 +34,17 @@ CPython의 **STORE_ATTR** opcode 및 **PyObject_SetAttr**에 해당하는 속성
 
 - `descriptor.__set__(self, obj, value)`  
   - CPython: 인자 3개 (self, obj, value).  
-  - Elytra: `py_object_call(__set__id, [descriptor_id, obj_id, value_id], NULL)` 로 호출.
+  - Pgthon: `py_object_call(__set__id, [descriptor_id, obj_id, value_id], NULL)` 로 호출.
 - “`__set__`가 있다”의 판별: **타입(또는 bases)의 tp_dict에서 name으로 조회한 값(descriptor)** 의 타입에 대해, 그 타입의 `tp_dict`에 `"__set__"` 키로 뭔가 들어있는지로만 판단. (타입 이름 분기 금지.)
 
 ### 1.4 실패 시
 
 - descriptor가 없고 인스턴스 __dict__도 쓸 수 없으면(예: 해당 객체가 인스턴스가 아니고 타입도 descriptor 없음) → **AttributeError**.
-- Elytra: 기존 `py_err_set_attribute_error(message)` 사용.
+- Pgthon: 기존 `py_err_set_attribute_error(message)` 사용.
 
 ---
 
-## 2. 현재 Elytra 상태
+## 2. 현재 Pgthon 상태
 
 | 항목 | 상태 |
 |------|------|
@@ -221,11 +221,11 @@ S1 (lookup_attr_in_type_and_bases)
 
 즉, `C.x = v` 시 (CPython):
 - `type(C)`(메타클래스, 보통 `type`)의 MRO에서 `"x"`라는 이름의 data descriptor(__set__)를 찾고,
-- 없으면 **C 자신의 `__dict__`**(Elytra에서는 `py_type_object.tp_dict` where `ob_base = C의 id`)에 `name: value`를 넣는다.
+- 없으면 **C 자신의 `__dict__`**(Pgthon에서는 `py_type_object.tp_dict` where `ob_base = C의 id`)에 `name: value`를 넣는다.
 
-#### 9.1.2 Elytra 대응 — DFS 순회만 사용 (MRO 미사용)
+#### 9.1.2 Pgthon 대응 — DFS 순회만 사용 (MRO 미사용)
 
-Elytra에는 **MRO(tp_mro, C3 선형화)가 없다**. 스키마에는 `tp_bases`만 있고, 속성/디스크립터 조회는 전부 **tp_dict → tp_bases 순서대로 DFS** 순회만 사용한다(LOAD_ATTR_DESIGN §7, STORE_ATTR §1.2와 동일한 의도적 축소).
+Pgthon에는 **MRO(tp_mro, C3 선형화)가 없다**. 스키마에는 `tp_bases`만 있고, 속성/디스크립터 조회는 전부 **tp_dict → tp_bases 순서대로 DFS** 순회만 사용한다(LOAD_ATTR_DESIGN §7, STORE_ATTR §1.2와 동일한 의도적 축소).
 
 - **디스크립터 조회**: 메타클래스에서의 data descriptor 조회도 **MRO가 아니라 DFS**로 구현한다. 즉 `type_id = ob_type(obj_id)`(메타클래스)에 대해 **lookup_attr_in_type_and_bases(type_id, name_str_id)** 를 그대로 사용한다. 이 함수는 해당 타입의 **tp_dict → tp_bases 순서대로 재귀 DFS**만 수행하며, C3 MRO나 tp_mro는 사용하지 않는다.
 - **“obj가 타입인지” 판별**: `py_type_object`에 `ob_base = obj_id`인 행이 **있는지**로만 판단. `tp_name` 비교 금지.
@@ -234,7 +234,7 @@ Elytra에는 **MRO(tp_mro, C3 선형화)가 없다**. 스키마에는 `tp_bases`
 
 ---
 
-### 9.2 현재 Elytra 상태 (클래스 속성 쓰기 기준)
+### 9.2 현재 Pgthon 상태 (클래스 속성 쓰기 기준)
 
 | 항목 | 상태 |
 |------|------|
@@ -273,7 +273,7 @@ Elytra에는 **MRO(tp_mro, C3 선형화)가 없다**. 스키마에는 `tp_bases`
 
 - `EXISTS (SELECT 1 FROM py_type_object WHERE ob_base = obj_id)` → 타입.
 - `EXISTS (SELECT 1 FROM py_instance_object WHERE ob_base = obj_id)` → 인스턴스.
-- 둘 다 있으면? Elytra 현재 스키마에서는 한 객체가 동시에 py_type_object 행과 py_instance_object 행을 갖지 않는다고 가정 (타입은 타입 테이블만, 인스턴스는 인스턴스 테이블만). 만약 둘 다 있는 비정상 데이터가 있다면, **타입 경로를 먼저** 쓰면 CPython의 type.__setattr__ 우선과 맞다.
+- 둘 다 있으면? Pgthon 현재 스키마에서는 한 객체가 동시에 py_type_object 행과 py_instance_object 행을 갖지 않는다고 가정 (타입은 타입 테이블만, 인스턴스는 인스턴스 테이블만). 만약 둘 다 있는 비정상 데이터가 있다면, **타입 경로를 먼저** 쓰면 CPython의 type.__setattr__ 우선과 맞다.
 
 #### 9.3.2 tp_dict NULL 처리
 
@@ -327,8 +327,8 @@ T1 (타입 경로 추가)
 | 2 | 타입이 아닐 때만 인스턴스 __dict__ 경로 사용하도록 분기 순서 유지 | 235000 |
 | 3 | 테스트: C.x = v, getattr(C, "x") → v; 비타입 객체는 기존 동작 유지 | supabase/tests/, run_tests.sh |
 
-**CPython 고증**: type.__setattr__(cls, name, value) = 메타클래스에서 data descriptor(__set__) 우선, 없으면 cls.__dict__[name] = value. Elytra에서는 cls = obj_id, cls.__dict__ = 해당 타입의 tp_dict.  
-**Elytra 구현**: 메타클래스에서의 descriptor 조회는 **MRO 없이 tp_bases DFS 순회만** 사용(lookup_attr_in_type_and_bases). LOAD_ATTR/STORE_ATTR과 동일한 의도적 축소.  
+**CPython 고증**: type.__setattr__(cls, name, value) = 메타클래스에서 data descriptor(__set__) 우선, 없으면 cls.__dict__[name] = value. Pgthon에서는 cls = obj_id, cls.__dict__ = 해당 타입의 tp_dict.  
+**Pgthon 구현**: 메타클래스에서의 descriptor 조회는 **MRO 없이 tp_bases DFS 순회만** 사용(lookup_attr_in_type_and_bases). LOAD_ATTR/STORE_ATTR과 동일한 의도적 축소.  
 **임시구현 없음**: 타입/인스턴스 구분은 py_type_object·py_instance_object 테이블 존재만 사용, tp_name·ob_type 이름 비교 금지.
 
 ---

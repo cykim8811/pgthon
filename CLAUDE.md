@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Elytra implements CPython's object model and bytecode VM on PostgreSQL using PL/pgSQL. The goal is to faithfully reconstruct CPython 3.11's internal structures (objects, types, bytecode execution) as a relational database schema. The project also has a React Router frontend for a web interface, but the core work is in the SQL layer.
+Pgthon implements CPython's object model and bytecode VM on PostgreSQL using PL/pgSQL. The goal is to faithfully reconstruct CPython 3.11's internal structures (objects, types, bytecode execution) as a relational database schema. The project also has a React Router frontend for a web interface, but the core work is in the SQL layer.
 
 ## Commands
 
@@ -31,7 +31,7 @@ pnpm typecheck
 pnpm build
 ```
 
-Tests run via `docker exec` against the `supabase_db_elytra` container. Each test is a standalone SQL file executed with `psql -v ON_ERROR_STOP=1`. Tests are in `supabase/tests/` and run sequentially in numbered order by `run_tests.sh`. There is no way to run a single test in isolation without the database being in the correct state (migrations applied); to run one test manually: `docker exec -i supabase_db_elytra psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/<test_file>.sql`.
+Tests run via `docker exec` against the `supabase_db_pgthon` container. Each test is a standalone SQL file executed with `psql -v ON_ERROR_STOP=1`. Tests are in `supabase/tests/` and run sequentially in numbered order by `run_tests.sh`. There is no way to run a single test in isolation without the database being in the correct state (migrations applied); to run one test manually: `docker exec -i supabase_db_pgthon psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/<test_file>.sql`.
 
 ## Architecture
 

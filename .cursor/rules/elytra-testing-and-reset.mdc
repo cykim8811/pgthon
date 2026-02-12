@@ -1,9 +1,9 @@
 ---
-description: Elytra 구현 원칙, 테스트·리셋 규칙 (CPython 고증 우선, 임시방편 금지, 테스트 Fail 시 수정 금지, reset 전 venv)
+description: Pgthon 구현 원칙, 테스트·리셋 규칙 (CPython 고증 우선, 임시방편 금지, 테스트 Fail 시 수정 금지, reset 전 venv)
 alwaysApply: true
 ---
 
-# Elytra 프로젝트 규칙
+# Pgthon 프로젝트 규칙
 
 ## 구현 원칙 (CPython 고증)
 

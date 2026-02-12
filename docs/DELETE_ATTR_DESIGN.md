@@ -1,6 +1,6 @@
 # DELETE_ATTR / 속성 삭제 설계 — CPython 고증·임시구현 없음
 
-CPython의 **DELETE_ATTR** opcode 및 **PyObject_DelAttr**에 해당하는 속성 삭제를 Elytra에서 구현하기 위한 설계 문서다.  
+CPython의 **DELETE_ATTR** opcode 및 **PyObject_DelAttr**에 해당하는 속성 삭제를 Pgthon에서 구현하기 위한 설계 문서다.  
 **임시방편 금지**: `tp_name`/타입 이름 문자열로 분기하지 않고, **테이블 존재·tp_dict·디스크립터 프로토콜**만 사용한다.
 
 ---
@@ -9,7 +9,7 @@ CPython의 **DELETE_ATTR** opcode 및 **PyObject_DelAttr**에 해당하는 속�
 
 ### 1.1 DELETE_ATTR opcode
 
-| 항목 | CPython | Elytra 대응 |
+| 항목 | CPython | Pgthon 대응 |
 |------|--------|-------------|
 | **opcode** | DELETE_ATTR (Python 3.10 기준 opcode **97**) | opcode 97 처리 |
 | **operand** | name index → `co_names[namei]` | `name_index` → co_names[name_index]로 이름 str id 획득 |
@@ -29,7 +29,7 @@ CPython의 **DELETE_ATTR** opcode 및 **PyObject_DelAttr**에 해당하는 속�
 - **type.__delattr__(cls, name)** (클래스):  
   1. 메타클래스(타입의 타입) MRO에서 해당 이름의 data descriptor 조회.  
   2. __delete__ 있으면 `descriptor.__delete__(cls)` 호출 후 종료.  
-  3. 없으면 **클래스 __dict__** (Elytra: `tp_dict`)에서 해당 키 삭제. 키가 없으면 AttributeError.
+  3. 없으면 **클래스 __dict__** (Pgthon: `tp_dict`)에서 해당 키 삭제. 키가 없으면 AttributeError.
 
 즉, **descriptor에 __delete__가 있으면 그걸 호출**, 없으면 **__dict__에서 키 삭제**이며, 삭제할 항목이 없으면 AttributeError.
 
@@ -37,11 +37,11 @@ CPython의 **DELETE_ATTR** opcode 및 **PyObject_DelAttr**에 해당하는 속�
 
 - `descriptor.__delete__(self, obj)`  
   - CPython: 인자 2개 (self, obj).  
-  - Elytra: `py_object_call(__delete__id, [descriptor_id, obj_id], NULL)` 로 호출.
+  - Pgthon: `py_object_call(__delete__id, [descriptor_id, obj_id], NULL)` 로 호출.
 - “**__delete__가 있다**”의 판별: 타입(또는 bases)의 tp_dict에서 name으로 조회한 값(descriptor)의 **타입**에 대해, 그 타입의 `tp_dict`에 `"__delete__"` 키로 뭔가 들어있는지로만 판단. (타입 이름 분기 금지.)
 - Data descriptor(__set__ 있음)인데 **__delete__가 없으면** 삭제 시 AttributeError (CPython: 해당 descriptor가 삭제를 허용하지 않음).
 
-### 1.4 Elytra 범위 (의도적 축소)
+### 1.4 Pgthon 범위 (의도적 축소)
 
 - **MRO 미사용**: LOAD_ATTR/STORE_ATTR과 동일하게 **tp_bases DFS**만 사용 (lookup_attr_in_type_and_bases).
 - **타입/인스턴스 판별**: `py_type_object` / `py_instance_object` 테이블 존재만 사용. `tp_name` 비교 금지.
@@ -49,7 +49,7 @@ CPython의 **DELETE_ATTR** opcode 및 **PyObject_DelAttr**에 해당하는 속�
 
 ---
 
-## 2. 현재 Elytra 상태
+## 2. 현재 Pgthon 상태
 
 | 항목 | 상태 |
 |------|------|
@@ -175,5 +175,5 @@ D1 (py_dict_del_item)
 | 5 | 통합 테스트 | supabase/tests/, run_tests.sh |
 
 **CPython 고증**: PyObject_DelAttr / type.__delattr__ — MRO에서 data descriptor의 __delete__ 우선, 없으면 __dict__에서 키 삭제. Data descriptor에 __delete__ 없으면 AttributeError.  
-**Elytra**: MRO 대신 tp_bases DFS만 사용(lookup_attr_in_type_and_bases). 타입/인스턴스는 테이블 존재로만 판별.  
+**Pgthon**: MRO 대신 tp_bases DFS만 사용(lookup_attr_in_type_and_bases). 타입/인스턴스는 테이블 존재로만 판별.  
 **임시구현 없음**: tp_name·타입 이름 비교 금지. 테이블·tp_dict·디스크립터 프로토콜만 사용.

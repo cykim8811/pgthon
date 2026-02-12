@@ -3,10 +3,10 @@ import PlaygroundView from "../views/PlaygroundView";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Elytra Playground" },
+    { title: "Pgthon Playground" },
     {
       name: "description",
-      content: "Run Python code on the Elytra PostgreSQL VM",
+      content: "Run Python code on the Pgthon PostgreSQL VM",
     },
   ];
 }

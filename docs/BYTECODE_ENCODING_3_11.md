@@ -1,6 +1,6 @@
-# CPython 3.11 바이트코드 인코딩 (Elytra)
+# CPython 3.11 바이트코드 인코딩 (Pgthon)
 
-Elytra VM이 따르는 바이트코드 형식은 CPython 3.11의 **wordcode** 규약과 동일하다. 임시방편 없이 문서·구현을 일치시킨다.
+Pgthon VM이 따르는 바이트코드 형식은 CPython 3.11의 **wordcode** 규약과 동일하다. 임시방편 없이 문서·구현을 일치시킨다.
 
 ---
 
@@ -18,7 +18,7 @@ CPython 3.6+에서 도입된 uniform 2-byte instruction과 동일하다. 3.11에
 ## 2. EXTENDED_ARG (144)
 
 - opcode 144: 다음 명령어의 arg를 확장한다. `arg_final = (extended << 8) | arg` (연쇄 가능).
-- Elytra는 이미 eval 루프에서 EXTENDED_ARG를 처리하며, 확장 후 논리적 arg 한 개로 디스패치한다.
+- Pgthon는 이미 eval 루프에서 EXTENDED_ARG를 처리하며, 확장 후 논리적 arg 한 개로 디스패치한다.
 
 ---
 
@@ -33,7 +33,7 @@ CPython 3.6+에서 도입된 uniform 2-byte instruction과 동일하다. 3.11에
 ## 4. PostgreSQL get_byte
 
 - `get_byte(bytea, n)`: PostgreSQL 문서상 **n번째 바이트는 0-based** (“the first byte as byte 0”).
-- Elytra eval 루프의 `i`는 0-based byte offset으로 사용하며, `get_byte(bytecode, i)`, `get_byte(bytecode, i+1)`로 opcode/arg를 읽는다.
+- Pgthon eval 루프의 `i`는 0-based byte offset으로 사용하며, `get_byte(bytecode, i)`, `get_byte(bytecode, i+1)`로 opcode/arg를 읽는다.
 
 ---
 

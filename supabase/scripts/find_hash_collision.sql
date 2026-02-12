@@ -8,10 +8,10 @@
 --
 -- Usage:
 --   After migrations are applied:
---     docker exec -i supabase_db_elytra psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/scripts/find_hash_collision.sql
+--     docker exec -i supabase_db_pgthon psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/scripts/find_hash_collision.sql
 --
 --   Or from repo root:
---     docker exec -i supabase_db_elytra psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/scripts/find_hash_collision.sql
+--     docker exec -i supabase_db_pgthon psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/scripts/find_hash_collision.sql
 --
 -- Output:
 --   NOTICE: COLLISION_A = '...'

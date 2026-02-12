@@ -1,6 +1,6 @@
 # bytes 연산 설계 — CPython 고증·임시구현 없음
 
-CPython의 `PyBytesObject` 및 bytes의 시퀀스 연산(+, *, len)·비교를 Elytra에서 슬롯 기반으로 구현하기 위한 설계 문서다.  
+CPython의 `PyBytesObject` 및 bytes의 시퀀스 연산(+, *, len)·비교를 Pgthon에서 슬롯 기반으로 구현하기 위한 설계 문서다.  
 **임시방편 금지**: `tp_name`/타입 이름 문자열 분기 없이, 테이블 존재·슬롯 디스패치만 사용한다.
 
 ---
@@ -9,7 +9,7 @@ CPython의 `PyBytesObject` 및 bytes의 시퀀스 연산(+, *, len)·비교를 E
 
 ### 1.1 PyBytesObject
 
-| CPython | Elytra |
+| CPython | Pgthon |
 |--------|--------|
 | `PyBytesObject.ob_sval` (byte array) | `py_bytes_object.bytes_value` (bytea) |
 | bytes는 **시퀀스** (tp_as_sequence): sq_length, sq_concat, sq_repeat | bytes 타입에 tp_as_sequence 등록 (nb_* 아님) |
@@ -20,7 +20,7 @@ CPython의 `PyBytesObject` 및 bytes의 시퀀스 연산(+, *, len)·비교를 E
 
 ### 1.2 시퀀스 연산 (bytes + bytes, bytes * int)
 
-| 연산 | CPython | Elytra 대응 |
+| 연산 | CPython | Pgthon 대응 |
 |------|--------|-------------|
 | bytes + bytes | sq_concat(left, right) → 새 bytes | py_bytes_sq_concat(left_id, right_id) → 새 bytes id |
 | bytes * int / int * bytes | sq_repeat(seq, n) | py_bytes_sq_repeat(seq_id, n) |
@@ -36,16 +36,16 @@ CPython의 `PyBytesObject` 및 bytes의 시퀀스 연산(+, *, len)·비교를 E
 ### 1.4 tp_richcompare (PyObject_RichCompare)
 
 - CPython: bytes는 bytes끼리만 비교. lexicographic (바이트 열 순서). Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE 지원.
-- Elytra: `py_bytes_richcompare(self_id, other_id, op)`. other가 bytes가 아니면 NotImplemented. bytes면 bytes_value 바이트 열 비교.
+- Pgthon: `py_bytes_richcompare(self_id, other_id, op)`. other가 bytes가 아니면 NotImplemented. bytes면 bytes_value 바이트 열 비교.
 
 ### 1.5 sq_concat / sq_repeat 시맨틱
 
-- **sq_concat(left, right)**: CPython에서 left가 bytes일 때만 호출됨. right가 bytes가 아니면 TypeError. Elytra도 동일: right가 `py_bytes_object`가 아니면 TypeError (py_err_set_type_error).
-- **sq_repeat(seq, n)**: seq가 bytes일 때만 호출. n &lt; 0이면 CPython은 빈 bytes 반환. Elytra 동일.
+- **sq_concat(left, right)**: CPython에서 left가 bytes일 때만 호출됨. right가 bytes가 아니면 TypeError. Pgthon도 동일: right가 `py_bytes_object`가 아니면 TypeError (py_err_set_type_error).
+- **sq_repeat(seq, n)**: seq가 bytes일 때만 호출. n &lt; 0이면 CPython은 빈 bytes 반환. Pgthon 동일.
 
 ---
 
-## 2. 현재 Elytra 상태
+## 2. 현재 Pgthon 상태
 
 | 항목 | 상태 |
 |------|------|

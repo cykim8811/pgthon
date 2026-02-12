@@ -243,7 +243,7 @@ BEGIN
             -- Check for StopIteration
             SELECT exc_type_id INTO v_exc_type
             FROM public.py_thread_state
-            WHERE id = current_setting('elytra.thread_state_id')::uuid;
+            WHERE id = current_setting('pgthon.thread_state_id')::uuid;
 
             IF v_exc_type = ID_STOP_ITERATION_TYPE THEN
                 PERFORM public.py_err_clear();

@@ -222,7 +222,7 @@ $$ LANGUAGE plpgsql;
 --   - PyList_Type.tp_hash = NULL (unhashable)
 --   - PyDict_Type.tp_hash = NULL (unhashable)
 --
--- Similarly, in Elytra, we register tp_hash for hashable types and leave
+-- Similarly, in Pgthon, we register tp_hash for hashable types and leave
 -- it NULL for unhashable types (list, dict, etc.).
 DO $$
 DECLARE

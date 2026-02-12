@@ -3,7 +3,7 @@
 -- Created: 2026-01-14 23:00:00
 --
 -- Purpose:
---   Implements the core infrastructure for the Elytra VM (Virtual Machine).
+--   Implements the core infrastructure for the Pgthon VM (Virtual Machine).
 --   This includes stack operations and opcode utilities that are the foundation
 --   for bytecode execution.
 --

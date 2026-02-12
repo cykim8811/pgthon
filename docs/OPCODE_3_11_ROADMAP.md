@@ -1,4 +1,4 @@
-# CPython 3.11 opcode 구현 로드맵 (Elytra)
+# CPython 3.11 opcode 구현 로드맵 (Pgthon)
 
 3.11 바이트코드를 지원하기 위해 **어떤 opcode를 구현해야 하는지**, **이미 구현된 것·미구현·수정 필요**를 정리한다.  
 opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준이다.
@@ -10,8 +10,8 @@ opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준
 | 상태 | 의미 |
 |------|------|
 | ✅ 구현됨 | eval_frame에 CASE 있고, `py_opcode_*` 또는 인라인 처리됨. 3.11 시맨틱과 맞는지 점검만 하면 됨. |
-| 🔲 미구현 | 3.11에서 사용. Elytra에 CASE 없음 → `Unknown opcode` 발생. 구현 필요. |
-| ⚠️ 수정 필요 | Elytra에 구현돼 있으나 3.11과 번호·시맨틱 불일치 (예: DELETE_ATTR 96 vs 97). |
+| 🔲 미구현 | 3.11에서 사용. Pgthon에 CASE 없음 → `Unknown opcode` 발생. 구현 필요. |
+| ⚠️ 수정 필요 | Pgthon에 구현돼 있으나 3.11과 번호·시맨틱 불일치 (예: DELETE_ATTR 96 vs 97). |
 | 📌 특수 opcode | 3.11 specialized/cache 변형. docs/CACHE_AND_SPECIALIZED_3_11.md 정책에 따라 나중에 추가. |
 
 ---
@@ -30,7 +30,7 @@ opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준
 | 95 | STORE_ATTR | |
 | 23 | BINARY_ADD | |
 | 24 | BINARY_SUBTRACT | |
-| 20 | BINARY_MULTIPLY | 3.11에서는 BINARY_OP(122)로 통합됨. Elytra는 23/24/20 유지 가능; 3.11 컴파일 결과 지원 시 BINARY_OP(122) 구현 필요. |
+| 20 | BINARY_MULTIPLY | 3.11에서는 BINARY_OP(122)로 통합됨. Pgthon는 23/24/20 유지 가능; 3.11 컴파일 결과 지원 시 BINARY_OP(122) 구현 필요. |
 | 102 | BUILD_TUPLE | |
 | 103 | BUILD_LIST | |
 | 106 | LOAD_ATTR | |
@@ -78,7 +78,7 @@ opcode 번호·이름은 CPython 3.11 `Lib/opcode.py`, `Include/opcode.h` 기준
 | 11 | UNARY_NEGATIVE | -x via nb_negative (int/float). 235501·240347. |
 | 160 | LOAD_METHOD | pop obj; getattr(obj, name). Bound method → push 1; else → push NULL, push callable. 240349. |
 
-**⚠️ 이항 연산:** CPython 3.11은 BINARY_ADD(23), BINARY_SUBTRACT(24), BINARY_MULTIPLY(20)를 제거하고 **BINARY_OP(122)** + 하위 opcode로 통합했다. Elytra는 현재 23/24/20을 구현해 두었고, 3.11 컴파일러가 생성하는 바이트코드는 122를 쓰므로 **3.11 생성 바이트코드**를 직접 실행하려면 BINARY_OP(122) 구현이 필요하다.
+**⚠️ 이항 연산:** CPython 3.11은 BINARY_ADD(23), BINARY_SUBTRACT(24), BINARY_MULTIPLY(20)를 제거하고 **BINARY_OP(122)** + 하위 opcode로 통합했다. Pgthon는 현재 23/24/20을 구현해 두었고, 3.11 컴파일러가 생성하는 바이트코드는 122를 쓰므로 **3.11 생성 바이트코드**를 직접 실행하려면 BINARY_OP(122) 구현이 필요하다.
 
 **⚠️ DELETE_ATTR / STORE_GLOBAL:**  
 eval_frame에서 **96 = DELETE_ATTR**, **97 = STORE_GLOBAL**로 이미 반영됨.
@@ -145,7 +145,7 @@ docs/CACHE_AND_SPECIALIZED_3_11.md: 먼저 기본 opcode를 채우고, 필요 �
 | **co_posonlyargcount / co_kwonlyargcount** | CALL 또는 MAKE_FUNCTION에서 인자 검사·기본값 적용 시 사용 (docs/CODE_OBJECT_3_11.md). |
 | **LOAD_FAST / STORE_FAST** | `co_varnames` 인덱스로 f_locals가 아닌 “빠른 로컬” 슬롯 사용. 3.11 컴파일러가 자주 사용. |
 | **RESUME(151)** | 함수/제너레이터 진입 시 1바이트 인자만 읽고 no-op. 3.11 바이트코드 맨 앞에 자주 등장. |
-| **로더/테스트** | Python 3.11 `compile()` 결과(co_code, co_consts 등)를 Elytra `py_code_object`에 넣고 실행하는 경로·테스트. |
+| **로더/테스트** | Python 3.11 `compile()` 결과(co_code, co_consts 등)를 Pgthon `py_code_object`에 넣고 실행하는 경로·테스트. |
 
 ---
 

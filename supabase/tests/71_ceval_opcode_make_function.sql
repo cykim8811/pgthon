@@ -9,7 +9,7 @@
 --   4. Function with default args overridden: greet(5) = 5
 -- ============================================================================
 
-SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+SELECT set_config('pgthon.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
 
 DO $$
 DECLARE

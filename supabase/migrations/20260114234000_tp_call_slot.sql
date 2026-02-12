@@ -94,7 +94,7 @@ $$ LANGUAGE plpgsql;
 -- ============================================================================
 
 -- In CPython, PyCFunction_Type.tp_call directly points to PyCFunction_Call().
--- Similarly, in Elytra, we register py_call_cfunction directly as the tp_call
+-- Similarly, in Pgthon, we register py_call_cfunction directly as the tp_call
 -- for builtin_function_or_method type, without any intermediate dispatch function.
 -- This matches CPython's structure where each type has its own dedicated tp_call
 -- function, rather than using a generic dispatcher with type name string comparison.

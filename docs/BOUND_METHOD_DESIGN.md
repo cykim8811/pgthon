@@ -1,6 +1,6 @@
 # Bound Method 설계 — CPython 고증·임시구현 없음
 
-CPython의 **bound method** 동작(인스턴스에서 메서드 속성 조회 시 `obj.method` → 호출 가능한 bound method 객체, `obj.method()` 시 `self`가 자동 전달)을 Elytra에서 구현하기 위한 설계 문서다.  
+CPython의 **bound method** 동작(인스턴스에서 메서드 속성 조회 시 `obj.method` → 호출 가능한 bound method 객체, `obj.method()` 시 `self`가 자동 전달)을 Pgthon에서 구현하기 위한 설계 문서다.  
 **임시방편 금지**: `tp_name`/타입 이름 문자열로 분기하지 않고, **테이블 존재·tp_dict·tp_call·디스크립터 프로토콜**만 사용한다.
 
 ---
@@ -19,13 +19,13 @@ CPython의 **bound method** 동작(인스턴스에서 메서드 속성 조회 �
 - **구조**: `im_func`(호출 가능 객체), `im_self`(바인딩된 인스턴스, NULL이면 unbound), `im_class`(정의된 클래스).
 - **호출**: bound method를 호출하면 CPython은 `im_func(im_self, *args, **kwargs)`를 실행한다. 즉 인자 앞에 `im_self`를 붙여서 `im_func`의 `tp_call`을 호출한다.
 
-### 1.3 Elytra에서 이미 있는 것
+### 1.3 Pgthon에서 이미 있는 것
 
 - **py_method_object** 테이블: `ob_base`, `im_func`, `im_self`, `im_class` — 이미 스키마 존재 (224000).
 - **LOAD_ATTR / lookup_in_type_and_bases**: 타입·bases에서 name 조회 후, 조회된 값의 타입에 `__get__`가 있으면 `__get__(attr, obj, type)` 호출 후 그 결과를 반환. **따라서** `builtin_function_or_method` 타입의 `tp_dict`에 `"__get__"`만 넣어 주면, 인스턴스에서 해당 타입의 속성을 꺼낼 때 자동으로 그 `__get__`가 호출된다.
 - **py_object_call**: `tp_call` 슬롯으로 디스패치. bound method의 **타입**에 `tp_call`을 등록하면, bound method를 호출할 때 그 함수가 실행된다.
 
-### 1.4 Elytra에서 추가한 것 (요약, 구현 완료)
+### 1.4 Pgthon에서 추가한 것 (요약, 구현 완료)
 
 | 항목 | 내용 |
 |------|------|
@@ -36,7 +36,7 @@ CPython의 **bound method** 동작(인스턴스에서 메서드 속성 조회 �
 
 ---
 
-## 2. 현재 Elytra 상태
+## 2. 현재 Pgthon 상태
 
 | 항목 | 상태 |
 |------|------|

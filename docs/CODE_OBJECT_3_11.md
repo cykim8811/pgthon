@@ -1,12 +1,12 @@
-# CPython 3.11 코드 객체 (Elytra)
+# CPython 3.11 코드 객체 (Pgthon)
 
-Elytra의 `py_code_object`는 CPython 3.11 `PyCodeObject` 필드와 대응한다. 임시방편 없이 문서·스키마를 3.11 규약에 맞춘다.
+Pgthon의 `py_code_object`는 CPython 3.11 `PyCodeObject` 필드와 대응한다. 임시방편 없이 문서·스키마를 3.11 규약에 맞춘다.
 
 ---
 
 ## 1. CPython 3.11 PyCodeObject 필드 요약
 
-| CPython 필드 | Elytra 컬럼 | 비고 |
+| CPython 필드 | Pgthon 컬럼 | 비고 |
 |--------------|-------------|------|
 | co_code | co_code (uuid → py_bytes_object) | 바이트코드 (wordcode, docs/BYTECODE_ENCODING_3_11.md) |
 | co_consts | co_consts (uuid → py_tuple_object) | 상수 tuple |
@@ -27,7 +27,7 @@ Elytra의 `py_code_object`는 CPython 3.11 `PyCodeObject` 필드와 대응한다
 
 ---
 
-## 2. Elytra 스키마 정책
+## 2. Pgthon 스키마 정책
 
 - **기본 필드:** `py_code_object` CREATE TABLE(224000)에 co_code, co_consts, co_names, co_filename, co_name, co_argcount, co_varnames, co_cellvars, co_freevars 정의.
 - **3.11 확장:** co_exceptiontable 및 선택 필드(co_posonlyargcount, co_kwonlyargcount, co_nlocals, co_stacksize, co_flags, co_firstlineno)는 **기존 마이그레이션 수정**으로 추가(224100 등). 새 마이그레이션 파일 추가 없음.
@@ -41,4 +41,4 @@ Elytra의 `py_code_object`는 CPython 3.11 `PyCodeObject` 필드와 대응한다
 - **예외 테이블(3단계):** co_exceptiontable 형식·위치는 docs/EXCEPTION_HANDLING_DESIGN.md 및 224400 파싱 로직 따름.
 - **캐시/특수 opcode(4단계):** co_code 스트림만 사용; 코드 객체 필드 추가 없음.
 
-이 문서는 “코드 객체에 어떤 필드가 있고, Elytra에서 어떻게 저장하는가”만 정의한다.
+이 문서는 “코드 객체에 어떤 필드가 있고, Pgthon에서 어떻게 저장하는가”만 정의한다.

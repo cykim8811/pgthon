@@ -16,7 +16,7 @@
 --   If any assertion fails, an exception will be raised with details.
 -- ============================================================================
 
-SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+SELECT set_config('pgthon.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
 
 DO $$
 DECLARE
@@ -290,7 +290,7 @@ BEGIN
     IF NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: CALL should set Python exception for non-callable object';
     END IF;
-    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('elytra.thread_state_id')::uuid;
+    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('pgthon.thread_state_id')::uuid;
     IF got_exc_type_id IS DISTINCT FROM ID_TYPE_ERROR_TYPE THEN
         RAISE EXCEPTION 'FAIL: CALL non-callable should set TypeError, got exc_type_id %', got_exc_type_id;
     END IF;
@@ -299,7 +299,7 @@ BEGIN
     JOIN public.py_base_exception_object b ON b.ob_base = e.exc_value_id
     JOIN public.py_tuple_object t ON t.ob_base = b.ob_args
     JOIN public.py_unicode_object u ON u.ob_base = t.ob_item[1]
-    WHERE e.id = current_setting('elytra.thread_state_id')::uuid;
+    WHERE e.id = current_setting('pgthon.thread_state_id')::uuid;
     IF error_message IS NULL OR error_message NOT LIKE '%object is not callable%' THEN
         RAISE EXCEPTION 'FAIL: CALL non-callable expected message containing "object is not callable", got: %', error_message;
     END IF;
@@ -345,7 +345,7 @@ BEGIN
     IF NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: CALL should set Python exception for wrong argument count';
     END IF;
-    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('elytra.thread_state_id')::uuid;
+    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('pgthon.thread_state_id')::uuid;
     IF got_exc_type_id IS DISTINCT FROM ID_TYPE_ERROR_TYPE THEN
         RAISE EXCEPTION 'FAIL: CALL wrong argument count should set TypeError, got exc_type_id %', got_exc_type_id;
     END IF;

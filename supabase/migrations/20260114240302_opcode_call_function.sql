@@ -8,7 +8,7 @@
 -- Depends: ceval_opcodes_basic (py_object_call), tp_call_slot, ceval_core.
 -- ============================================================================
 
--- PRECALL (166): CPython 3.11 — prepare for call. Elytra: no-op.
+-- PRECALL (166): CPython 3.11 — prepare for call. Pgthon: no-op.
 CREATE OR REPLACE FUNCTION public.py_opcode_PRECALL(frame_id UUID, n INTEGER)
 RETURNS VOID AS $$
 BEGIN
@@ -18,7 +18,7 @@ BEGIN
     IF n < 0 THEN
         RAISE EXCEPTION 'PRECALL: n must be non-negative, got %', n;
     END IF;
-    -- No-op for Elytra (tracing/debugging could use n here later).
+    -- No-op for Pgthon (tracing/debugging could use n here later).
 END;
 $$ LANGUAGE plpgsql;
 

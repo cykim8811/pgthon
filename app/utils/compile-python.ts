@@ -18,7 +18,7 @@ export interface CodeObjectJSON {
 }
 
 const SERIALIZE_SCRIPT = `
-def _elytra_serialize_code(code):
+def _pgthon_serialize_code(code):
     import json
 
     def serialize_const(c):
@@ -65,15 +65,15 @@ def _elytra_serialize_code(code):
 
     return json.dumps(serialize_code_obj(code))
 
-def _elytra_compile(source):
+def _pgthon_compile(source):
     import json
     try:
-        code = compile(source, '<elytra>', 'eval')
+        code = compile(source, '<pgthon>', 'eval')
         mode = 'eval'
     except SyntaxError:
-        code = compile(source, '<elytra>', 'exec')
+        code = compile(source, '<pgthon>', 'exec')
         mode = 'exec'
-    result = json.loads(_elytra_serialize_code(code))
+    result = json.loads(_pgthon_serialize_code(code))
     result['mode'] = mode
     return json.dumps(result)
 `;
@@ -89,7 +89,7 @@ export async function compilePython(source: string): Promise<CodeObjectJSON> {
   }
 
   const resultJson = pyodide.runPython(
-    `_elytra_compile(${JSON.stringify(source)})`
+    `_pgthon_compile(${JSON.stringify(source)})`
   );
   return JSON.parse(resultJson);
 }

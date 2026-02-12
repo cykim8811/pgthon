@@ -32,12 +32,12 @@ CPython의 dict lookup을 hash 기반으로 구현하기 위한 설계·구현 �
 ### 1.3 키 동등성
 
 - CPython: `PyObject_RichCompareBool(a, b, Py_EQ)` → 타입의 `tp_richcompare` 또는 기본 비교 사용.
-- Elytra 1단계: 지원 타입(str, int 등)에 대해 **타입별 값 비교** (str→`str_value`, int→`long_value`).
-- Elytra 2단계(추후): `tp_richcompare` 슬롯 기반 `py_object_richcompare_eq(a_id, b_id)` 로 통일. 구체적인 파일·함수 배치는 **[§7](#7-2단계-tp_richcompare-기반-키-동등성-추후)** 참고.
+- Pgthon 1단계: 지원 타입(str, int 등)에 대해 **타입별 값 비교** (str→`str_value`, int→`long_value`).
+- Pgthon 2단계(추후): `tp_richcompare` 슬롯 기반 `py_object_richcompare_eq(a_id, b_id)` 로 통일. 구체적인 파일·함수 배치는 **[§7](#7-2단계-tp_richcompare-기반-키-동등성-추후)** 참고.
 
 ---
 
-## 2. Elytra 현재 상태와 문제
+## 2. Pgthon 현재 상태와 문제
 
 ### 2.1 스키마
 
@@ -102,7 +102,7 @@ CPython의 dict lookup을 hash 기반으로 구현하기 위한 설계·구현 �
 
 ## 4. CPython과의 대응 관계
 
-| CPython | Elytra (본 계획) |
+| CPython | Pgthon (본 계획) |
 |--------|-------------------|
 | `PyDictKeyEntry.me_hash` | `py_dict_entry.me_hash` |
 | `_PyObject_HashFast` / `PyObject_Hash` | `py_object_hash(key_id)` |
@@ -187,7 +187,7 @@ dict 키 동등성을 “타입이 정의한 비교”로 통일할 때 쓸 **�
 - **비교 연산 상수**: `Include/object.h`와 동일한 값 사용.
   - `Py_LT=0`, `Py_LE=1`, `Py_EQ=2`, `Py_NE=3`, `Py_GT=4`, `Py_GE=5`
 - **tp_richcompare 시그니처**: CPython은 `PyObject *(*richcmpfunc)(PyObject *, PyObject *, int)`.
-  - Elytra에서는 `(self_id UUID, other_id UUID, op INTEGER) RETURNS UUID`로 매핑. CPython이 `int`를 쓰므로 PostgreSQL은 INTEGER로 둔다.
+  - Pgthon에서는 `(self_id UUID, other_id UUID, op INTEGER) RETURNS UUID`로 매핑. CPython이 `int`를 쓰므로 PostgreSQL은 INTEGER로 둔다.
   - 반환값은 **객체 id 하나**이며, 의미상 True / False / NotImplemented 중 하나.
 - **반환 객체**: True·False·NotImplemented는 **실제 DB 객체**(`py_bool_object`, `py_not_implemented_object` 행)로만 사용한다. "매직 id 상수만 쓰고 테이블 없이 넘어가는" 방식은 쓰지 않는다.
 - **디스패치**: 비교 로직은 **타입별 분기 if/else가 아니라** `ob_type` → `tp_richcompare` 슬롯 조회 → 그 함수 호출로만 수행한다. 새 타입은 "슬롯 등록"만으로 붙어야 한다.

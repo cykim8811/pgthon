@@ -1,6 +1,6 @@
 # tp_call kwargs 추가 설계
 
-CPython의 `PyObject_Call(callable, args, kwargs)` / `ternaryfunc tp_call(obj, args, kwargs)`에 맞추어, Elytra에서도 tp_call 경로로 kwargs를 전달하는 방법을 정리한다.
+CPython의 `PyObject_Call(callable, args, kwargs)` / `ternaryfunc tp_call(obj, args, kwargs)`에 맞추어, Pgthon에서도 tp_call 경로로 kwargs를 전달하는 방법을 정리한다.
 
 **구체적인 실행 계획(마이그레이션·순서·체크리스트)** 은 **`docs/CHANGE_3_TP_CALL_KWARGS_PLAN.md`** 를 따른다.
 
@@ -16,7 +16,7 @@ CPython의 `PyObject_Call(callable, args, kwargs)` / `ternaryfunc tp_call(obj, a
 
 ---
 
-## 2. Elytra에서 넣을 것 (단계별)
+## 2. Pgthon에서 넣을 것 (단계별)
 
 ### 2.1 호출 API: py_object_call에 kwargs 인자 추가
 
@@ -78,7 +78,7 @@ CPython의 `PyObject_Call(callable, args, kwargs)` / `ternaryfunc tp_call(obj, a
 
 - **CALL_FUNCTION_KW (키워드 포함)**  
   - CPython에는 **CALL_FUNCTION_KW** 등이 있음.  
-  - Elytra에서 추가할 때 흐름은 예를 들어:  
+  - Pgthon에서 추가할 때 흐름은 예를 들어:  
     1. operand에 “위치 개수 / 키워드 개수” 정보가 있음.  
     2. 스택에서:  
        - 키워드 값 N개 pop,  

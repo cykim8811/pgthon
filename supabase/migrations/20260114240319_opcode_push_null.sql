@@ -7,7 +7,7 @@
 -- Depends: python_bootstrap (ID_NULL_OBJ), ceval_core (py_stack_push).
 -- ============================================================================
 
--- PUSH_NULL (2): CPython 3.11 — push call placeholder. Elytra: push null singleton.
+-- PUSH_NULL (2): CPython 3.11 — push call placeholder. Pgthon: push null singleton.
 -- Fixed UUID for null singleton must match python_bootstrap.sql (ID_NULL_OBJ).
 CREATE OR REPLACE FUNCTION public.py_opcode_PUSH_NULL(frame_id UUID)
 RETURNS VOID AS $$

@@ -1,6 +1,6 @@
 # kwargs 구현 기획 — CPython 고증·임시방편 없는 깨끗한 구현
 
-CPython의 `PyObject_Call(callable, args, kwargs)` 및 `tp_call(callable, args, kwargs)` 고증에 맞춰 Elytra에서 kwargs를 어떻게 구현·검증·확장할지 단계별로 정리한 기획 문서다.
+CPython의 `PyObject_Call(callable, args, kwargs)` 및 `tp_call(callable, args, kwargs)` 고증에 맞춰 Pgthon에서 kwargs를 어떻게 구현·검증·확장할지 단계별로 정리한 기획 문서다.
 
 - **설계 배경**: `docs/TP_CALL_KWARGS_DESIGN.md`
 - **실행 체크리스트**: `docs/CHANGE_3_TP_CALL_KWARGS_PLAN.md`
@@ -11,7 +11,7 @@ CPython의 `PyObject_Call(callable, args, kwargs)` 및 `tp_call(callable, args, 
 
 ### 1.1 호출 API
 
-| CPython | Elytra 대응 |
+| CPython | Pgthon 대응 |
 |--------|-------------|
 | `PyObject_Call(obj, args, kwargs)` | `py_object_call(obj_id, args, kwargs_id)` |
 | `args`: tuple, **non-NULL** (인자 없으면 빈 tuple) | `args`: `UUID[]`, 빈 배열 가능 |
@@ -32,7 +32,7 @@ CPython의 `PyObject_Call(callable, args, kwargs)` 및 `tp_call(callable, args, 
 
 - **kwargs 거절 시 에러**: `TypeError: name() takes no keyword arguments`  
   - CPython: 함수 **이름**만 넣고, 이름 주변에 따옴표 없음. 예: `len() takes no keyword arguments`.
-- **이름 출처**: `PyCFunction`의 `m_ml->ml_name` (C 문자열). Elytra에서는 `m_ml_name`(uuid) → `py_unicode_object.str_value`. **타입 이름(`tp_name`)이나 `'builtin'`으로 대체하지 않고**, 반드시 `m_ml_name`으로만 조회.
+- **이름 출처**: `PyCFunction`의 `m_ml->ml_name` (C 문자열). Pgthon에서는 `m_ml_name`(uuid) → `py_unicode_object.str_value`. **타입 이름(`tp_name`)이나 `'builtin'`으로 대체하지 않고**, 반드시 `m_ml_name`으로만 조회.
 
 ### 1.3 바이트코드
 
@@ -122,7 +122,7 @@ CPython의 `PyObject_Call(callable, args, kwargs)` 및 `tp_call(callable, args, 
 
 ### 4.1 CPython 동작 요약
 
-- **CALL_FUNCTION_KW** (opcode 번호는 버전별로 다름; Elytra에서 채택할 번호는 VM_DESIGN/ceval과 통일):  
+- **CALL_FUNCTION_KW** (opcode 번호는 버전별로 다름; Pgthon에서 채택할 번호는 VM_DESIGN/ceval과 통일):  
   - operand: 위치 인자 개수 등 (버전에 따라 `arg_count | (kwarg_count << 8)` 형태 등).
   - 스택 (아래에서 위):  
     `[ ... , callable, arg1, ..., argN, kwval1, ..., kwvalM, kwname1, ..., kwnameM ]`  
@@ -130,7 +130,7 @@ CPython의 `PyObject_Call(callable, args, kwargs)` 및 `tp_call(callable, args, 
   - 키워드 이름 N개와 값 N개로 **dict 하나** 생성 후,  
     `PyObject_Call(callable, args_tuple, kwargs_dict)` 호출.
 
-### 4.2 Elytra에서 할 일
+### 4.2 Pgthon에서 할 일
 
 1. **스택 순서·operand 해석**  
    - CPython 3.11 등에서 CALL_FUNCTION_KW의 operand/스택 레이아웃을 하나 정해 문서화.  

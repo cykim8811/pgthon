@@ -1,5 +1,5 @@
 -- ============================================================================
--- Test: py_run RPC (Elytra Python Playground)
+-- Test: py_run RPC (Pgthon Python Playground)
 --
 -- Tests:
 --   1. Simple eval: LOAD_CONST 42, RETURN_VALUE → result = 42
@@ -40,7 +40,7 @@ BEGIN
         'nlocals', 0,
         'stacksize', 1,
         'name', '<module>',
-        'filename', '<elytra>',
+        'filename', '<pgthon>',
         'mode', 'eval'
     );
     v_result := public.py_run(v_input);
@@ -78,7 +78,7 @@ BEGIN
         'nlocals', 0,
         'stacksize', 2,
         'name', '<module>',
-        'filename', '<elytra>',
+        'filename', '<pgthon>',
         'mode', 'eval'
     );
     v_result := public.py_run(v_input);
@@ -113,7 +113,7 @@ BEGIN
         'nlocals', 0,
         'stacksize', 1,
         'name', '<module>',
-        'filename', '<elytra>',
+        'filename', '<pgthon>',
         'mode', 'exec'
     );
     v_result := public.py_run(v_input);
@@ -161,7 +161,7 @@ BEGIN
                 'stacksize', 2,
                 'flags', 0,
                 'name', 'add',
-                'filename', '<elytra>'
+                'filename', '<pgthon>'
             )),
             jsonb_build_object('type', 'int', 'value', 3),
             jsonb_build_object('type', 'int', 'value', 4),
@@ -176,7 +176,7 @@ BEGIN
         'nlocals', 0,
         'stacksize', 4,
         'name', '<module>',
-        'filename', '<elytra>',
+        'filename', '<pgthon>',
         'mode', 'exec'
     );
     v_result := public.py_run(v_input);
@@ -212,7 +212,7 @@ BEGIN
         'nlocals', 0,
         'stacksize', 2,
         'name', '<module>',
-        'filename', '<elytra>',
+        'filename', '<pgthon>',
         'mode', 'eval'
     );
     v_result := public.py_run(v_input);
@@ -250,7 +250,7 @@ BEGIN
         'nlocals', 0,
         'stacksize', 2,
         'name', '<module>',
-        'filename', '<elytra>',
+        'filename', '<pgthon>',
         'mode', 'eval'
     );
     v_result := public.py_run(v_input);
@@ -309,7 +309,7 @@ BEGIN
                         'stacksize', 2,
                         'flags', 0,
                         'name', 'adder',
-                        'filename', '<elytra>'
+                        'filename', '<pgthon>'
                     ))
                 ),
                 'names', '[]'::jsonb,
@@ -321,7 +321,7 @@ BEGIN
                 'stacksize', 4,
                 'flags', 0,
                 'name', 'make_adder',
-                'filename', '<elytra>'
+                'filename', '<pgthon>'
             )),
             -- const 1: int 5
             jsonb_build_object('type', 'int', 'value', 5),
@@ -339,7 +339,7 @@ BEGIN
         'nlocals', 0,
         'stacksize', 4,
         'name', '<module>',
-        'filename', '<elytra>',
+        'filename', '<pgthon>',
         'mode', 'exec'
     );
     v_result := public.py_run(v_input);

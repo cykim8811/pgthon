@@ -168,7 +168,7 @@ create table public.py_code_object (
 -- Note on structure flattening:
 -- In CPython, PyCFunctionObject contains m_ml (PyMethodDef* pointer).
 -- PyMethodDef is a struct with fields: ml_name, ml_meth, ml_flags, ml_doc.
--- In Elytra, we flatten PyMethodDef fields directly into this table:
+-- In Pgthon, we flatten PyMethodDef fields directly into this table:
 --   - m_ml->ml_name -> m_ml_name (stored as PyObject reference, not C string)
 --   - m_ml->ml_flags -> m_ml_flags
 --   - m_ml->ml_doc -> m_ml_doc (stored as PyObject reference, not C string)
@@ -206,7 +206,7 @@ create table public.py_cfunction_object (
   
   -- m_ml_meth: PostgreSQL function identifier (regproc)
   -- The PostgreSQL function that implements this C function.
-  -- In CPython, m_ml->ml_meth is a C function pointer. In Elytra, we store
+  -- In CPython, m_ml->ml_meth is a C function pointer. In Pgthon, we store
   -- the PostgreSQL function identifier (regproc) instead, which serves the same purpose:
   -- identifying which function to call when this builtin function is invoked.
   -- The regproc type automatically validates that the function exists, similar to how
@@ -216,7 +216,7 @@ create table public.py_cfunction_object (
 );
 
 -- Note: In CPython, m_ml->ml_meth is a C function pointer that cannot be stored
--- in the database. In Elytra, we store the PostgreSQL function identifier (regproc)
+-- in the database. In Pgthon, we store the PostgreSQL function identifier (regproc)
 -- which serves the same purpose: identifying which function to call when this
 -- builtin function is invoked. The regproc type automatically validates that the
 -- function exists, similar to how C function pointers can only point to existing

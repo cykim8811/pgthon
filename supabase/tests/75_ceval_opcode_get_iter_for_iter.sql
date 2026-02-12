@@ -15,7 +15,7 @@
 --   5. GET_ITER on int → TypeError
 -- ============================================================================
 
-SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+SELECT set_config('pgthon.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
 
 DO $$
 DECLARE
@@ -342,7 +342,7 @@ BEGIN
     IF NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: GET_ITER on int should raise TypeError';
     END IF;
-    SELECT exc_type_id INTO exc_type FROM public.py_thread_state WHERE id = current_setting('elytra.thread_state_id')::uuid;
+    SELECT exc_type_id INTO exc_type FROM public.py_thread_state WHERE id = current_setting('pgthon.thread_state_id')::uuid;
     IF exc_type IS DISTINCT FROM ID_TYPE_ERROR_TYPE THEN
         RAISE EXCEPTION 'FAIL: GET_ITER on int expected TypeError, got %', exc_type;
     END IF;

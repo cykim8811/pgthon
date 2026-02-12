@@ -1,6 +1,6 @@
 # float 타입 구현 설계 — CPython 고증·임시구현 없음
 
-CPython의 `PyFloatObject` 및 float의 수치 연산·해시·비교를 Elytra에서 슬롯 기반으로 구현하기 위한 설계 문서다.  
+CPython의 `PyFloatObject` 및 float의 수치 연산·해시·비교를 Pgthon에서 슬롯 기반으로 구현하기 위한 설계 문서다.  
 **임시방편 금지**: `tp_name`/타입 이름 문자열 분기 없이, 테이블 존재·슬롯 디스패치만 사용한다.
 
 ---
@@ -9,7 +9,7 @@ CPython의 `PyFloatObject` 및 float의 수치 연산·해시·비교를 Elytra�
 
 ### 1.1 PyFloatObject
 
-| CPython | Elytra |
+| CPython | Pgthon |
 |--------|--------|
 | `PyFloatObject.ob_fval` (double) | `py_float_object.ob_fval` (double precision) |
 | `PyFloat_Type` (tp_as_number, tp_hash, tp_richcompare) | float 타입에 tp_as_number, tp_hash, tp_richcompare 등록 |
@@ -19,7 +19,7 @@ CPython의 `PyFloatObject` 및 float의 수치 연산·해시·비교를 Elytra�
 
 ### 1.2 수치 연산 (PyNumber_Add / Subtract / Multiply)
 
-| 연산 | CPython | Elytra 대응 |
+| 연산 | CPython | Pgthon 대응 |
 |------|--------|-------------|
 | float + float | float_add → 새 float | py_float_nb_add(left, right) → 새 float id |
 | float + int | float 쪽 nb_add에서 int를 double로 변환 후 덧셈 | py_float_nb_add: right가 py_long_object면 long_value를 double로 더함 |
@@ -32,13 +32,13 @@ CPython의 `PyFloatObject` 및 float의 수치 연산·해시·비교를 Elytra�
 ### 1.3 tp_hash (PyObject_Hash)
 
 - CPython: float는 hash 가능. `_Py_HashDouble(ob_fval)` 등으로 해시값 계산.
-- Elytra: `py_float_tp_hash(obj_id) RETURNS BIGINT` 구현 후 float 타입의 tp_hash 슬롯에 등록.
+- Pgthon: `py_float_tp_hash(obj_id) RETURNS BIGINT` 구현 후 float 타입의 tp_hash 슬롯에 등록.
 - PostgreSQL: `double precision`에 대한 해시는 일관성만 유지하면 됨. (예: `hashtext(ob_fval::text)` 또는 CPython과 유사한 비트 패턴 해시. 최소 구현은 `hashtext`로 가능하나, CPython은 특정 규칙 사용 — 필요 시 나중에 정확히 맞춤.)
 
 ### 1.4 tp_richcompare (PyObject_RichCompare)
 
 - CPython: float는 Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE 전부 지원. float–float, float–int 비교 시 int는 double로 변환.
-- Elytra: `py_float_richcompare(self_id, other_id, op)` 구현. other가 float이면 ob_fval 비교; other가 int면 long_value를 double로 변환 후 비교. 그 외 NotImplemented.
+- Pgthon: `py_float_richcompare(self_id, other_id, op)` 구현. other가 float이면 ob_fval 비교; other가 int면 long_value를 double로 변환 후 비교. 그 외 NotImplemented.
 - 기존 `py_object_richcompare` 디스패치·반대 호출은 수정 없이, float 타입에 tp_richcompare만 등록하면 됨.
 
 ### 1.5 nb_absolute (abs)
@@ -47,7 +47,7 @@ CPython의 `PyFloatObject` 및 float의 수치 연산·해시·비교를 Elytra�
 
 ---
 
-## 2. 현재 Elytra 상태
+## 2. 현재 Pgthon 상태
 
 | 항목 | 상태 |
 |------|------|

@@ -6,7 +6,7 @@
 -- Sets the frame's fast local slot to NULL. Does not pop the stack.
 -- Frame allocation: extends f_fastlocals with NULL slots if necessary so that
 -- slot var_num exists, then sets that slot to NULL (CPython pre-allocates
--- locals by co_nlocals; Elytra extends on demand like STORE_FAST).
+-- locals by co_nlocals; Pgthon extends on demand like STORE_FAST).
 --
 -- Depends: function_object_schema (frame).
 -- ============================================================================

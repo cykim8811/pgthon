@@ -1,12 +1,12 @@
-# Elytra
+# Pgthon
 
 A CPython 3.11 virtual machine implemented entirely in PostgreSQL.
 
-Elytra reconstructs CPython's object model, type system, and bytecode interpreter as PL/pgSQL functions and relational tables. Every Python object is a row. Every type slot is a `regproc`. Every opcode is a stored procedure. The bytecode loop runs inside a single `SELECT py_eval_frame(...)` call.
+Pgthon reconstructs CPython's object model, type system, and bytecode interpreter as PL/pgSQL functions and relational tables. Every Python object is a row. Every type slot is a `regproc`. Every opcode is a stored procedure. The bytecode loop runs inside a single `SELECT py_eval_frame(...)` call.
 
 ## Why
 
-CPython's internals — `PyObject`, `PyTypeObject`, the eval loop, the type slot machinery — are elegant but buried under thousands of lines of C, macros, and reference counting. Elytra strips away the C and re-expresses these ideas as a relational schema, making the architecture queryable, inspectable, and surprisingly faithful.
+CPython's internals — `PyObject`, `PyTypeObject`, the eval loop, the type slot machinery — are elegant but buried under thousands of lines of C, macros, and reference counting. Pgthon strips away the C and re-expresses these ideas as a relational schema, making the architecture queryable, inspectable, and surprisingly faithful.
 
 This is not a Python-to-SQL transpiler. It is the VM itself, reimplemented in SQL.
 
@@ -17,7 +17,7 @@ This is not a Python-to-SQL transpiler. It is the VM itself, reimplemented in SQ
 You can define classes, instantiate objects, call methods, raise and catch exceptions, build closures, run list comprehensions, and format f-strings — all executing inside PostgreSQL.
 
 ```
-# This Python code compiles to bytecode that Elytra executes in PostgreSQL:
+# This Python code compiles to bytecode that Pgthon executes in PostgreSQL:
 
 class Dog:
     def __init__(self, name):
@@ -148,11 +148,11 @@ pnpm dev
 
 ## Persistent Objects
 
-Every Python object is a row in PostgreSQL. After execution commits, all objects — strings, ints, lists, class instances, functions — persist in the database permanently. Unlike CPython where everything lives in process memory and vanishes on exit, Elytra's objects survive restarts and can be queried with plain SQL. This is not a feature that had to be built; it falls out naturally from the architecture.
+Every Python object is a row in PostgreSQL. After execution commits, all objects — strings, ints, lists, class instances, functions — persist in the database permanently. Unlike CPython where everything lives in process memory and vanishes on exit, Pgthon's objects survive restarts and can be queried with plain SQL. This is not a feature that had to be built; it falls out naturally from the architecture.
 
 ## Transactional Execution
 
-Because every Python object is a row and every mutation is a SQL write, Elytra gets **transactional Python execution** for free. You can roll back an entire function call — every object created, every variable assigned, every dict entry inserted — as if it never happened. This is something regular CPython cannot do.
+Because every Python object is a row and every mutation is a SQL write, Pgthon gets **transactional Python execution** for free. You can roll back an entire function call — every object created, every variable assigned, every dict entry inserted — as if it never happened. This is something regular CPython cannot do.
 
 ```sql
 BEGIN;

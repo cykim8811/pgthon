@@ -202,7 +202,7 @@ BEGIN
 
     -- Execute the function body
     v_result := public.py_eval_frame(
-      current_setting('elytra.thread_state_id')::uuid,
+      current_setting('pgthon.thread_state_id')::uuid,
       v_new_frame_id
     );
 

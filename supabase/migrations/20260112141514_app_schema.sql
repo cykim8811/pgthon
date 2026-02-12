@@ -3,7 +3,7 @@
 -- Created: 2026-01-12 14:15:14
 -- 
 -- Purpose:
---   Defines the application-level schema for Elytra:
+--   Defines the application-level schema for Pgthon:
 --   - User profiles (linked to Supabase Auth)
 --   - Workspaces (multi-tenant containers)
 --   - Workspace permissions (role-based access control)

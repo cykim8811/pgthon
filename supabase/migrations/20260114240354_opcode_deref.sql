@@ -194,7 +194,7 @@ BEGIN
     -- The closure is stored in func_closure on the py_function_object.
     -- We need to find which function has this code object and was used to create this frame.
     -- In CPython, the function object is available via the calling frame.
-    -- For Elytra, we look up the function by its func_code matching this frame's f_code.
+    -- For Pgthon, we look up the function by its func_code matching this frame's f_code.
     -- A better approach: the caller should have stored the func_id somewhere.
     -- For now, we look up the most recently created function with this code object.
     -- Actually, in CPython 3.11, COPY_FREE_VARS reads from the function object

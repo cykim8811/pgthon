@@ -11,7 +11,7 @@
 --   Run after migrations (Phase 47). If any assertion fails, exception is raised.
 -- ============================================================================
 
-SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+SELECT set_config('pgthon.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
 
 DO $$
 DECLARE
@@ -135,7 +135,7 @@ BEGIN
     IF NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: getattr(inst,"x") after del should set AttributeError';
     END IF;
-    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('elytra.thread_state_id')::uuid;
+    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('pgthon.thread_state_id')::uuid;
     IF got_exc_type_id IS DISTINCT FROM ID_ATTRIBUTE_ERROR_TYPE THEN
         RAISE EXCEPTION 'FAIL: expected AttributeError, got exc_type_id %', got_exc_type_id;
     END IF;
@@ -238,7 +238,7 @@ BEGIN
     IF NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: DELETE_ATTR on non-existent "x" should set exception';
     END IF;
-    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('elytra.thread_state_id')::uuid;
+    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('pgthon.thread_state_id')::uuid;
     IF got_exc_type_id IS DISTINCT FROM ID_ATTRIBUTE_ERROR_TYPE THEN
         RAISE EXCEPTION 'FAIL: expected AttributeError, got exc_type_id %', got_exc_type_id;
     END IF;

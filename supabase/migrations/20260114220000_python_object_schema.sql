@@ -20,7 +20,7 @@
 -- ============================================================================
 
 -- 1. py_object (Implements CPython's PyObject: root header of all objects)
---    Every Python object in Elytra is represented by a row in this table.
+--    Every Python object in Pgthon is represented by a row in this table.
 --    This is the "base class" that all other object types extend.
 create table public.py_object (
   id uuid primary key default gen_random_uuid(),

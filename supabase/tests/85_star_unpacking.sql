@@ -17,7 +17,7 @@
 --  13. BUILD_CONST_KEY_MAP(0): empty dict
 -- ============================================================================
 
-SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+SELECT set_config('pgthon.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
 
 DO $$
 DECLARE
@@ -431,7 +431,7 @@ BEGIN
     -- Check that TypeError is set
     SELECT exc_type_id INTO v_exc_type
     FROM public.py_thread_state
-    WHERE id = current_setting('elytra.thread_state_id')::uuid;
+    WHERE id = current_setting('pgthon.thread_state_id')::uuid;
     IF v_exc_type IS NULL THEN
         RAISE EXCEPTION 'FAIL: DICT_MERGE no exception set';
     END IF;
@@ -727,7 +727,7 @@ BEGIN
     END IF;
     SELECT exc_type_id INTO v_exc_type
     FROM public.py_thread_state
-    WHERE id = current_setting('elytra.thread_state_id')::uuid;
+    WHERE id = current_setting('pgthon.thread_state_id')::uuid;
     IF v_exc_type IS NULL THEN
         RAISE EXCEPTION 'FAIL: UNPACK_EX no exception set';
     END IF;

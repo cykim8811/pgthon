@@ -1,6 +1,6 @@
 # 예외 처리 설계 (CPython 3.11 고증)
 
-CPython 3.11의 예외 모델에 맞춘 Elytra 예외 처리 설계다. 임시 구현 없이, 문서·스키마·시맨틱을 한 번에 정의한다.
+CPython 3.11의 예외 모델에 맞춘 Pgthon 예외 처리 설계다. 임시 구현 없이, 문서·스키마·시맨틱을 한 번에 정의한다.
 
 **참고:** Python 3.11에서는 `SETUP_EXCEPT`/`SETUP_FINALLY`가 제거되고 **exception table** (`co_exceptiontable`) 기반으로 동작한다. 이 설계는 3.11만 대상으로 한다.
 
@@ -10,7 +10,7 @@ CPython 3.11의 예외 모델에 맞춘 Elytra 예외 처리 설계다. 임시 �
 
 ### 1.1 Error indicator (예외 상태)
 
-- **위치:** 스레드당 하나 (C API: `PyThreadState` 내부). Elytra는 스레드가 없으므로 **실행 컨텍스트당 하나**로 둠.
+- **위치:** 스레드당 하나 (C API: `PyThreadState` 내부). Pgthon는 스레드가 없으므로 **실행 컨텍스트당 하나**로 둠.
 - **구성:** 세 개의 객체 참조
   - `exc_type`: 예외 타입 (클래스 객체)
   - `exc_value`: 예외 값 (인스턴스, 보통 `BaseException` 서브클래스)
@@ -37,7 +37,7 @@ CPython 3.11의 예외 모델에 맞춘 Elytra 예외 처리 설계다. 임시 �
 
 ### 1.4 Exception table (3.11)
 
-- **위치:** `PyCodeObject.co_exceptiontable` (bytes). Elytra에서는 `py_code_object.co_exceptiontable`.
+- **위치:** `PyCodeObject.co_exceptiontable` (bytes). Pgthon에서는 `py_code_object.co_exceptiontable`.
 - **역할:** “이 바이트코드 범위에서 예외가 나면, 이 오프셋으로 점프하고, 스택을 이 깊이로 맞춘다.”
 - **항목:** (start, end, target, depth, lasti) — 3.11에서는 **instruction offset** 기준. start ≤ 현재 오프셋 < end 인 항목을 찾아 target으로 점프, 스택을 depth로 trim.
 - **동작:** 예외 발생 시 현재 `i`(instruction offset)로 테이블 조회 → 매칭되는 (target, depth) 사용 → `next_i := target`, 스택을 depth개만 남기고 pop, 루프 계속.
@@ -62,7 +62,7 @@ CPython 3.11의 예외 모델에 맞춘 Elytra 예외 처리 설계다. 임시 �
 
 ---
 
-## 2. Elytra 설계
+## 2. Pgthon 설계
 
 ### 2.1 예외 상태 저장소
 
@@ -82,7 +82,7 @@ CPython 3.11의 예외 모델에 맞춘 Elytra 예외 처리 설계다. 임시 �
   - `BaseException` (object 서브클래스)
   - `Exception` (BaseException 서브클래스)
   - `TypeError`, `ValueError`, `NameError`, `RuntimeError` (Exception 서브클래스)
-- **인스턴스:** 예외 “값”은 보통 `BaseException` 서브클래스 인스턴스. Elytra에서는 **별도 테이블 없이** `py_object` + `ob_type`으로만 구분해도 되고, 필요 시 `py_base_exception_object` 같은 테이블에 `ob_args` (tuple uuid) 등을 두어 `args`를 표현할 수 있다.
+- **인스턴스:** 예외 “값”은 보통 `BaseException` 서브클래스 인스턴스. Pgthon에서는 **별도 테이블 없이** `py_object` + `ob_type`으로만 구분해도 되고, 필요 시 `py_base_exception_object` 같은 테이블에 `ob_args` (tuple uuid) 등을 두어 `args`를 표현할 수 있다.
 - **최소 구현:** `py_base_exception_object(ob_base, ob_args uuid)` — `ob_args`는 인자 tuple. `__cause__`/`__context__`/`__traceback__`는 1단계에서는 NULL/미구현 가능, 단 문서에는 “나중에 확장”으로 명시.
 
 ### 2.3 Traceback
@@ -101,7 +101,7 @@ CPython 3.11의 예외 모델에 맞춘 Elytra 예외 처리 설계다. 임시 �
 
 ### 2.5 Frame 확장 (선택)
 
-- CPython 3.11에서는 generator 등에서 “프레임별 예외 스왑”을 위해 `f_exc_type`, `f_exc_value`, `f_exc_traceback`를 쓰지만, Elytra 1단계에서는 **전역(단일) py_exception_state만** 써도 됨.
+- CPython 3.11에서는 generator 등에서 “프레임별 예외 스왑”을 위해 `f_exc_type`, `f_exc_value`, `f_exc_traceback`를 쓰지만, Pgthon 1단계에서는 **전역(단일) py_exception_state만** 써도 됨.
 - 나중에 generator/코루틴을 넣을 때 프레임에 예외 상태 컬럼을 추가할 수 있다.
 
 ### 2.6 py_eval_frame 동작 (예외 경로)
@@ -143,7 +143,7 @@ CPython 3.11의 예외 모델에 맞춘 Elytra 예외 처리 설계다. 임시 �
   1) 해당 타입/인스턴스 객체를 만들고  
   2) `py_err_set_object(type_id, value_id)`로 설정한 뒤  
   3) exception table 기반 unwinding으로 처리한다.  
-- **DB 레벨 오류** (frame 없음, code 없음 등)만 PL/pgSQL RAISE EXCEPTION 유지 가능. 이때는 “Python 예외”가 아니라 “Elytra 런타임 오류”로 구분한다.
+- **DB 레벨 오류** (frame 없음, code 없음 등)만 PL/pgSQL RAISE EXCEPTION 유지 가능. 이때는 “Python 예외”가 아니라 “Pgthon 런타임 오류”로 구분한다.
 
 ---
 

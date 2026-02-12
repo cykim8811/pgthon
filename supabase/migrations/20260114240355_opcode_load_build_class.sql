@@ -108,7 +108,7 @@ BEGIN
 
     -- Execute body — ignore return value (body should populate namespace via STORE_NAME)
     v_dummy_result := public.py_eval_frame(
-      current_setting('elytra.thread_state_id')::uuid,
+      current_setting('pgthon.thread_state_id')::uuid,
       v_frame_id
     );
     IF public.py_err_occurred() THEN

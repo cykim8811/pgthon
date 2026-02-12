@@ -9,7 +9,7 @@
 -- Design: docs/KWARGS_IMPLEMENTATION_PLAN.md, docs/TP_CALL_KWARGS_DESIGN.md
 -- ============================================================================
 
-SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+SELECT set_config('pgthon.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
 
 DO $$
 DECLARE
@@ -70,7 +70,7 @@ BEGIN
     JOIN public.py_base_exception_object b ON b.ob_base = e.exc_value_id
     JOIN public.py_tuple_object t ON t.ob_base = b.ob_args
     JOIN public.py_unicode_object u ON u.ob_base = t.ob_item[1]
-    WHERE e.id = current_setting('elytra.thread_state_id')::uuid;
+    WHERE e.id = current_setting('pgthon.thread_state_id')::uuid;
     IF error_message IS NULL OR error_message NOT LIKE '%takes no keyword arguments%' THEN
         RAISE EXCEPTION 'FAIL: expected TypeError message containing "takes no keyword arguments", got: %', error_message;
     END IF;
@@ -93,7 +93,7 @@ BEGIN
     JOIN public.py_base_exception_object b ON b.ob_base = e.exc_value_id
     JOIN public.py_tuple_object t ON t.ob_base = b.ob_args
     JOIN public.py_unicode_object u ON u.ob_base = t.ob_item[1]
-    WHERE e.id = current_setting('elytra.thread_state_id')::uuid;
+    WHERE e.id = current_setting('pgthon.thread_state_id')::uuid;
     IF error_message IS NULL OR error_message NOT LIKE '%abs() takes no keyword arguments%' THEN
         RAISE EXCEPTION 'FAIL: expected message containing "abs() takes no keyword arguments", got: %', error_message;
     END IF;

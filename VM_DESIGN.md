@@ -1,8 +1,8 @@
-# Elytra VM 설계안
+# Pgthon VM 설계안
 
 ## 개요
 
-Elytra VM은 CPython의 bytecode execution engine을 PostgreSQL 위에 구현합니다. CPython의 stack-based virtual machine 구조를 유지하면서, PostgreSQL의 PL/pgSQL을 사용하여 bytecode를 실행합니다.
+Pgthon VM은 CPython의 bytecode execution engine을 PostgreSQL 위에 구현합니다. CPython의 stack-based virtual machine 구조를 유지하면서, PostgreSQL의 PL/pgSQL을 사용하여 bytecode를 실행합니다.
 
 ## CPython VM 핵심 구조
 
@@ -27,7 +27,7 @@ CPython은 **stack-based VM**입니다:
 CPython 3.6+ 기준:
 - 각 instruction은 2바이트 (opcode 1바이트 + operand 1바이트)
 - 또는 4바이트 (opcode 1바이트 + operand 3바이트, 확장 opcode)
-- `co_code`는 bytes 객체로 저장 (Elytra에서는 unicode object로 저장)
+- `co_code`는 bytes 객체로 저장 (Pgthon에서는 unicode object로 저장)
 
 ## PostgreSQL 구현 설계
 

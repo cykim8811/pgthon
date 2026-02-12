@@ -100,7 +100,7 @@ export default function PlaygroundView() {
       const compiled = await compilePython(source);
       setCodeJson(compiled);
 
-      // Execute on Elytra VM via Supabase RPC
+      // Execute on Pgthon VM via Supabase RPC
       const { data, error: rpcError } = await supabase.rpc("py_run", {
         p_code: compiled,
       });
@@ -124,7 +124,7 @@ export default function PlaygroundView() {
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800 bg-gray-900">
         <div className="flex items-center gap-3">
           <a href="/" className="text-gray-400 hover:text-gray-200 text-sm">
-            Elytra
+            Pgthon
           </a>
           <span className="text-gray-600">/</span>
           <h1 className="text-sm font-medium">Playground</h1>
@@ -202,7 +202,7 @@ export default function PlaygroundView() {
             )}
             {!error && !output && !loading && (
               <div className="text-gray-600 italic">
-                Press Run to execute Python code on the Elytra VM.
+                Press Run to execute Python code on the Pgthon VM.
               </div>
             )}
           </div>

@@ -1,5 +1,5 @@
 import React from "react";
-import { ElytraIcon } from "../components/Icons";
+import { PgthonIcon } from "../components/Icons";
 
 export default function MainView() {
     return (
@@ -7,9 +7,9 @@ export default function MainView() {
             <main className="max-w-2xl px-8 py-16 animate-in fade-in duration-1000 slide-in-from-bottom-4">
                 <header className="mb-12">
                     <div className="flex items-center gap-2 mb-6">
-                        <ElytraIcon className="w-16 h-auto text-zinc-900" />
+                        <PgthonIcon className="w-16 h-auto text-zinc-900" />
                         <h1 className="text-5xl font-light tracking-tight">
-                            Elytra
+                            Pgthon
                         </h1>
                     </div>
                     <p className="text-lg text-zinc-500 font-light tracking-tight">
@@ -34,7 +34,7 @@ export default function MainView() {
             </main>
 
             <footer className="fixed bottom-8 text-[10px] text-zinc-400 font-light tracking-[0.2em] uppercase">
-                © 2026 Elytra
+                © 2026 Pgthon
             </footer>
         </div>
     );

@@ -3,8 +3,8 @@ import DocumentView from "../views/DocumentView";
 
 export function meta({ }: Route.MetaArgs) {
     return [
-        { title: "Document - Elytra" },
-        { name: "description", content: "Elytra Workspace Document" },
+        { title: "Document - Pgthon" },
+        { name: "description", content: "Pgthon Workspace Document" },
     ];
 }
 

@@ -1,6 +1,6 @@
-# CPython 3.11 예외 테이블 형식·위치 (Elytra)
+# CPython 3.11 예외 테이블 형식·위치 (Pgthon)
 
-Elytra의 예외 테이블은 CPython 3.11 `co_exceptiontable` 규약에 맞춘다. 형식·위치를 한 번 정해 두고 이후 수정 없이 유지한다.
+Pgthon의 예외 테이블은 CPython 3.11 `co_exceptiontable` 규약에 맞춘다. 형식·위치를 한 번 정해 두고 이후 수정 없이 유지한다.
 
 ---
 
@@ -14,7 +14,7 @@ Elytra의 예외 테이블은 CPython 3.11 `co_exceptiontable` 규약에 맞춘�
 ## 2. 오프셋 단위
 
 - **instruction offset (코드 유닛):** 모든 start, end, target은 **2바이트 단위 인덱스** (instruction index).
-- **Elytra eval 루프:** `i`는 **byte offset** (0-based). 테이블 조회 시 `start_i / 2`를 instruction offset으로 넘기고, 핸들러 target은 `next_i := target_offset * 2`로 byte offset으로 환산한다.
+- **Pgthon eval 루프:** `i`는 **byte offset** (0-based). 테이블 조회 시 `start_i / 2`를 instruction offset으로 넘기고, 핸들러 target은 `next_i := target_offset * 2`로 byte offset으로 환산한다.
 
 ---
 

@@ -36,7 +36,7 @@ DECLARE
     pending_kw_names_const_i INTEGER := NULL;
 BEGIN
     -- Set thread state for this execution context (PostgreSQL TLS equivalent)
-    PERFORM set_config('elytra.thread_state_id', p_ts_id::text, false);
+    PERFORM set_config('pgthon.thread_state_id', p_ts_id::text, false);
 
     IF NOT EXISTS (SELECT 1 FROM public.py_frame_object WHERE ob_base = frame_id) THEN
         RAISE EXCEPTION 'Frame with id % does not exist', frame_id;

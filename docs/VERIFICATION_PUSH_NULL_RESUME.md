@@ -28,7 +28,7 @@
 
 ### 3.1 PUSH_NULL(2)
 
-| CPython 3.11 | Elytra 구현 | 일치 |
+| CPython 3.11 | Pgthon 구현 | 일치 |
 |--------------|-------------|------|
 | opcode 2, 인자 없음 | `WHEN 2 THEN PERFORM py_opcode_PUSH_NULL(frame_id)` (arg는 2바이트 진행용으로만 사용) | ✓ |
 | 스택에 “호출용 NULL” push | `py_stack_push(frame_id, ID_NULL_OBJ)` (전용 싱글턴) | ✓ |
@@ -49,10 +49,10 @@
 
 ### 3.3 RESUME(151)
 
-| CPython 3.11 / 설계 문서 | Elytra 구현 | 일치 |
+| CPython 3.11 / 설계 문서 | Pgthon 구현 | 일치 |
 |--------------------------|-------------|------|
 | opcode 151, 함수/제너레이터 진입 no-op | `WHEN 151 THEN PERFORM py_opcode_RESUME(frame_id, arg)` | ✓ |
-| 1바이트 인자(where): 0=시작, 1=yield 후, 2=yield from 후, 3=await 후 | `where_arg` 인자로 받고, 주석에 의미 명시. Elytra에서는 미사용(no-op). | ✓ |
+| 1바이트 인자(where): 0=시작, 1=yield 후, 2=yield from 후, 3=await 후 | `where_arg` 인자로 받고, 주석에 의미 명시. Pgthon에서는 미사용(no-op). | ✓ |
 | 디스패치만 하고 동작 없음 | 프레임 존재 검사 후 종료. 스택/프레임 변경 없음. | ✓ |
 
 `docs/EXCEPTION_HANDLING_DESIGN.md` 및 3.11 opcode 번호·시맨틱과 부합.

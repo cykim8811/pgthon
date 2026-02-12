@@ -109,7 +109,7 @@ DECLARE
 BEGIN
     -------------------------------------------------------
     -- Phase 1: Create base PyObjects (without ob_type)
-    --    NOTE: In Elytra, every object's identity is PyObject.id.
+    --    NOTE: In Pgthon, every object's identity is PyObject.id.
     --    We create these with ob_type = NULL to break the circular dependency
     --    between 'type' and 'object'.
     -------------------------------------------------------

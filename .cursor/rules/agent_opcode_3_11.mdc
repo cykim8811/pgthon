@@ -1,8 +1,8 @@
-# Elytra CPython 3.11 opcode 작업 — 병렬 에이전트용 프롬프트
+# Pgthon CPython 3.11 opcode 작업 — 병렬 에이전트용 프롬프트
 
 ## 프로젝트·맥락
 
-- **Elytra**: PostgreSQL(PL/pgSQL) 위에 구현한 CPython 스타일 바이트코드 VM. 스택 기반 실행, py_object/py_code_object/py_frame_object 등으로 Python 객체·코드·프레임을 표현한다.
+- **Pgthon**: PostgreSQL(PL/pgSQL) 위에 구현한 CPython 스타일 바이트코드 VM. 스택 기반 실행, py_object/py_code_object/py_frame_object 등으로 Python 객체·코드·프레임을 표현한다.
 - **목표**: CPython 3.11 바이트코드 규약에 맞추기. 이미 인코딩(wordcode, CACHE), 코드 객체 구조, 예외 테이블, 호출(PRECALL/CALL/KW_NAMES) 등 틀은 갖춰져 있고, **개별 opcode 구현·수정**이 남아 있다.
 - **로드맵**: `docs/OPCODE_3_11_ROADMAP.md`에 3.11 기준으로 “구현됨 / 미구현 / 수정 필요” opcode와 비-opcode 작업, 권장 순서가 정리되어 있다. **수정 필요** 항목부터 우선 진행한다.
 
@@ -68,4 +68,4 @@
 - `docs/OPCODE_3_11_ROADMAP.md` — opcode 목록, 수정 필요 항목, 권장 순서
 - `docs/CALL_PROTOCOL_3_11_DESIGN.md` — 호출 규약 (PUSH_NULL, PRECALL, CALL, KW_NAMES)
 - `docs/BYTECODE_ENCODING_3_11.md` — 바이트코드 인코딩, CACHE
-- `.cursor/rules/elytra-testing-and-reset.mdc` — 테스트·DB 리셋·migration 관리 규칙
+- `.cursor/rules/pgthon-testing-and-reset.mdc` — 테스트·DB 리셋·migration 관리 규칙

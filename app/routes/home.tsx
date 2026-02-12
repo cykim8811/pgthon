@@ -3,8 +3,8 @@ import MainView from "../views/MainView";
 
 export function meta({ }: Route.MetaArgs) {
   return [
-    { title: "Elytra" },
-    { name: "description", content: "Elytra - A Python-based workspace" },
+    { title: "Pgthon" },
+    { name: "description", content: "Pgthon - A Python-based workspace" },
   ];
 }
 

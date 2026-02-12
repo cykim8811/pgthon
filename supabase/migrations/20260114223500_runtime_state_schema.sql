@@ -9,7 +9,7 @@
 -- These are C structs in CPython, NOT Python objects, so they are standalone
 -- tables rather than py_object subclasses.
 --
--- A PostgreSQL session variable (elytra.thread_state_id) acts as the
+-- A PostgreSQL session variable (pgthon.thread_state_id) acts as the
 -- equivalent of CPython's _PyThreadState_GET() thread-local storage.
 -- ============================================================================
 

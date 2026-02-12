@@ -16,9 +16,9 @@ AS $$
 BEGIN
   UPDATE public.py_thread_state
   SET exc_type_id = p_type_id, exc_value_id = p_value_id, exc_traceback_id = NULL
-  WHERE id = current_setting('elytra.thread_state_id')::uuid;
+  WHERE id = current_setting('pgthon.thread_state_id')::uuid;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'py_thread_state row not found for id %', current_setting('elytra.thread_state_id');
+    RAISE EXCEPTION 'py_thread_state row not found for id %', current_setting('pgthon.thread_state_id');
   END IF;
 END;
 $$;
@@ -36,7 +36,7 @@ AS $$
 BEGIN
   UPDATE public.py_thread_state
   SET exc_type_id = NULL, exc_value_id = NULL, exc_traceback_id = NULL
-  WHERE id = current_setting('elytra.thread_state_id')::uuid;
+  WHERE id = current_setting('pgthon.thread_state_id')::uuid;
 END;
 $$;
 
@@ -53,7 +53,7 @@ STABLE
 AS $$
   SELECT exc_type_id IS NOT NULL
   FROM public.py_thread_state
-  WHERE id = current_setting('elytra.thread_state_id')::uuid;
+  WHERE id = current_setting('pgthon.thread_state_id')::uuid;
 $$;
 
 COMMENT ON FUNCTION public.py_err_occurred() IS
@@ -69,7 +69,7 @@ STABLE
 AS $$
   SELECT e.exc_type_id, e.exc_value_id, e.exc_traceback_id
   FROM public.py_thread_state e
-  WHERE e.id = current_setting('elytra.thread_state_id')::uuid;
+  WHERE e.id = current_setting('pgthon.thread_state_id')::uuid;
 $$;
 
 COMMENT ON FUNCTION public.py_err_get_raised() IS
@@ -89,9 +89,9 @@ DECLARE
 BEGIN
   SELECT e.exc_traceback_id INTO cur_tb_id
   FROM public.py_thread_state e
-  WHERE e.id = current_setting('elytra.thread_state_id')::uuid;
+  WHERE e.id = current_setting('pgthon.thread_state_id')::uuid;
 
-  IF NOT FOUND OR (SELECT exc_type_id FROM public.py_thread_state WHERE id = current_setting('elytra.thread_state_id')::uuid) IS NULL THEN
+  IF NOT FOUND OR (SELECT exc_type_id FROM public.py_thread_state WHERE id = current_setting('pgthon.thread_state_id')::uuid) IS NULL THEN
     RETURN;
   END IF;
 
@@ -101,7 +101,7 @@ BEGIN
 
   UPDATE public.py_thread_state
   SET exc_traceback_id = new_tb_id
-  WHERE id = current_setting('elytra.thread_state_id')::uuid;
+  WHERE id = current_setting('pgthon.thread_state_id')::uuid;
 END;
 $$;
 

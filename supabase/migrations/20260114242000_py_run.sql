@@ -1,5 +1,5 @@
 -- ============================================================================
--- Migration: py_run RPC — Elytra Python Playground
+-- Migration: py_run RPC — Pgthon Python Playground
 -- 20260114242000
 --
 -- Four functions for the playground frontend:
@@ -190,7 +190,7 @@ BEGIN
     INSERT INTO public.py_tuple_object (ob_base, ob_item) VALUES (v_co_freevars_id, v_name_ids);
 
     -- co_filename, co_name
-    v_co_filename_id := public.py_str_from_text(COALESCE(p_code->>'filename', '<elytra>'));
+    v_co_filename_id := public.py_str_from_text(COALESCE(p_code->>'filename', '<pgthon>'));
     v_co_name_id := public.py_str_from_text(COALESCE(p_code->>'name', '<module>'));
 
     -- INSERT code object
@@ -372,7 +372,7 @@ BEGIN
     v_ts_id := gen_random_uuid();
     INSERT INTO public.py_thread_state (id, interp_id)
     VALUES (v_ts_id, '00000000-0000-4000-e000-000000000020');
-    PERFORM set_config('elytra.thread_state_id', v_ts_id::text, true);
+    PERFORM set_config('pgthon.thread_state_id', v_ts_id::text, true);
 
     -- Clear any previous exceptions
     UPDATE public.py_thread_state

@@ -25,7 +25,7 @@ AS $$
 BEGIN
   UPDATE public.py_thread_state
   SET exc_type_id = p_type_id, exc_value_id = p_value_id, exc_traceback_id = p_traceback_id
-  WHERE id = current_setting('elytra.thread_state_id')::uuid;
+  WHERE id = current_setting('pgthon.thread_state_id')::uuid;
 END;
 $$;
 

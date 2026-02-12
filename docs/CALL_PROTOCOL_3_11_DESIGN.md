@@ -1,6 +1,6 @@
 # CPython 3.11 호출 프로토콜 설계 (PRECALL / CALL / KW_NAMES / PUSH_NULL)
 
-Elytra의 호출 경로를 CPython 3.11 바이트코드·내부 규약에 맞게 **다시 짜는 수준의 리팩터링**을 위한 설계와 단계별 계획이다.
+Pgthon의 호출 경로를 CPython 3.11 바이트코드·내부 규약에 맞게 **다시 짜는 수준의 리팩터링**을 위한 설계와 단계별 계획이다.
 
 **참고:** Python 3.11에서 `CALL_FUNCTION`(141)·`CALL_FUNCTION_KW`(142)는 제거되고, `PRECALL`(166) + `CALL`(171), 그리고 선택적으로 `KW_NAMES`(172)·`PUSH_NULL`(2) 조합으로 호출이 이뤄진다.
 
@@ -15,7 +15,7 @@ Elytra의 호출 경로를 CPython 3.11 바이트코드·내부 규약에 맞게
 | 171 | CALL | n | callable + 인자들 pop 후 실제 호출. n = 위치 인자 개수(또는 위치+키워드 합계 — 구현 확인 필요). |
 | 172 | KW_NAMES | const_i | **hasconst.** `co_consts[const_i]`가 다음 CALL에서 쓸 키워드 이름 tuple. 스택에 푸시하지 않음. |
 
-- **PRECALL**: 3.11에서는 호출 직전 플래그·캐시 준비 등. Elytra에서는 **no-op**으로 두거나, "다음 CALL의 위치 인자 개수"만 기록해 두는 정도로 활용 가능.
+- **PRECALL**: 3.11에서는 호출 직전 플래그·캐시 준비 등. Pgthon에서는 **no-op**으로 두거나, "다음 CALL의 위치 인자 개수"만 기록해 두는 정도로 활용 가능.
 - **CALL**: 실제 pop·호출·push 결과. CPython에서는 `_PyEval_EvalFrameDefault` 내부에서 스택에서 callable, args, (선택) kwnames를 꺼내 `_PyObject_FastCallDictTstate` 또는 vectorcall로 넘긴다.
 - **KW_NAMES**: 다음에 나오는 **한 번의** CALL에만 적용. `co_consts[arg]`가 `(str, str, ...)` 형태의 키워드 이름 tuple. 키워드 값은 스택에 "위치 인자 바로 위"에 쌓인다.
 - **PUSH_NULL**: 메서드 호출 시 `obj.method(...)`에서 receiver 자리를 비우기 위해 푸시. CALL 시 pop 순서에 포함된다.
@@ -37,7 +37,7 @@ Elytra의 호출 경로를 CPython 3.11 바이트코드·내부 규약에 맞게
 - **옵션 A**: oparg = **위치 인자 개수**만. 키워드 개수는 직전 `KW_NAMES`의 tuple 길이.
 - **옵션 B**: oparg = **위치 + 키워드 합계**. 키워드 개수는 KW_NAMES tuple 길이로 알 수 있으므로 위치 = oparg - n_kw.
 
-Elytra는 **옵션 A**로 정한다: `CALL n` → 위치 n개, 키워드 개수는 `pending_kw_names`가 있으면 `len(co_consts[kw_names_i])`.  
+Pgthon는 **옵션 A**로 정한다: `CALL n` → 위치 n개, 키워드 개수는 `pending_kw_names`가 있으면 `len(co_consts[kw_names_i])`.  
 (구현 전에 CPython `ceval.c`의 `case CALL:`에서 oparg 사용 방식을 한 번 더 확인할 것.)
 
 **Pop 순서 (CALL 실행 시):**
@@ -53,7 +53,7 @@ Elytra는 **옵션 A**로 정한다: `CALL n` → 위치 n개, 키워드 개수�
 
 ---
 
-## 3. Elytra에서 필요한 구조 변경
+## 3. Pgthon에서 필요한 구조 변경
 
 ### 3.1 유지하는 것
 
@@ -66,7 +66,7 @@ Elytra는 **옵션 A**로 정한다: `CALL n` → 위치 n개, 키워드 개수�
 | 항목 | 내용 |
 |------|------|
 | **Frame 상태** | "다음 CALL에서 쓸 키워드 이름" = `co_consts` 인덱스. `py_frame_object`에 `f_pending_kw_names_const_i INTEGER` (NULL 가능) 추가하거나, `py_eval_frame` 인라인 변수로만 관리. |
-| **NULL 표현** | PUSH_NULL에 대응하는 스택 값. 옵션: (1) 부트스트랩에 `Py_None`와 구분되는 전용 싱글턴 `Py_NULL`, (2) 특수 UUID(예: all-zero)를 "스택 전용 NULL"로 예약. CPython은 포인터 NULL이므로 Elytra는 (1) 또는 (2) 중 하나로 고정. |
+| **NULL 표현** | PUSH_NULL에 대응하는 스택 값. 옵션: (1) 부트스트랩에 `Py_None`와 구분되는 전용 싱글턴 `Py_NULL`, (2) 특수 UUID(예: all-zero)를 "스택 전용 NULL"로 예약. CPython은 포인터 NULL이므로 Pgthon는 (1) 또는 (2) 중 하나로 고정. |
 | **opcode 핸들러** | `PUSH_NULL`(2), `PRECALL`(166), `KW_NAMES`(172), `CALL`(171) 추가. 기존 `CALL_FUNCTION`(141)·`CALL_FUNCTION_KW`(142) 제거. |
 | **py_eval_frame** | CASE에 2, 166, 172, 171 추가. 141, 142 제거. |
 
@@ -84,7 +84,7 @@ Elytra는 **옵션 A**로 정한다: `CALL n` → 위치 n개, 키워드 개수�
 
 ## 4. CPython 쪽과의 대응 요약
 
-| CPython 3.11 | Elytra |
+| CPython 3.11 | Pgthon |
 |--------------|--------|
 | `PUSH_NULL` | 스택에 NULL 대응값 push (전용 싱글턴 또는 예약 UUID). |
 | `PRECALL n` | no-op 또는 "다음 CALL 위치 인자 수 = n" 기록(선택). |
@@ -122,7 +122,7 @@ Elytra는 **옵션 A**로 정한다: `CALL n` → 위치 n개, 키워드 개수�
 2. **테스트**
    - 기존 "CALL_FUNCTION으로 len/abs 호출" 테스트를 **바이트코드만** 3.11 형식으로 변경:  
      `LOAD_GLOBAL` 또는 `LOAD_NAME` + `LOAD_FAST`/`LOAD_CONST` + `PRECALL 1` + `CALL 1` + `RETURN_VALUE`.  
-   - Elytra가 아직 LOAD_GLOBAL/LOAD_FAST를 구현하지 않았다면, **LOAD_NAME + LOAD_CONST + PRECALL 1 + CALL 1** 조합으로 동일 시나리오 검증.
+   - Pgthon가 아직 LOAD_GLOBAL/LOAD_FAST를 구현하지 않았다면, **LOAD_NAME + LOAD_CONST + PRECALL 1 + CALL 1** 조합으로 동일 시나리오 검증.
 
 3. **기존 141/142 제거**
    - `py_opcode_CALL_FUNCTION`, `py_opcode_CALL_FUNCTION_KW` 호출부를 eval에서 제거.
@@ -186,7 +186,7 @@ Elytra는 **옵션 A**로 정한다: `CALL n` → 위치 n개, 키워드 개수�
 
 ## 7. 위험·주의사항
 
-- **LOAD_GLOBAL(116)·LOAD_FAST(124)**: 3.11 컴파일 결과는 `len(x)`를 LOAD_GLOBAL + LOAD_FAST + PRECALL + CALL로 낼 수 있음. Elytra가 아직 116/124를 구현하지 않았다면, **테스트용 바이트코드는 LOAD_NAME + LOAD_CONST**로 수동 구성해 동일 시맨틱만 검증.
+- **LOAD_GLOBAL(116)·LOAD_FAST(124)**: 3.11 컴파일 결과는 `len(x)`를 LOAD_GLOBAL + LOAD_FAST + PRECALL + CALL로 낼 수 있음. Pgthon가 아직 116/124를 구현하지 않았다면, **테스트용 바이트코드는 LOAD_NAME + LOAD_CONST**로 수동 구성해 동일 시맨틱만 검증.
 - **CALL oparg 해석**: CPython ceval.c에서 CALL oparg가 "위치만"인지 "위치+키워드"인지 소스로 한 번 더 확인 후, 위 "옵션 A"가 맞으면 그대로, 아니면 oparg 해석만 수정.
 - **CACHE(0)**: 3.11 바이트코드에는 PRECALL/CALL 뒤에 CACHE가 붙을 수 있음. CACHE 처리를 먼저 넣어 두면, 나중에 3.11 생성 바이트코드를 그대로 넣었을 때 오동작을 줄일 수 있음.
 
@@ -195,5 +195,5 @@ Elytra는 **옵션 A**로 정한다: `CALL n` → 위치 n개, 키워드 개수�
 ## 8. 참고
 
 - CPython: `Python/ceval.c` (PRECALL/CALL 분기), `Include/opcode.h`, `Lib/opcode.py`.
-- Elytra: `docs/TP_CALL_KWARGS_DESIGN.md`, `docs/CHANGE_3_TP_CALL_KWARGS_PLAN.md`.
+- Pgthon: `docs/TP_CALL_KWARGS_DESIGN.md`, `docs/CHANGE_3_TP_CALL_KWARGS_PLAN.md`.
 - Python 3.11 dis: `PRECALL`, `CALL`, `KW_NAMES`, `PUSH_NULL` 설명 및 예제.

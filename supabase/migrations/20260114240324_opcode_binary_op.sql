@@ -4,7 +4,7 @@
 --
 -- BINARY_OP(oparg): oparg is sub-opcode (NB_* in Include/opcode.h).
 -- Stack: ..., left, right → ..., result.
--- Elytra implements NB_ADD(0), NB_SUBTRACT(10), NB_MULTIPLY(5) via existing
+-- Pgthon implements NB_ADD(0), NB_SUBTRACT(10), NB_MULTIPLY(5) via existing
 -- py_object_add / py_object_subtract / py_object_multiply. Other sub-ops
 -- set TypeError (CPython: slot not implemented).
 -- ============================================================================

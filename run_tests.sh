@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =====================================================
-# Elytra Test Suite Runner
+# Pgthon Test Suite Runner
 # Description: Run all tests in sequence with Docker
 # =====================================================
 
@@ -10,12 +10,12 @@ DB_HOST="127.0.0.1"
 DB_PORT="54322"
 DB_USER="postgres"
 DB_NAME="postgres"
-DB_CONTAINER="supabase_db_elytra"
+DB_CONTAINER="supabase_db_pgthon"
 
 export PGPASSWORD="postgres"
 
 echo "==========================================="
-echo "🧪 Elytra Test Suite"
+echo "🧪 Pgthon Test Suite"
 echo "==========================================="
 echo ""
 
@@ -927,7 +927,7 @@ else
     exit 1
 fi
 
-# 86. py_run RPC (Elytra Python Playground)
+# 86. py_run RPC (Pgthon Python Playground)
 echo "=== Phase 86: py_run RPC ==="
 if run_test "supabase/tests/86_py_run.sql"; then
     echo ""
@@ -1032,7 +1032,7 @@ echo "  ✅ 82: Common Builtins (isinstance, hasattr, getattr, setattr, id)"
 echo "  ✅ 83: Extended Binary/Unary Ops (/, //, %, **, &, |, ^, <<, >>, ~, inplace)"
 echo "  ✅ 84: SWAP, Comprehension Opcodes (BUILD_SET, LIST_APPEND, SET_ADD, MAP_ADD), F-String (FORMAT_VALUE, BUILD_STRING)"
 echo "  ✅ 85: Star-Unpacking Opcodes (LIST_EXTEND, SET_UPDATE, DICT_UPDATE, DICT_MERGE, CALL_FUNCTION_EX, UNPACK_EX, BUILD_CONST_KEY_MAP)"
-echo "  ✅ 86: py_run RPC (Elytra Python Playground)"
+echo "  ✅ 86: py_run RPC (Pgthon Python Playground)"
 echo ""
 echo "Total: 86 test suites passed ✨"
 echo ""

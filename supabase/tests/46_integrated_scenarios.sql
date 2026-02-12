@@ -23,7 +23,7 @@
 --   규칙: 테스트 실패 시 코드 수정 없이 멈추고 사용자에게 실패만 알린다.
 -- ============================================================================
 
-SELECT set_config('elytra.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
+SELECT set_config('pgthon.thread_state_id', '00000000-0000-4000-e000-000000000030', false);
 
 DO $$
 DECLARE
@@ -329,7 +329,7 @@ BEGIN
     IF NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: Scenario 4 inst.f("hi") should set exception';
     END IF;
-    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('elytra.thread_state_id')::uuid;
+    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('pgthon.thread_state_id')::uuid;
     IF got_exc_type_id IS DISTINCT FROM ID_TYPE_ERROR_TYPE THEN
         RAISE EXCEPTION 'FAIL: Scenario 4 expected TypeError, got exc_type_id %', got_exc_type_id;
     END IF;
@@ -446,7 +446,7 @@ BEGIN
     IF NOT public.py_err_occurred() THEN
         RAISE EXCEPTION 'FAIL: getattr(T,"nonexistent") should set exception';
     END IF;
-    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('elytra.thread_state_id')::uuid;
+    SELECT exc_type_id INTO got_exc_type_id FROM public.py_thread_state WHERE id = current_setting('pgthon.thread_state_id')::uuid;
     IF got_exc_type_id IS DISTINCT FROM ID_ATTRIBUTE_ERROR_TYPE THEN
         RAISE EXCEPTION 'FAIL: expected AttributeError, got exc_type_id %', got_exc_type_id;
     END IF;

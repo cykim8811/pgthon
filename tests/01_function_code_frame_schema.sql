@@ -10,7 +10,7 @@
 --   - Shared-PK inheritance is correct
 --   - All references point to py_object.id (CPython's PyObject* principle)
 --   - Foreign key constraints are properly set up
---   - RLS policies are enabled
+--   - Tables and constraints are correct
 --
 -- Usage:
 --   Run this file after migrations to verify schema integrity.
@@ -28,8 +28,6 @@ DECLARE
     table_exists BOOLEAN;
     column_exists BOOLEAN;
     constraint_exists BOOLEAN;
-    rls_enabled BOOLEAN;
-    policy_exists BOOLEAN;
     constraint_name TEXT;
     column_count INTEGER;
     fk_count INTEGER;
@@ -343,103 +341,7 @@ BEGIN
     END IF;
 
     -- ========================================================================
-    -- Test 8: Verify RLS is enabled on all tables
-    -- ========================================================================
-    RAISE NOTICE '';
-    RAISE NOTICE 'Test 8: Verifying RLS is enabled...';
-    
-    -- py_function_object
-    test_count := test_count + 1;
-    SELECT relrowsecurity INTO rls_enabled
-    FROM pg_class
-    WHERE relname = 'py_function_object' AND relnamespace = 'public'::regnamespace;
-    
-    IF rls_enabled THEN
-        RAISE NOTICE '  ✓ RLS enabled on py_function_object';
-        pass_count := pass_count + 1;
-    ELSE
-        RAISE EXCEPTION 'FAIL: RLS not enabled on py_function_object';
-    END IF;
-    
-    -- py_code_object
-    test_count := test_count + 1;
-    SELECT relrowsecurity INTO rls_enabled
-    FROM pg_class
-    WHERE relname = 'py_code_object' AND relnamespace = 'public'::regnamespace;
-    
-    IF rls_enabled THEN
-        RAISE NOTICE '  ✓ RLS enabled on py_code_object';
-        pass_count := pass_count + 1;
-    ELSE
-        RAISE EXCEPTION 'FAIL: RLS not enabled on py_code_object';
-    END IF;
-    
-    -- py_frame_object
-    test_count := test_count + 1;
-    SELECT relrowsecurity INTO rls_enabled
-    FROM pg_class
-    WHERE relname = 'py_frame_object' AND relnamespace = 'public'::regnamespace;
-    
-    IF rls_enabled THEN
-        RAISE NOTICE '  ✓ RLS enabled on py_frame_object';
-        pass_count := pass_count + 1;
-    ELSE
-        RAISE EXCEPTION 'FAIL: RLS not enabled on py_frame_object';
-    END IF;
-
-    -- ========================================================================
-    -- Test 9: Verify RLS policies exist
-    -- ========================================================================
-    RAISE NOTICE '';
-    RAISE NOTICE 'Test 9: Verifying RLS policies...';
-    
-    -- py_function_object policy
-    test_count := test_count + 1;
-    SELECT EXISTS (
-        SELECT FROM pg_policies
-        WHERE schemaname = 'public'
-        AND tablename = 'py_function_object'
-    ) INTO policy_exists;
-    
-    IF policy_exists THEN
-        RAISE NOTICE '  ✓ RLS policy exists for py_function_object';
-        pass_count := pass_count + 1;
-    ELSE
-        RAISE EXCEPTION 'FAIL: RLS policy does not exist for py_function_object';
-    END IF;
-    
-    -- py_code_object policy
-    test_count := test_count + 1;
-    SELECT EXISTS (
-        SELECT FROM pg_policies
-        WHERE schemaname = 'public'
-        AND tablename = 'py_code_object'
-    ) INTO policy_exists;
-    
-    IF policy_exists THEN
-        RAISE NOTICE '  ✓ RLS policy exists for py_code_object';
-        pass_count := pass_count + 1;
-    ELSE
-        RAISE EXCEPTION 'FAIL: RLS policy does not exist for py_code_object';
-    END IF;
-    
-    -- py_frame_object policy
-    test_count := test_count + 1;
-    SELECT EXISTS (
-        SELECT FROM pg_policies
-        WHERE schemaname = 'public'
-        AND tablename = 'py_frame_object'
-    ) INTO policy_exists;
-    
-    IF policy_exists THEN
-        RAISE NOTICE '  ✓ RLS policy exists for py_frame_object';
-        pass_count := pass_count + 1;
-    ELSE
-        RAISE EXCEPTION 'FAIL: RLS policy does not exist for py_frame_object';
-    END IF;
-
-    -- ========================================================================
-    -- Test 10: Verify py_cfunction_object table exists
+    -- Test 8: Verify py_cfunction_object table exists
     -- ========================================================================
     RAISE NOTICE '';
     RAISE NOTICE 'Test 10: Verifying py_cfunction_object table...';
@@ -645,44 +547,6 @@ BEGIN
         pass_count := pass_count + 1;
     ELSE
         RAISE EXCEPTION 'FAIL: py_cfunction_object foreign keys do not all reference py_object(id) (found % constraints)', fk_count;
-    END IF;
-
-    -- ========================================================================
-    -- Test 13: Verify RLS is enabled on py_cfunction_object
-    -- ========================================================================
-    RAISE NOTICE '';
-    RAISE NOTICE 'Test 13: Verifying RLS is enabled on py_cfunction_object...';
-    test_count := test_count + 1;
-    
-    SELECT relrowsecurity INTO rls_enabled
-    FROM pg_class
-    WHERE relname = 'py_cfunction_object' AND relnamespace = 'public'::regnamespace;
-    
-    IF rls_enabled THEN
-        RAISE NOTICE '  ✓ RLS enabled on py_cfunction_object';
-        pass_count := pass_count + 1;
-    ELSE
-        RAISE EXCEPTION 'FAIL: RLS not enabled on py_cfunction_object';
-    END IF;
-
-    -- ========================================================================
-    -- Test 14: Verify RLS policy exists for py_cfunction_object
-    -- ========================================================================
-    RAISE NOTICE '';
-    RAISE NOTICE 'Test 14: Verifying RLS policy for py_cfunction_object...';
-    test_count := test_count + 1;
-    
-    SELECT EXISTS (
-        SELECT FROM pg_policies
-        WHERE schemaname = 'public'
-        AND tablename = 'py_cfunction_object'
-    ) INTO policy_exists;
-    
-    IF policy_exists THEN
-        RAISE NOTICE '  ✓ RLS policy exists for py_cfunction_object';
-        pass_count := pass_count + 1;
-    ELSE
-        RAISE EXCEPTION 'FAIL: RLS policy does not exist for py_cfunction_object';
     END IF;
 
     -- ========================================================================

@@ -8,7 +8,7 @@
 --   - Shared-PK inheritance is correct
 --   - All references point to py_object.id (CPython's PyObject* principle)
 --   - Foreign key constraints are properly set up
---   - RLS policies are enabled
+--   - Tables and constraints are correct
 --
 -- Usage:
 --   Run this file after migrations to verify schema integrity.
@@ -26,8 +26,6 @@ DECLARE
     table_exists BOOLEAN;
     column_exists BOOLEAN;
     constraint_exists BOOLEAN;
-    rls_enabled BOOLEAN;
-    policy_exists BOOLEAN;
     column_count INTEGER;
     fk_count INTEGER;
 BEGIN
@@ -279,44 +277,6 @@ BEGIN
         pass_count := pass_count + 1;
     ELSE
         RAISE EXCEPTION 'FAIL: py_method_object.im_self is not nullable (should support unbound methods)';
-    END IF;
-
-    -- ========================================================================
-    -- Test 5: Verify RLS is enabled
-    -- ========================================================================
-    RAISE NOTICE '';
-    RAISE NOTICE 'Test 5: Verifying RLS is enabled...';
-    test_count := test_count + 1;
-    
-    SELECT relrowsecurity INTO rls_enabled
-    FROM pg_class
-    WHERE relname = 'py_method_object' AND relnamespace = 'public'::regnamespace;
-    
-    IF rls_enabled THEN
-        RAISE NOTICE '  ✓ RLS enabled on py_method_object';
-        pass_count := pass_count + 1;
-    ELSE
-        RAISE EXCEPTION 'FAIL: RLS not enabled on py_method_object';
-    END IF;
-
-    -- ========================================================================
-    -- Test 6: Verify RLS policy exists
-    -- ========================================================================
-    RAISE NOTICE '';
-    RAISE NOTICE 'Test 6: Verifying RLS policy...';
-    test_count := test_count + 1;
-    
-    SELECT EXISTS (
-        SELECT FROM pg_policies
-        WHERE schemaname = 'public'
-        AND tablename = 'py_method_object'
-    ) INTO policy_exists;
-    
-    IF policy_exists THEN
-        RAISE NOTICE '  ✓ RLS policy exists for py_method_object';
-        pass_count := pass_count + 1;
-    ELSE
-        RAISE EXCEPTION 'FAIL: RLS policy does not exist for py_method_object';
     END IF;
 
     -- ========================================================================

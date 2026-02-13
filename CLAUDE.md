@@ -9,19 +9,25 @@ Pgthon implements CPython's object model and bytecode VM on PostgreSQL using PL/
 ## Commands
 
 ```bash
-# Apply all SQL files to a fresh database (run from repo root)
-for f in sql/*.sql; do psql -v ON_ERROR_STOP=1 -f "$f"; done
+# Start PostgreSQL via Docker
+make db
 
-# Run all integration tests (requires PostgreSQL with schema loaded)
-./run_tests.sh
+# Load schema (clean reset + apply all SQL files)
+make schema
 
-# Full cycle: load schema + test (assuming a clean database)
-for f in sql/*.sql; do psql -v ON_ERROR_STOP=1 -f "$f"; done && ./run_tests.sh
+# Run all tests
+make test
+
+# Full cycle: schema + test
+make all
+
+# Stop containers
+make down
 ```
 
-Connection defaults are `localhost:5432/postgres` as user `postgres`. Override with standard `PG*` environment variables (`PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE`, `PGPASSWORD`).
+Requires Docker. The Makefile runs `psql` inside the container — no local PostgreSQL install needed.
 
-Tests run via `psql` directly. Each test is a standalone SQL file executed with `psql -v ON_ERROR_STOP=1`. Tests are in `tests/` and run sequentially in numbered order by `run_tests.sh`. To run one test manually: `psql -v ON_ERROR_STOP=1 < tests/<test_file>.sql`.
+Tests are standalone SQL files in `tests/`, run sequentially in numbered order.
 
 ## Architecture
 

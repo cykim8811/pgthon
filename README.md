@@ -1,6 +1,6 @@
 # Pgthon
 
-A CPython 3.11 bytecode VM implemented entirely in PL/pgSQL.
+A CPython 3.11 bytecode VM implemented entirely in PL/pgSQL. No extensions, no foreign languages — just SQL, stored procedures, and a deep misunderstanding of what databases are for.
 
 Pgthon reconstructs CPython's object model, type system, and bytecode interpreter as a relational database schema. Every object is a row. Every type slot is a stored procedure. The interpreter loop is a PL/pgSQL function.
 

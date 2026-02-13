@@ -1,4 +1,4 @@
-.PHONY: db reset schema test all down
+.PHONY: db reset schema test all run repl down
 
 DOCKER_PSQL = docker compose exec -T postgres psql -U postgres
 
@@ -38,6 +38,14 @@ test:
 
 # Full cycle: schema + test
 all: schema test
+
+# Run Python code on Pgthon: make run CODE="1 + 2"
+run:
+	@python3.11 pgthon.py $(CODE)
+
+# Interactive REPL
+repl:
+	@python3.11 pgthon.py
 
 # Stop and remove containers
 down:

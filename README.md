@@ -23,6 +23,26 @@ make repl       # Interactive REPL
 42
 ```
 
+### Python Setup
+
+The easiest way to get Python 3.11:
+
+```bash
+brew install uv
+uv venv --python 3.11
+source .venv/bin/activate
+```
+
+Or with pyenv:
+
+```bash
+brew install pyenv
+pyenv install 3.11
+pyenv local 3.11
+python -m venv .venv
+source .venv/bin/activate
+```
+
 ## Commands
 
 | Command | Description |

@@ -17,7 +17,8 @@ reset: db
 # Load all SQL files (clean reload)
 schema: reset
 	@for f in sql/*.sql; do \
-		$(DOCKER_PSQL) -v ON_ERROR_STOP=1 < "$$f" > /dev/null 2>&1; \
+		echo "  Loading $$f"; \
+		$(DOCKER_PSQL) -v ON_ERROR_STOP=1 < "$$f"; \
 	done
 	@echo "Schema loaded."
 

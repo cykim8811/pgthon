@@ -6,6 +6,9 @@ import subprocess
 import sys
 import types
 
+if sys.version_info[:2] != (3, 11):
+    sys.exit(f"Python 3.11 required (got {sys.version_info.major}.{sys.version_info.minor})")
+
 
 def serialize_const(value):
     """Serialize a Python constant to the JSONB format py_run expects."""
@@ -125,14 +128,15 @@ def execute(source, mode="exec"):
 
     sql = f"SELECT py_run('{json.dumps(payload)}'::jsonb);"
     raw = run_sql(sql)
-    response = json.loads(raw)
-    return format_result(response)
+    return json.loads(raw)
 
 
 def repl():
-    """Interactive REPL."""
+    """Interactive REPL with persistent state."""
     print("Pgthon — Python on PostgreSQL")
     print('Type "exit" or Ctrl-D to quit.\n')
+
+    history = []  # accumulated source lines
 
     while True:
         try:
@@ -156,15 +160,35 @@ def repl():
                 break
             source += "\n" + line
 
+        # Check if input is an expression (can be eval'd)
+        is_expr = False
         try:
-            # Try eval first (expressions), fall back to exec (statements)
-            try:
-                result = execute(source, mode="eval")
-            except SyntaxError:
-                result = execute(source, mode="exec")
+            compile(source, "<pgthon>", "eval")
+            is_expr = True
+        except SyntaxError:
+            pass
 
-            if result:
-                print(result)
+        # Build full source: history + current input
+        if is_expr:
+            full = "\n".join(history + [f"_ = ({source})"])
+        else:
+            full = "\n".join(history + [source])
+
+        try:
+            response = execute(full, mode="exec")
+
+            if response.get("error") and response["error"] is not None:
+                err = response["error"]
+                print(f'{err["type"]}: {err["message"]}')
+                continue  # don't add to history on error
+
+            if is_expr:
+                val = response.get("globals", {}).get("_")
+                if val and val.get("type") != "none":
+                    print(format_value(val))
+            else:
+                history.append(source)
+
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
 
@@ -173,9 +197,10 @@ def main():
     if len(sys.argv) > 1:
         source = " ".join(sys.argv[1:])
         try:
-            result = execute(source, mode="eval")
+            response = execute(source, mode="eval")
         except SyntaxError:
-            result = execute(source, mode="exec")
+            response = execute(source, mode="exec")
+        result = format_result(response)
         if result:
             print(result)
     else:

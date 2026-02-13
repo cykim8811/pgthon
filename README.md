@@ -1,27 +1,26 @@
 # Pgthon
 
-Python on PostgreSQL. A CPython 3.11 bytecode VM implemented entirely in PL/pgSQL.
+A CPython 3.11 bytecode VM implemented entirely in PL/pgSQL.
 
-Pgthon faithfully reconstructs CPython's object model, type system, and bytecode interpreter as a relational database schema. Python code compiles on the host, then executes inside PostgreSQL.
+Pgthon reconstructs CPython's object model, type system, and bytecode interpreter as a relational database schema. Every object is a row. Every type slot is a stored procedure. The interpreter loop is a PL/pgSQL function.
 
 ## Quick Start
 
 ```bash
 # Prerequisites: Docker, Python 3.11
 
-# Start database, load schema, run tests
-make all
+make all        # Start DB, load schema, run tests
+make repl       # Interactive REPL
+```
 
-# Run Python on PostgreSQL
-python3 pgthon.py "1 + 2"         # 3
-python3 pgthon.py "len([1,2,3])"  # 3
-python3 pgthon.py "abs(-42)"      # 42
-
-# Interactive REPL
-python3 pgthon.py
->>> x = 10
->>> x + 5
-15
+```
+>>> 1 + 2
+3
+>>> x = [1, 2, 3]
+>>> len(x)
+3
+>>> abs(-42)
+42
 ```
 
 ## Commands
@@ -29,75 +28,57 @@ python3 pgthon.py
 | Command | Description |
 |---------|-------------|
 | `make db` | Start PostgreSQL container |
-| `make schema` | Clean reset + load all SQL files |
-| `make test` | Run all tests |
+| `make schema` | Clean reset + load all SQL |
+| `make test` | Run all 87 test suites |
 | `make all` | Full cycle (schema + test) |
-| `make run CODE="1+2"` | Run Python expression |
 | `make repl` | Interactive REPL |
 | `make down` | Stop containers |
 
-## How It Works
-
-1. **`pgthon.py`** compiles Python source to CPython 3.11 bytecode using `compile()`
-2. The bytecode and metadata are serialized to JSON
-3. **`py_run()`** in PostgreSQL creates the code object, frame, and globals dict
-4. **`py_eval_frame()`** executes the bytecode — a PL/pgSQL loop dispatching 80+ opcodes
-5. Results are serialized back to JSON and displayed
-
 ## Architecture
 
+The core is 103 SQL files implementing CPython's internals in PostgreSQL:
+
+**Object Model** — CPython's `PyObject*` becomes UUID foreign keys. `py_object` is the base table; type-specific tables extend it (`py_long_object`, `py_unicode_object`, `py_list_object`, `py_dict_object`, ...).
+
+**Type System** — `py_type_object` implements CPython's type slots as `regproc` references: `tp_call`, `tp_hash`, `tp_richcompare`, `tp_iter`, `nb_add`, `sq_length`, `mp_subscript`, and more.
+
+**Bytecode VM** — `py_eval_frame()` is the interpreter loop. It reads 2-byte wordcode instructions from `py_code_object.co_code`, dispatches to `py_opcode_*` handler functions, and manages the value stack as a UUID array.
+
+**Bootstrap** — Type objects (`type`, `object`, `int`, `str`, `list`, `dict`, ...) and singletons (`None`, `True`, `False`) are bootstrapped with fixed UUIDs, mirroring CPython's initialization.
+
+### SQL Source Layout
+
+| Files | Description |
+|-------|-------------|
+| `000-001` | Object schema, bootstrap |
+| `002-008` | Runtime, functions, exceptions, builtins |
+| `009-026` | Type slots (`tp_call`, `tp_hash`, `nb_add`, ...) |
+| `027-094` | Opcode handlers (one per file) |
+| `095-100` | Exception dispatch opcodes |
+| `101` | `py_eval_frame` — the interpreter loop |
+| `102` | `py_run` — JSON RPC entry point |
+
+## What's Implemented
+
+- **Types**: `int`, `float`, `str`, `bytes`, `bool`, `list`, `tuple`, `dict`, `set`, `NoneType`, `function`, `code`, `slice`, `range`
+- **Arithmetic**: `+`, `-`, `*`, `/`, `//`, `%`, `**`, `&`, `|`, `^`, `<<`, `>>`, `~`, unary `-`/`+`
+- **Comparison**: `<`, `>`, `==`, `!=`, `<=`, `>=`, `is`, `is not`, `in`, `not in`
+- **Control flow**: `if`/`elif`/`else`, `for`, `while`, `try`/`except`, `raise`
+- **Functions**: `def`, closures, `*args`, `**kwargs`, default arguments
+- **Classes**: `class`, `__init__`, inheritance, bound methods, `__build_class__`
+- **Builtins**: `len`, `abs`, `print`, `range`, `isinstance`, `hasattr`, `getattr`, `setattr`, `id`
+- **80+ opcodes**: `LOAD_CONST`, `BINARY_OP`, `CALL`, `MAKE_FUNCTION`, `FOR_ITER`, `BUILD_MAP`, comprehensions, f-strings, star unpacking, ...
+
+## Testing
+
+`pgthon.py` compiles Python source to CPython 3.11 bytecode and sends it to the VM via `py_run()`. This is a testing tool — the project itself is the SQL.
+
+```bash
+python3 pgthon.py "1 + 2"    # One-shot
+python3 pgthon.py             # REPL
 ```
-Python source
-    |
-    v
-compile()          # Host-side: CPython 3.11 compiler
-    |
-    v
-JSON payload       # bytecode (hex), consts, names, varnames, ...
-    |
-    v
-py_run(JSONB)      # PostgreSQL: creates objects, frame, executes
-    |
-    v
-py_eval_frame()    # PL/pgSQL: reads bytecode, dispatches opcodes
-    |
-    v
-JSON result        # {result, globals, error}
-```
-
-### Database Schema
-
-CPython's pointer-based `PyObject*` becomes UUID foreign keys. `py_object` is the base table; type-specific tables extend it:
-
-- `py_long_object` (int), `py_float_object`, `py_unicode_object` (str)
-- `py_list_object`, `py_tuple_object`, `py_dict_object`, `py_set_object`
-- `py_code_object`, `py_function_object`, `py_frame_object`
-- `py_type_object` with slots: `tp_call`, `tp_hash`, `tp_richcompare`, `nb_add`, ...
-
-### SQL Source (`sql/`, 103 files)
-
-| Group | Files | Description |
-|-------|-------|-------------|
-| Object model | `000-001` | `py_object`, type tables, bootstrap |
-| Type slots | `009-026` | `tp_call`, `tp_hash`, `nb_add`, `sq_length`, ... |
-| Opcodes | `027-100` | One file per opcode handler |
-| Eval frame | `101` | Main interpreter loop |
-| py_run | `102` | RPC entry point |
-
-## What Works
-
-- Arithmetic: `+`, `-`, `*`, `/`, `//`, `%`, `**`, bitwise ops
-- Comparison: `<`, `>`, `==`, `!=`, `<=`, `>=`, `is`, `in`
-- Variables: local, global, closures, del
-- Control flow: `if/elif/else`, `for`, `while`, `try/except`
-- Data structures: `list`, `tuple`, `dict`, `set`, `slice`
-- Functions: `def`, closures, `*args`, `**kwargs`
-- Classes: `class`, `__init__`, inheritance, bound methods
-- Builtins: `len`, `abs`, `print`, `range`, `isinstance`, `hasattr`, `getattr`, `setattr`, `id`
-- Type constructors: `int()`, `str()`, `float()`, `bool()`, `list()`, `tuple()`, `dict()`
-- Comprehensions, f-strings, star unpacking
 
 ## Requirements
 
 - Docker
-- Python 3.11 (exact version required — bytecode format must match)
+- Python 3.11 (for `pgthon.py` — must match the bytecode format the VM expects)
